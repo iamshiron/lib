@@ -22,6 +22,18 @@ using (new ProfileScope(profiler, "Sample Scope")) {
     sub.Info("This is an info message from sub-logger.");
     sub.Warning("This is a warning message from sub-logger.");
     sub.Error("This is an error message from sub-logger.");
+
+    var capturedLogs = new List<ILogEntry>();
+    using (new LogInjector(logger, capturedLogs.Add)) {
+        logger.Info("This info log will be captured by the injector.");
+        logger.Error("This error log will also be captured by the injector.");
+    }
+
+    logger.Info($"Captured {capturedLogs.Count} log entries via injector.");
+    logger.Info("Replaying captured logs:");
+    foreach (var entry in capturedLogs) {
+        logger.Log(entry);
+    }
 }
 
 if (!Directory.Exists("profiles")) {

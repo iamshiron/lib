@@ -45,9 +45,6 @@ public class LogContext {
 
 /// <summary>Internal Manila logger.</summary>
 public class Logger(string? prefix) : ILogger {
-    /// <summary>Entry event.</summary>
-    public event Action<ILogEntry>? OnLogEntry;
-
     /// <summary>Injector map.</summary>
     private readonly ConcurrentDictionary<Guid, LogInjector> _activeInjectors = new();
     private readonly List<ILogRenderer> _renderers = [];
