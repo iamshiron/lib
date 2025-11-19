@@ -38,3 +38,11 @@ public class MarkupLogEntry(string message, bool logAlways = false, string? logg
     public string? LoggerPrefix { get; } = loggerPrefix;
     public bool LogAlways { get; } = logAlways;
 }
+
+/// <summary>A log entry captured by an injector <see cref="LogInjector"/>.</summary>
+public class CapturedLogEntry(ILogEntry captured) : BaseLogEntry {
+    /// <inheritdoc/>
+    public override LogLevel Level => LogLevel.System;
+    /// <summary>Captured entry.</summary>
+    public ILogEntry Captured { get; } = captured;
+}

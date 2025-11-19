@@ -9,11 +9,11 @@ public class CustomSubRenderer : ILogRenderer {
         switch (entry) {
             case BasicLogEntry e:
                 System.Console.WriteLine("Log from CustomSubRenderer:");
-                System.Console.WriteLine($"[{TimeUtils.FormatTimestamp(e.Timestamp, false)}{e.LoggerPrefix}] {e.Level}: {e.Message}");
+                System.Console.WriteLine($"[{TimeUtils.FormatTimestamp(e.Timestamp, false)}/{e.LoggerPrefix}] {e.Level}: {e.Message}");
                 return true;
             case MarkupLogEntry e:
                 System.Console.WriteLine("Log from CustomSubRenderer:");
-                System.Console.WriteLine($"[{TimeUtils.FormatTimestamp(e.Timestamp, false)}{e.LoggerPrefix}] {e.Level}: {e.Message} (Markup: {e.Message})");
+                System.Console.WriteLine($"[{TimeUtils.FormatTimestamp(e.Timestamp, false)}/{e.LoggerPrefix}] {e.Level}: {e.Message} (Markup: {e.Message})");
                 return true;
             default:
                 return false;

@@ -14,6 +14,8 @@ public class LogRenderer : ILogRenderer {
             case MarkupLogEntry e:
                 Console.WriteLine($"[{TimeUtils.FormatTimestamp(e.Timestamp, false)}/{e.LoggerPrefix}] {e.Level}: {e.Message} (Markup: {e.Message})");
                 return true;
+            case CapturedLogEntry e:
+                return RenderLog(e.Captured);
             default:
                 return false;
         }

@@ -87,6 +87,13 @@ public class Logger(string? prefix) : ILogger {
         if (entry.ParentContextID == null && LogContext.CurrentContextID != null)
             entry.ParentContextID = LogContext.CurrentContextID;
 
+        var suppressLog = false;
+        foreach (var injector in _activeInjectors.Values) {
+            suppressLog |= injector.Handle(entry);
+        }
+
+        if (suppressLog)
+            return;
 
         var handled = false;
         var logger = this;
@@ -103,11 +110,6 @@ public class Logger(string? prefix) : ILogger {
 
         if (!handled)
             Warning($"Log entry was not handled by any renderer: {entry.GetType().Name}");
-
-        // Iterate over a thread-safe snapshot of injectors. ConcurrentDictionary supports safe enumeration.
-        foreach (var injector in _activeInjectors.Values) {
-            injector.Handle(entry);
-        }
     }
 
     /// <inheritdoc/>

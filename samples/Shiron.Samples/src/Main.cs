@@ -23,17 +23,21 @@ using (new ProfileScope(profiler, "Sample Scope")) {
     sub.Warning("This is a warning message from sub-logger.");
     sub.Error("This is an error message from sub-logger.");
 
-    var capturedLogs = new List<ILogEntry>();
-    using (new LogInjector(logger, capturedLogs.Add)) {
-        logger.Info("This info log will be captured by the injector.");
-        logger.Error("This error log will also be captured by the injector.");
+    var outerInjector = new LogInjector(logger, (entry) => { });
+    LogInjector injector = new LogInjector(logger, (entry) => { }, true);
+
+    using (outerInjector.Inject()) {
+        logger.Info("This info log will be captured by the outer injector which will not suppress the log.");
+        using (injector.Inject()) {
+            logger.Info("This info log will be captured by the inner injector which will suppress the log.");
+        }
     }
 
-    logger.Info($"Captured {capturedLogs.Count} log entries via injector.");
-    logger.Info("Replaying captured logs:");
-    foreach (var entry in capturedLogs) {
-        logger.Log(entry);
-    }
+    logger.Info($"Outer Logs Captured: {outerInjector.CapturedEntries.Count}, Inner Logs Captured: {injector.CapturedEntries.Count}");
+    logger.Info("Outer Logs:");
+    outerInjector.Replay(logger);
+    logger.Info("Inner Logs:");
+    injector.Replay(logger);
 }
 
 if (!Directory.Exists("profiles")) {
