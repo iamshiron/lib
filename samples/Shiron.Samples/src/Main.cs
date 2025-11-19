@@ -5,7 +5,7 @@ using Shiron.Profiling;
 using Shiron.Samples.Logging;
 
 var logger = new Logger(null);
-_ = new LogRenderer(logger);
+logger.AddRenderer(new LogRenderer());
 
 var profiler = new Profiler(logger, true);
 

@@ -1,4 +1,6 @@
 
+using Shiron.Logging.Renderer;
+
 namespace Shiron.Logging;
 
 /// <summary>Core logging interface.</summary>
@@ -23,6 +25,9 @@ public interface ILogger {
     public void Critical(string message);
     /// <summary>System level.</summary>
     public void System(string message);
+
+    /// <summary>Add a log renderer.</summary>
+    public void AddRenderer(ILogRenderer renderer);
 
     /// <summary>Add injector.</summary>
     /// <param name="id">Injector ID.</param>

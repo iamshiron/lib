@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Linq;
+using Shiron.Logging.Renderer;
 
 namespace Shiron.Logging;
 
@@ -46,6 +47,7 @@ public class Logger(string? loggerPrefix) : ILogger {
 
     /// <summary>Injector map.</summary>
     private readonly ConcurrentDictionary<Guid, LogInjector> _activeInjectors = new();
+    private readonly List<ILogRenderer> _renderers = [];
     public LogContext LogContext { get; } = new();
 
     public string? LoggerPrefix => loggerPrefix;
@@ -77,7 +79,18 @@ public class Logger(string? loggerPrefix) : ILogger {
         if (entry.ParentContextID == null && LogContext.CurrentContextID != null)
             entry.ParentContextID = LogContext.CurrentContextID;
 
-        OnLogEntry?.Invoke(entry);
+
+        var handled = false;
+        foreach (var renderer in _renderers) {
+            if (renderer.RenderLog(entry)) {
+                handled = true;
+                break;
+            }
+        }
+
+        if (!handled)
+            Warning($"Log entry was not handled by any renderer: {entry.GetType().Name}");
+
         // Iterate over a thread-safe snapshot of injectors. ConcurrentDictionary supports safe enumeration.
         foreach (var injector in _activeInjectors.Values) {
             injector.Handle(entry);
@@ -118,6 +131,11 @@ public class Logger(string? loggerPrefix) : ILogger {
     /// <summary>System.</summary>
     public void System(string message) {
         Log(new BasicLogEntry(message, LogLevel.System, loggerPrefix));
+    }
+
+    /// <inheritdoc/>
+    public void AddRenderer(ILogRenderer renderer) {
+        _renderers.Add(renderer);
     }
 }
 
