@@ -1,8 +1,9 @@
 
-namespace Shiron.Manila.Logging;
+namespace Shiron.Logging;
 
 /// <summary>Core logging interface.</summary>
-public interface ILogger {
+public interface ILogger
+{
     /// <summary>Emit entry.</summary>
     /// <param name="entry">Log entry instance.</param>
     public void Log(ILogEntry entry);

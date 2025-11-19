@@ -4,16 +4,20 @@ using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
 
-namespace Shiron.Manila.Logging;
+namespace Shiron.Logging;
 
 /// <summary>Serialize <see cref="Exception"/> (no read).</summary>
-public class ExceptionConverter : JsonConverter {
-    public override bool CanConvert(Type objectType) {
+public class ExceptionConverter : JsonConverter
+{
+    public override bool CanConvert(Type objectType)
+    {
         return typeof(Exception).IsAssignableFrom(objectType);
     }
 
-    public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer) {
-        if (value is not Exception exception) {
+    public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
+    {
+        if (value is not Exception exception)
+        {
             writer.WriteNull();
             return;
         }
@@ -25,7 +29,8 @@ public class ExceptionConverter : JsonConverter {
             { "source", exception.Source }
         };
 
-        if (exception.InnerException != null) {
+        if (exception.InnerException != null)
+        {
             jo.Add("innerException", JToken.FromObject(exception.InnerException, serializer));
         }
 
@@ -36,20 +41,24 @@ public class ExceptionConverter : JsonConverter {
 }
 
 /// <summary>Serialize <see cref="ILogEntry"/> structured (no read).</summary>
-public class LogEntryConverter : JsonConverter<ILogEntry> {
+public class LogEntryConverter : JsonConverter<ILogEntry>
+{
     public override bool CanWrite => true;
     public override bool CanRead => false;
 
     public override ILogEntry ReadJson(JsonReader reader, Type objectType, ILogEntry? existingValue, bool hasExistingValue, JsonSerializer serializer) => throw new Exception("Deserialization not supported.");
 
-    public override void WriteJson(JsonWriter writer, ILogEntry? value, JsonSerializer serializer) {
-        if (value == null) {
+    public override void WriteJson(JsonWriter writer, ILogEntry? value, JsonSerializer serializer)
+    {
+        if (value == null)
+        {
             writer.WriteNull();
             return;
         }
 
         // This nested serializer is configured to handle the 'data' object's contents.
-        var nestedSerializer = new JsonSerializer {
+        var nestedSerializer = new JsonSerializer
+        {
             ContractResolver = new CamelCasePropertyNamesContractResolver(),
             Converters = { new StringEnumConverter() },
             TypeNameHandling = TypeNameHandling.None,
@@ -60,7 +69,8 @@ public class LogEntryConverter : JsonConverter<ILogEntry> {
 
         // CRITICAL: Remove this converter from the nested serializer to prevent a stack overflow.
         var self = nestedSerializer.Converters.FirstOrDefault(c => c is LogEntryConverter);
-        if (self != null) {
+        if (self != null)
+        {
             nestedSerializer.Converters.Remove(self);
         }
 
@@ -84,8 +94,10 @@ public class LogEntryConverter : JsonConverter<ILogEntry> {
         Type type = value.GetType();
         var ignoredProps = new HashSet<string> { nameof(ILogEntry.Timestamp), nameof(ILogEntry.Level) };
 
-        foreach (PropertyInfo property in type.GetProperties(BindingFlags.Public | BindingFlags.Instance)) {
-            if (ignoredProps.Contains(property.Name)) {
+        foreach (PropertyInfo property in type.GetProperties(BindingFlags.Public | BindingFlags.Instance))
+        {
+            if (ignoredProps.Contains(property.Name))
+            {
                 continue;
             }
 

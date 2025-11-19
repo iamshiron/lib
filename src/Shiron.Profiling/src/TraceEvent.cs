@@ -1,6 +1,6 @@
 using Newtonsoft.Json;
 
-namespace Shiron.Manila.Profiling;
+namespace Shiron.Profiling;
 
 /// <summary>
 /// Represents a single event in the Chrome Trace Event Format.
@@ -9,7 +9,8 @@ namespace Shiron.Manila.Profiling;
 /// This structure is designed to be serialized directly to JSON for chrome://tracing.
 /// Property names are intentionally lowercase to match the Chrome Trace Event Format specification.
 /// </remarks>
-public class TraceEvent {
+public class TraceEvent
+{
     /// <summary>
     /// The name of the event.
     /// </summary>

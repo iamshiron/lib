@@ -1,8 +1,9 @@
 
-namespace Shiron.Manila.Logging;
+namespace Shiron.Logging;
 
 /// <summary>Log entry contract.</summary>
-public interface ILogEntry {
+public interface ILogEntry
+{
     /// <summary>Unix ms timestamp.</summary>
     long Timestamp { get; }
 
@@ -13,7 +14,8 @@ public interface ILogEntry {
 }
 
 /// <summary>Base log entry.</summary>
-public abstract class BaseLogEntry : ILogEntry {
+public abstract class BaseLogEntry : ILogEntry
+{
     /// <inheritdoc />
     public long Timestamp { get; } = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
@@ -25,14 +27,16 @@ public abstract class BaseLogEntry : ILogEntry {
 }
 
 /// <summary>Message entry.</summary>
-public class BasicLogEntry(string message, LogLevel level, string? loggerPrefix = null) : BaseLogEntry {
+public class BasicLogEntry(string message, LogLevel level, string? loggerPrefix = null) : BaseLogEntry
+{
     public override LogLevel Level { get; } = level;
     public string Message { get; } = message;
     public string? LoggerPrefix { get; } = loggerPrefix;
 }
 
 /// <summary>Markup (Info level) entry.</summary>
-public class MarkupLogEntry(string message, bool logAlways = false, string? loggerPrefix = null) : BaseLogEntry {
+public class MarkupLogEntry(string message, bool logAlways = false, string? loggerPrefix = null) : BaseLogEntry
+{
     public override LogLevel Level { get; } = LogLevel.Info;
     public string Message { get; } = message;
     public string? LoggerPrefix { get; } = loggerPrefix;

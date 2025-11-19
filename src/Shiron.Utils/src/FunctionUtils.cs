@@ -1,9 +1,10 @@
 using System.Linq.Expressions;
 using System.Reflection;
 
-namespace Shiron.Manila.Utils;
+namespace Shiron.Utils;
 
-public static class FunctionUtils {
+public static class FunctionUtils
+{
     /// <summary>
     /// Converts a method to a delegate.
     /// </summary>
@@ -17,11 +18,15 @@ public static class FunctionUtils {
     /// and methods with up to 4 parameters. For methods that cannot be directly converted using CreateDelegate,
     /// it falls back to using expression trees.
     /// </remarks>
-    public static Delegate ToDelegate(object? o, MethodInfo method) {
-        try {
-            if (method.ReturnType == typeof(void)) {
+    public static Delegate ToDelegate(object? o, MethodInfo method)
+    {
+        try
+        {
+            if (method.ReturnType == typeof(void))
+            {
                 var paramTypes = method.GetParameters().Select(p => p.ParameterType).ToArray();
-                Type delegateType = paramTypes.Length switch {
+                Type delegateType = paramTypes.Length switch
+                {
                     0 => typeof(Action),
                     1 => typeof(Action<>).MakeGenericType(paramTypes),
                     2 => typeof(Action<,>).MakeGenericType(paramTypes),
@@ -31,10 +36,13 @@ public static class FunctionUtils {
                 };
                 return Delegate.CreateDelegate(delegateType, o, method, throwOnBindFailure: false)
                        ?? CreateDelegateWithExpression(o, method, delegateType);
-            } else {
+            }
+            else
+            {
                 var paramTypes = method.GetParameters().Select(p => p.ParameterType).ToArray();
                 Type[] typeArgs = paramTypes.Append(method.ReturnType).ToArray();
-                Type delegateType = paramTypes.Length switch {
+                Type delegateType = paramTypes.Length switch
+                {
                     0 => typeof(Func<>).MakeGenericType(method.ReturnType),
                     1 => typeof(Func<,>).MakeGenericType(typeArgs),
                     2 => typeof(Func<,,>).MakeGenericType(typeArgs),
@@ -45,7 +53,9 @@ public static class FunctionUtils {
                 return Delegate.CreateDelegate(delegateType, o, method, throwOnBindFailure: false)
                        ?? CreateDelegateWithExpression(o, method, delegateType);
             }
-        } catch (Exception ex) {
+        }
+        catch (Exception ex)
+        {
             throw new ArgumentException(
                 $"Failed to create delegate for method {method.Name} on type {method.DeclaringType?.Name}. " +
                 $"Return type: {method.ReturnType.Name}, " +
@@ -65,7 +75,8 @@ public static class FunctionUtils {
     /// This method uses expression trees to create a delegate when the standard Delegate.CreateDelegate
     /// method fails. It supports both instance and static methods with up to 4 parameters.
     /// </remarks>
-    private static Delegate CreateDelegateWithExpression(object? target, MethodInfo method, Type delegateType) {
+    private static Delegate CreateDelegateWithExpression(object? target, MethodInfo method, Type delegateType)
+    {
         // This is a fallback approach using Expression trees when standard delegate creation fails
         ParameterExpression[] parameters = [.. method.GetParameters().Select(p => Expression.Parameter(p.ParameterType, p.Name))];
 
@@ -87,7 +98,8 @@ public static class FunctionUtils {
     /// <param name="method">The method to check</param>
     /// <param name="args">The list of the arguments</param>
     /// <returns>True if the method parameters match the provided arguments, otherwise false.</returns>
-    public static bool SameParameters(MethodInfo method, object?[] args) {
+    public static bool SameParameters(MethodInfo method, object?[] args)
+    {
         var methodParams = method.GetParameters();
         if (methodParams.Length != args.Length) return false;
 

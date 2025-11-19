@@ -7,7 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Manila.Logging\Manila.Logging.csproj" />
+    <ProjectReference Include="..\Shiron.Logging\Shiron.Logging.csproj" />
   </ItemGroup>
 
 </Project>
