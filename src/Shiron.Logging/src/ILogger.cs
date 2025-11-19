@@ -45,4 +45,9 @@ public interface ILogger {
 
     /// <summary>Entry published event.</summary>
     public event Action<ILogEntry>? OnLogEntry;
+
+    /// <summary>Create sub-logger with prefix.</summary>
+    /// <param name="prefix">Prefix string.</param>
+    /// <returns>Sub-logger instance.</returns>
+    public ILogger CreateSubLogger(string prefix);
 }

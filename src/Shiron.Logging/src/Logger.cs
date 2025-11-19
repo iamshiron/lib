@@ -1,5 +1,8 @@
 using System.Collections.Concurrent;
+using System.Diagnostics;
+using System.Diagnostics.Contracts;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using Shiron.Logging.Renderer;
 
 namespace Shiron.Logging;
@@ -41,30 +44,39 @@ public class LogContext {
 }
 
 /// <summary>Internal Manila logger.</summary>
-public class Logger(string? loggerPrefix) : ILogger {
+public class Logger(string? prefix) : ILogger {
     /// <summary>Entry event.</summary>
     public event Action<ILogEntry>? OnLogEntry;
 
     /// <summary>Injector map.</summary>
     private readonly ConcurrentDictionary<Guid, LogInjector> _activeInjectors = new();
     private readonly List<ILogRenderer> _renderers = [];
+    private readonly List<ILogger> _sub = [];
+    private readonly Logger? _parrent = null;
+    private readonly Logger? _rootLogger = null;
     public LogContext LogContext { get; } = new();
 
-    public string? LoggerPrefix => loggerPrefix;
+    public string? LoggerPrefix { get; } = prefix;
 
-    /// <summary>Add injector.</summary>
-    /// <param name="id">Injector ID.</param>
-    /// <param name="injector">Injector instance.</param>
-    /// <exception cref="InvalidOperationException">Thrown if an injector with the same ID already exists.</exception>
+    private Logger(string prefix, Logger parent) : this(prefix) {
+        _parrent = parent;
+
+        // Find root logger by traversing up the parent chain.
+        var current = parent;
+        while (current._parrent != null) {
+            current = current._parrent;
+        }
+        _rootLogger = current;
+    }
+
+    /// <inheritdoc/>
     public void AddInjector(Guid id, LogInjector injector) {
         if (!_activeInjectors.TryAdd(id, injector)) {
             throw new Exception($"An injector with ID {id} already exists.");
         }
     }
 
-    /// <summary>Remove injector.</summary>
-    /// <param name="id">Injector ID.</param>
-    /// <exception cref="InvalidOperationException">Thrown if no injector with the specified ID is found.</exception>
+    /// <inheritdoc/>
     public void RemoveInjector(Guid id) {
         if (!_activeInjectors.TryRemove(id, out _)) {
             // Note: Depending on requirements, this could fail silently instead of throwing.
@@ -73,19 +85,23 @@ public class Logger(string? loggerPrefix) : ILogger {
         }
     }
 
-    /// <summary>Emit entry.</summary>
-    /// <param name="entry">Entry object.</param>
+    /// <inheritdoc/>
     public void Log(ILogEntry entry) {
         if (entry.ParentContextID == null && LogContext.CurrentContextID != null)
             entry.ParentContextID = LogContext.CurrentContextID;
 
 
         var handled = false;
-        foreach (var renderer in _renderers) {
-            if (renderer.RenderLog(entry)) {
-                handled = true;
-                break;
+        var logger = this;
+        while (true) {
+            foreach (var renderer in logger._renderers) {
+                if (renderer.RenderLog(entry)) {
+                    handled = true;
+                }
             }
+
+            if (handled || logger._parrent == null) break;
+            logger = logger._parrent;
         }
 
         if (!handled)
@@ -97,45 +113,53 @@ public class Logger(string? loggerPrefix) : ILogger {
         }
     }
 
-    /// <summary>Markup info line.</summary>
-    /// <param name="message">Message text.</param>
+    /// <inheritdoc/>
     public void MarkupLine(string message, bool logAlways = false) {
-        Log(new MarkupLogEntry(message, logAlways, loggerPrefix));
+        Log(new MarkupLogEntry(message, logAlways, LoggerPrefix));
     }
 
-    /// <summary>Info.</summary>
+    /// <inheritdoc/>
     public void Info(string message) {
-        Log(new BasicLogEntry(message, LogLevel.Info, loggerPrefix));
+        Log(new BasicLogEntry(message, LogLevel.Info, LoggerPrefix));
     }
 
-    /// <summary>Debug.</summary>
+    /// <inheritdoc/>
     public void Debug(string message) {
-        Log(new BasicLogEntry(message, LogLevel.Debug, loggerPrefix));
+        Log(new BasicLogEntry(message, LogLevel.Debug, LoggerPrefix));
     }
 
-    /// <summary>Warning.</summary>
+    /// <inheritdoc/>
     public void Warning(string message) {
-        Log(new BasicLogEntry(message, LogLevel.Warning, loggerPrefix));
+        Log(new BasicLogEntry(message, LogLevel.Warning, LoggerPrefix));
     }
 
-    /// <summary>Error.</summary>
+    /// <inheritdoc/>
     public void Error(string message) {
-        Log(new BasicLogEntry(message, LogLevel.Error, loggerPrefix));
+        Log(new BasicLogEntry(message, LogLevel.Error, LoggerPrefix));
     }
 
-    /// <summary>Critical.</summary>
+    /// <inheritdoc/>
     public void Critical(string message) {
-        Log(new BasicLogEntry(message, LogLevel.Critical, loggerPrefix));
+        Log(new BasicLogEntry(message, LogLevel.Critical, LoggerPrefix));
     }
 
-    /// <summary>System.</summary>
+    /// <inheritdoc/>
     public void System(string message) {
-        Log(new BasicLogEntry(message, LogLevel.System, loggerPrefix));
+        Log(new BasicLogEntry(message, LogLevel.System, LoggerPrefix));
     }
 
     /// <inheritdoc/>
     public void AddRenderer(ILogRenderer renderer) {
         _renderers.Add(renderer);
+    }
+
+    /// <inheritdoc/>
+    public ILogger CreateSubLogger(string prefix) {
+        var combinedPrefix = LoggerPrefix != null ? $"{LoggerPrefix}/{prefix}" : prefix;
+        var sub = new Logger(combinedPrefix, this);
+        _sub.Add(sub);
+
+        return sub;
     }
 }
 
