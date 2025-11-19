@@ -2,6 +2,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Shiron.Logging\Shiron.Logging.csproj" />
+    <ProjectReference Include="..\..\src\Shiron.Profiling\Shiron.Profiling.csproj" />
+    <ProjectReference Include="..\..\src\Shiron.Utils\Shiron.Utils.csproj" />
   </ItemGroup>
 
   <PropertyGroup>
