@@ -4,6 +4,11 @@
     <Platform Name="x64" />
     <Platform Name="x86" />
   </Configurations>
+  <Folder Name="/samples/">
+    <Project Path="samples/Shiron.Samples.Logging/Shiron.Samples.Logging.csproj" />
+    <Project Path="samples/Shiron.Samples.Profiling/Shiron.Samples.Profiling.csproj" />
+    <Project Path="samples/Shiron.Samples.Utils/Shiron.Samples.Utils.csproj" />
+  </Folder>
   <Folder Name="/src/">
     <Project Path="src/Shiron.Logging/Shiron.Logging.csproj" />
     <Project Path="src/Shiron.Profiling/Shiron.Profiling.csproj" />
