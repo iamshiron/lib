@@ -1,5 +1,6 @@
 
 using Shiron.Logging;
+using Shiron.Utils;
 
 namespace Shiron.Samples.Logging;
 
@@ -11,19 +12,14 @@ public class LogRenderer {
     public void RenderLogEntry(ILogEntry entry) {
         switch (entry) {
             case BasicLogEntry e:
-                Console.WriteLine($"[{FormatTimestamp(e.Timestamp)}] {e.Level}: {e.Message}");
+                Console.WriteLine($"[{TimeUtils.FormatTimestamp(e.Timestamp, false)}] {e.Level}: {e.Message}");
                 break;
             case MarkupLogEntry e:
-                Console.WriteLine($"[{FormatTimestamp(e.Timestamp)}] {e.Level}: {e.Message} (Markup: {e.Message})");
+                Console.WriteLine($"[{TimeUtils.FormatTimestamp(e.Timestamp, false)}] {e.Level}: {e.Message} (Markup: {e.Message})");
                 break;
             default:
                 Console.WriteLine($"Unknown log entry type: {entry.GetType().Name}");
                 break;
         }
-    }
-
-    private static string FormatTimestamp(long ms) {
-        TimeSpan timeSpan = TimeSpan.FromMilliseconds(ms);
-        return timeSpan.ToString(@"hh\:mm\:ss\.fff");
     }
 }
