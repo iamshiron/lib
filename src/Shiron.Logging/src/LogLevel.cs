@@ -3,8 +3,7 @@ namespace Shiron.Logging;
 /// <summary>
 /// Defines the severity levels for log entries.
 /// </summary>
-public enum LogLevel
-{
+public enum LogLevel {
     System,
     Debug,
     Info,

@@ -9,8 +9,7 @@ namespace Shiron.Profiling;
 /// This structure is designed to be serialized directly to JSON for chrome://tracing.
 /// Property names are intentionally lowercase to match the Chrome Trace Event Format specification.
 /// </remarks>
-public class TraceEvent
-{
+public class TraceEvent {
     /// <summary>
     /// The name of the event.
     /// </summary>

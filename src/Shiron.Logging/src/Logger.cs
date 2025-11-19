@@ -4,8 +4,7 @@ using System.Linq;
 namespace Shiron.Logging;
 
 /// <summary>Async-local context GUID stack.</summary>
-public class LogContext
-{
+public class LogContext {
     /// <summary>Async-local stack.</summary>
     private readonly AsyncLocal<Stack<Guid>> _contextStack = new();
 
@@ -14,8 +13,7 @@ public class LogContext
     /// <summary>Push context.</summary>
     /// <param name="contextId">Context GUID.</param>
     /// <returns>Disposable restorer.</returns>
-    public IDisposable PushContext(Guid contextId)
-    {
+    public IDisposable PushContext(Guid contextId) {
         var originalStack = _contextStack.Value;
         var newStack = originalStack == null
             ? new Stack<Guid>()
@@ -32,8 +30,7 @@ public class LogContext
     public IDisposable PushContext(out Guid contextID) { contextID = Guid.NewGuid(); return PushContext(contextID); }
 
     /// <summary>Restorer disposable.</summary>
-    private sealed class ContextRestorer(LogContext context, Stack<Guid> stackToRestore) : IDisposable
-    {
+    private sealed class ContextRestorer(LogContext context, Stack<Guid> stackToRestore) : IDisposable {
         private readonly LogContext _owner = context;
         private readonly Stack<Guid> _stackToRestore = stackToRestore;
 
@@ -43,8 +40,7 @@ public class LogContext
 }
 
 /// <summary>Internal Manila logger.</summary>
-public class Logger(string? loggerPrefix) : ILogger
-{
+public class Logger(string? loggerPrefix) : ILogger {
     /// <summary>Entry event.</summary>
     public event Action<ILogEntry>? OnLogEntry;
 
@@ -58,10 +54,8 @@ public class Logger(string? loggerPrefix) : ILogger
     /// <param name="id">Injector ID.</param>
     /// <param name="injector">Injector instance.</param>
     /// <exception cref="InvalidOperationException">Thrown if an injector with the same ID already exists.</exception>
-    public void AddInjector(Guid id, LogInjector injector)
-    {
-        if (!_activeInjectors.TryAdd(id, injector))
-        {
+    public void AddInjector(Guid id, LogInjector injector) {
+        if (!_activeInjectors.TryAdd(id, injector)) {
             throw new Exception($"An injector with ID {id} already exists.");
         }
     }
@@ -69,10 +63,8 @@ public class Logger(string? loggerPrefix) : ILogger
     /// <summary>Remove injector.</summary>
     /// <param name="id">Injector ID.</param>
     /// <exception cref="InvalidOperationException">Thrown if no injector with the specified ID is found.</exception>
-    public void RemoveInjector(Guid id)
-    {
-        if (!_activeInjectors.TryRemove(id, out _))
-        {
+    public void RemoveInjector(Guid id) {
+        if (!_activeInjectors.TryRemove(id, out _)) {
             // Note: Depending on requirements, this could fail silently instead of throwing.
             // Throwing makes behavior more explicit.
             throw new Exception($"No injector with ID {id} exists to remove.");
@@ -81,66 +73,56 @@ public class Logger(string? loggerPrefix) : ILogger
 
     /// <summary>Emit entry.</summary>
     /// <param name="entry">Entry object.</param>
-    public void Log(ILogEntry entry)
-    {
+    public void Log(ILogEntry entry) {
         if (entry.ParentContextID == null && LogContext.CurrentContextID != null)
             entry.ParentContextID = LogContext.CurrentContextID;
 
         OnLogEntry?.Invoke(entry);
         // Iterate over a thread-safe snapshot of injectors. ConcurrentDictionary supports safe enumeration.
-        foreach (var injector in _activeInjectors.Values)
-        {
+        foreach (var injector in _activeInjectors.Values) {
             injector.Handle(entry);
         }
     }
 
     /// <summary>Markup info line.</summary>
     /// <param name="message">Message text.</param>
-    public void MarkupLine(string message, bool logAlways = false)
-    {
+    public void MarkupLine(string message, bool logAlways = false) {
         Log(new MarkupLogEntry(message, logAlways, loggerPrefix));
     }
 
     /// <summary>Info.</summary>
-    public void Info(string message)
-    {
+    public void Info(string message) {
         Log(new BasicLogEntry(message, LogLevel.Info, loggerPrefix));
     }
 
     /// <summary>Debug.</summary>
-    public void Debug(string message)
-    {
+    public void Debug(string message) {
         Log(new BasicLogEntry(message, LogLevel.Debug, loggerPrefix));
     }
 
     /// <summary>Warning.</summary>
-    public void Warning(string message)
-    {
+    public void Warning(string message) {
         Log(new BasicLogEntry(message, LogLevel.Warning, loggerPrefix));
     }
 
     /// <summary>Error.</summary>
-    public void Error(string message)
-    {
+    public void Error(string message) {
         Log(new BasicLogEntry(message, LogLevel.Error, loggerPrefix));
     }
 
     /// <summary>Critical.</summary>
-    public void Critical(string message)
-    {
+    public void Critical(string message) {
         Log(new BasicLogEntry(message, LogLevel.Critical, loggerPrefix));
     }
 
     /// <summary>System.</summary>
-    public void System(string message)
-    {
+    public void System(string message) {
         Log(new BasicLogEntry(message, LogLevel.System, loggerPrefix));
     }
 }
 
 /// <summary>Logger extensions.</summary>
-public static class LoggerExtensions
-{
+public static class LoggerExtensions {
     /// <summary>Create context injector.</summary>
     /// <param name="logger">Logger.</param>
     /// <param name="onLog">Callback.</param>

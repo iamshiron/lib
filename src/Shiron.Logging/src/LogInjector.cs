@@ -1,8 +1,7 @@
 namespace Shiron.Logging;
 
 /// <summary>Entry callback injector.</summary>
-public class LogInjector : IDisposable
-{
+public class LogInjector : IDisposable {
     /// <summary>Injector ID.</summary>
     public readonly Guid ID = Guid.NewGuid();
 
@@ -19,8 +18,7 @@ public class LogInjector : IDisposable
     /// <param name="logger">Logger.</param>
     /// <param name="onLog">Callback.</param>
     /// <param name="filter">Entry predicate.</param>
-    public LogInjector(ILogger logger, Action<ILogEntry> onLog, Func<ILogEntry, bool>? filter)
-    {
+    public LogInjector(ILogger logger, Action<ILogEntry> onLog, Func<ILogEntry, bool>? filter) {
         _onLog = onLog ?? throw new Exception(nameof(onLog));
         _logger = logger ?? throw new Exception(nameof(logger));
         _filter = filter;
@@ -29,23 +27,17 @@ public class LogInjector : IDisposable
 
     /// <summary>Handle log entry.</summary>
     /// <param name="entry">Entry object.</param>
-    internal void Handle(ILogEntry entry)
-    {
-        if (_filter == null || _filter(entry))
-        {
+    internal void Handle(ILogEntry entry) {
+        if (_filter == null || _filter(entry)) {
             _onLog(entry);
         }
     }
 
     /// <summary>Detach injector.</summary>
-    public void Dispose()
-    {
-        try
-        {
+    public void Dispose() {
+        try {
             _logger.RemoveInjector(ID);
-        }
-        catch
-        {
+        } catch {
             // Swallow exceptions on dispose to avoid tearing down due to race conditions
             // (e.g., injector already removed or logger shutting down).
         }

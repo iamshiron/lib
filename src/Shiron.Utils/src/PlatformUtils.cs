@@ -3,10 +3,8 @@ using System.Runtime.InteropServices;
 
 namespace Shiron.Utils;
 
-public static class PlatformUtils
-{
-    public static string GetPlatformKey()
-    {
+public static class PlatformUtils {
+    public static string GetPlatformKey() {
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return "windows";
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) return "linux";
         if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) return "osx";
@@ -14,8 +12,7 @@ public static class PlatformUtils
         throw new PlatformNotSupportedException("Unable to determine platform!");
     }
 
-    public static string GetArchitectureKey()
-    {
+    public static string GetArchitectureKey() {
         return RuntimeInformation.OSArchitecture.ToString().ToLower();
     }
 }
