@@ -5,6 +5,8 @@ using Shiron.Profiling;
 
 namespace Shiron.Profiling;
 
+/// <summary>Base profiling log entry.</summary>
+/// <remarks>Used for JSON serialization.</remarks>
 public class ProfilingLogEntry : BaseLogEntry {
     public override LogLevel Level => LogLevel.System;
     public string Name { get; }
@@ -13,6 +15,8 @@ public class ProfilingLogEntry : BaseLogEntry {
     public long ThreadID { get; }
     public long TraceTimestamp { get; }
 
+    /// <summary>Creates a profiling log entry from a TraceEvent.</summary>
+    /// <param name="e">Trace event.</param>
     public ProfilingLogEntry(TraceEvent e) {
         Name = e.Name;
         Category = e.Category;
@@ -21,6 +25,12 @@ public class ProfilingLogEntry : BaseLogEntry {
         TraceTimestamp = e.Timestamp;
     }
 
+    /// <summary>JSON constructor.</summary>
+    /// <param name="name">Event name.</param>
+    /// <param name="category">Event category.</param>
+    /// <param name="processID">Process ID.</param>
+    /// <param name="threadID">Thread ID.</param>
+    /// <param name="traceTimestamp">Trace timestamp.</param>
     [JsonConstructor]
     public ProfilingLogEntry(string name, string category, long processID, long threadID, long traceTimestamp) {
         Name = name;

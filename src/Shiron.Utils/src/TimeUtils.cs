@@ -1,6 +1,9 @@
 
 namespace Shiron.Utils;
 
+/// <summary>
+/// Utility functions for time-related operations.
+/// </summary>
 public static class TimeUtils {
     /// <summary>
     /// Gets the current time in milliseconds since the Unix epoch (January 1, 1970).

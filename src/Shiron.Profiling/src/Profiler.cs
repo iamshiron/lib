@@ -6,13 +6,43 @@ using Shiron.Logging;
 
 namespace Shiron.Profiling;
 
+/// <summary>
+/// Defines the interface for a profiler that can record profiling events.
+/// </summary>
 public interface IProfiler {
+    /// <summary>
+    /// Begins a profiling event with the specified name and optional arguments.
+    /// </summary>
+    /// <param name="name">The name of the profiling event.</param>
+    /// <param name="args">Optional arguments associated with the event.</param>
     void BeginEvent(string name, Dictionary<string, object>? args = null);
+    /// <summary>
+    /// Ends a profiling event with the specified name and optional arguments.
+    /// </summary>
+    /// <param name="name">The name of the profiling event.</param>
+    /// <param name="args">Optional arguments associated with the event.</param>
     void EndEvent(string name, Dictionary<string, object>? args = null);
-    void SaveToFile(string baseDir);
-    long GetTimestamp();
+    /// <summary>
+    /// Saves the collected profiling events to a JSON file in the specified base directory.
+    /// The file is named with a timestamp to ensure uniqueness.
+    /// </summary>
+    /// <param name="baseDir">The base directory where the profile file will be saved.</param>
+    /// <returns>The full path of the saved profile file, or null if the directory does not exist.</returns>
+    string? SaveToFile(string baseDir);
 
+    /// <summary>
+    /// Records a complete event with the specified name, timestamp, duration, and optional arguments.
+    /// </summary>
+    /// <param name="name">The name of the complete event.</param>
+    /// <param name="timestampMicroseconds">The starting timestamp of the event in microseconds.</param>
+    /// <param name="durationMicroseconds">The duration of the event in microseconds.</param>
+    /// <param name="args">Optional arguments associated with the event.</param>
     void RecordCompleteEvent(string name, long timestampMicroseconds, long durationMicroseconds, Dictionary<string, object>? args = null);
+
+    /// <summary>
+    /// Gets the current timestamp in microseconds since the profiler started.
+    /// </summary>
+    long GetTimestamp();
 }
 
 /// <summary>
@@ -30,6 +60,7 @@ public class Profiler(ILogger logger, bool logProfiling) : IProfiler {
 
     internal static readonly AsyncLocal<string?> _currentCategory = new();
 
+    /// <inheritdoc/>
     public void BeginEvent(string name, Dictionary<string, object>? args = null) {
         var e = new TraceEvent {
             Name = name,
@@ -48,6 +79,7 @@ public class Profiler(ILogger logger, bool logProfiling) : IProfiler {
         }
     }
 
+    /// <inheritdoc/>
     public void EndEvent(string name, Dictionary<string, object>? args = null) {
         var e = new TraceEvent {
             Name = name,
@@ -66,6 +98,7 @@ public class Profiler(ILogger logger, bool logProfiling) : IProfiler {
         }
     }
 
+    /// <inheritdoc/>
     public void RecordCompleteEvent(string name, long timestampMicroseconds, long durationMicroseconds, Dictionary<string, object>? args = null) {
         var e = new TraceEvent {
             Name = name,
@@ -85,11 +118,15 @@ public class Profiler(ILogger logger, bool logProfiling) : IProfiler {
         }
     }
 
+    /// <inheritdoc/>
     public long GetTimestamp() {
         // return _stopwatch.ElapsedTicks * 1_000_000 / Stopwatch.Frequency;
         return Utils.TimeNow() - _profilerStartTimestampMicroseconds;
     }
 
+    /// <summary>
+    /// Clears all recorded profiling events.
+    /// </summary>
     public void ClearEvents() {
         lock (_lock) {
             _events.Clear();
@@ -97,10 +134,11 @@ public class Profiler(ILogger logger, bool logProfiling) : IProfiler {
         }
     }
 
-    public void SaveToFile(string baseDir) {
+    /// <inheritdoc/>
+    public string? SaveToFile(string baseDir) {
         if (!Directory.Exists(baseDir)) {
             _logger.Debug($"Base directory does not exist: {baseDir}. Profile data will not be saved.");
-            return;
+            return null;
         }
 
         lock (_lock) {
@@ -112,29 +150,39 @@ public class Profiler(ILogger logger, bool logProfiling) : IProfiler {
             string jsonString = JsonConvert.SerializeObject(_events, settings);
             File.WriteAllText(filePath, jsonString);
             _logger.Debug($"Profiling data saved to: {filePath}");
+            return filePath;
         }
     }
 }
 
+/// <summary>Profiler category scope.</summary>
 public readonly struct ProfileCategory : IDisposable {
     private readonly string? _previousCategory;
 
+    /// <summary>Creates a profiler category scope.</summary>
+    /// <param name="categoryName">Category name.</param>
     public ProfileCategory(string categoryName) {
         _previousCategory = Profiler._currentCategory.Value;
         Profiler._currentCategory.Value = categoryName;
     }
 
+    /// <inheritdoc/>
     public void Dispose() {
         Profiler._currentCategory.Value = _previousCategory;
     }
 }
 
+/// <summary>Profiler scope for automatic event timing.</summary>
 public readonly struct ProfileScope : IDisposable {
     private readonly IProfiler _profiler;
     private readonly string _name;
     private readonly long _startTimestampMicroseconds;
     private readonly Dictionary<string, object>? _args;
 
+    /// <summary>Creates a profiling scope with the caller member name as the event name.</summary>
+    /// <param name="profiler">Profiler instance.</param>
+    /// <param name="args">Optional arguments.</param>
+    /// <param name="name">Caller member name.</param>
     public ProfileScope(IProfiler profiler, Dictionary<string, object>? args = null, [CallerMemberName] string name = "") {
         _profiler = profiler;
         _args = args;
@@ -144,6 +192,10 @@ public readonly struct ProfileScope : IDisposable {
         _profiler.BeginEvent(_name, _args);
     }
 
+    /// <summary>Creates a profiling scope with a specified name.</summary>
+    /// <param name="profiler">Profiler instance.</param>
+    /// <param name="name">Event name.</param>
+    /// <param name="args">Optional arguments.</param>
     public ProfileScope(IProfiler profiler, string name, Dictionary<string, object>? args = null) {
         _profiler = profiler;
         _name = name;
@@ -153,6 +205,10 @@ public readonly struct ProfileScope : IDisposable {
         _profiler.BeginEvent(_name, _args);
     }
 
+    /// <summary>Creates a profiling scope with a specified MethodBase.</summary>
+    /// <param name="profiler">Profiler instance.</param>
+    /// <param name="func">MethodBase to derive the event name from.</param>
+    /// <param name="args">Optional arguments.</param>
     public ProfileScope(IProfiler profiler, MethodBase func, Dictionary<string, object>? args = null) {
         _profiler = profiler;
         _name = $"{func.DeclaringType?.FullName ?? "Unknown"}.{func.Name}";
@@ -162,6 +218,7 @@ public readonly struct ProfileScope : IDisposable {
         _profiler.BeginEvent(_name, _args);
     }
 
+    /// <inheritdoc/>
     public void Dispose() {
         long endTimestampMicroseconds = _profiler.GetTimestamp();
         long durationMicroseconds = endTimestampMicroseconds - _startTimestampMicroseconds;

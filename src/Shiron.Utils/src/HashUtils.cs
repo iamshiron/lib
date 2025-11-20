@@ -8,7 +8,12 @@ using Shiron.Profiling;
 
 namespace Shiron.Utils;
 
+/// <summary>Utility functions for hashing files and file sets.</summary>
 public static class HashUtils {
+    /// <summary>Computes the SHA256 hash of a file.</summary>
+    /// <param name="file">The path to the file to hash.</param>
+    /// <param name="profiler">Optional profiler for performance measurement.</param>
+    /// <returns>The SHA256 hash as a lowercase hexadecimal string.</returns>
     public static string HashFile(string file, IProfiler? profiler = null) {
         IDisposable? disposable = null;
         if (profiler is not null) disposable = new ProfileScope(profiler, MethodBase.GetCurrentMethod()!);
@@ -21,6 +26,14 @@ public static class HashUtils {
         return Convert.ToHexStringLower(hash);
     }
 
+    /// <summary>
+    /// Creates a combined SHA256 hash for a set of files.
+    /// Each file's hash is combined with its relative path (if root is provided) to
+    /// ensure uniqueness.
+    /// </summary>
+    /// <param name="filePaths">The collection of file paths to hash.</param>
+    /// <param name="root">The root directory to use for relative paths. If null, absolute paths are used.</param>
+    /// <returns>The combined SHA256 hash as a lowercase hexadecimal string.</returns>
     public static string CreateFileSetHash(IEnumerable<string> filePaths, string? root = null, IProfiler? profiler = null) {
         ProfileScope? disposable = null;
         if (profiler is not null) disposable = new ProfileScope(profiler, MethodBase.GetCurrentMethod()!);
@@ -62,6 +75,12 @@ public static class HashUtils {
         return result.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
     }
 
+    /// <summary>
+    /// Combines multiple SHA256 hashes into a single SHA256 hash.
+    /// </summary>
+    /// <param name="hashes">The collection of hashes to combine.</param>
+    /// <param name="profiler">Optional profiler for performance measurement.</param>
+    /// <returns>The combined SHA256 hash as a lowercase hexadecimal string.</returns>
     public static string CombineHashes(IEnumerable<string> hashes, IProfiler? profiler = null) {
         ProfileScope? disposable = null;
         if (profiler is not null) disposable = new ProfileScope(profiler, MethodBase.GetCurrentMethod()!);
