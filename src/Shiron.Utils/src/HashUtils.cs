@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using Shiron.Logging;
 using Shiron.Profiling;
 
@@ -91,5 +92,17 @@ public static class HashUtils {
 
         disposable?.Dispose();
         return Convert.ToHexStringLower(finalHash);
+    }
+
+    public static string HashObject(object obj, IProfiler? profiler = null) {
+        ProfileScope? disposable = null;
+        if (profiler is not null) disposable = new ProfileScope(profiler, MethodBase.GetCurrentMethod()!);
+
+        var json = JsonSerializer.Serialize(obj);
+        var jsonBytes = Encoding.UTF8.GetBytes(json);
+        var hash = SHA256.HashData(jsonBytes);
+
+        disposable?.Dispose();
+        return Convert.ToHexStringLower(hash);
     }
 }
