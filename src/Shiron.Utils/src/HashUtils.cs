@@ -27,6 +27,21 @@ public static class HashUtils {
         return Convert.ToHexStringLower(hash);
     }
 
+    /// <summary>Computes the SHA256 hash of a string.</summary>
+    /// <param name="input">The string to hash.</param>
+    /// <param name="profiler">Optional profiler for performance measurement.</param>
+    /// <returns>The SHA256 hash as a lowercase hexadecimal string.</returns>
+    public static string HashString(string input, IProfiler? profiler = null) {
+        ProfileScope? disposable = null;
+        if (profiler is not null) disposable = new ProfileScope(profiler, MethodBase.GetCurrentMethod()!);
+
+        var inputBytes = Encoding.UTF8.GetBytes(input);
+        var hash = SHA256.HashData(inputBytes);
+
+        disposable?.Dispose();
+        return Convert.ToHexStringLower(hash);
+    }
+
     /// <summary>
     /// Creates a combined SHA256 hash for a set of files.
     /// Each file's hash is combined with its relative path (if root is provided) to
