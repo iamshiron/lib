@@ -1,17 +1,27 @@
 using System.Security.AccessControl;
 using System.Security.Cryptography;
 using Shiron.Logging;
+using Shiron.Logging.Renderer;
 using Shiron.Profiling;
-using Shiron.Samples.Logging;
+using Shiron.Samples;
+
+// Allocate some gc trackers so they don't appear during profiling
+var gcTracker1 = new GCTracker();
+var gcTracker2 = new GCTracker();
+var gcTracker3 = new GCTracker();
+
+gcTracker1.Start();
+var jsonLogging = args.Contains("--json");
+ILogRenderer renderer = jsonLogging ? new JsonLogRenderer(Console.OpenStandardOutput()) : new LogRenderer();
 
 var logger = new Logger(null);
-logger.AddRenderer(new LogRenderer());
+logger.AddRenderer(renderer);
 
 var sub = logger.CreateSubLogger("sub");
-sub.AddRenderer(new CustomSubRenderer());
 
 var profiler = new Profiler(logger, true);
 
+gcTracker2.Start();
 using (new ProfileScope(profiler, "Sample Scope")) {
     logger.Info("This is an informational message.");
     logger.Warning("This is a warning message.");
@@ -40,8 +50,34 @@ using (new ProfileScope(profiler, "Sample Scope")) {
     injector.Replay(logger);
 }
 
+// Spam the logger to generate better GC results
+gcTracker3.Start();
+long maxLogs = 1000;
+for (int i = 0; i < maxLogs; ++i) {
+    var randInt = RandomNumberGenerator.GetInt32(0, 1000);
+    if (randInt % 5 == 0) {
+        logger.Debug($"Debug message");
+    } else if (randInt % 5 == 1) {
+        logger.Info($"Info message");
+    } else if (randInt % 5 == 2) {
+        logger.Warning($"Warning message");
+    } else if (randInt % 5 == 3) {
+        logger.Error($"Error message");
+    } else {
+        logger.System($"System message");
+    }
+}
+
+long spamRes = gcTracker3.End();
+long res = gcTracker2.End();
+
+
 if (!Directory.Exists("profiles")) {
     _ = Directory.CreateDirectory("profiles");
 }
 
 profiler.SaveToFile("profiles");
+
+Console.WriteLine($"Total bytes allocated: {gcTracker1.End()}");
+Console.WriteLine($"Hot path bytes allocated: {res}");
+Console.WriteLine($"Spam path bytes allocated: {spamRes}, over {maxLogs} logs. Avg: {spamRes / maxLogs} bytes/log");

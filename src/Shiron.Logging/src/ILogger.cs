@@ -7,24 +7,24 @@ namespace Shiron.Logging;
 public interface ILogger {
     /// <summary>Emit entry.</summary>
     /// <param name="entry">Log entry instance.</param>
-    public void Log(ILogEntry entry);
+    public void Log<T>(LogPayload<T> entry) where T : notnull;
 
     /// <summary>Emit markup info line.</summary>
     /// <param name="message">Message text.</param>
     /// <param name="logAlways">Bypass level filter.</param>
-    public void MarkupLine(string message, bool logAlways = false);
+    public void MarkupLine(string message, LogLevel level);
     /// <summary>Info level.</summary>
-    public void Info(string message);
+    public void Info(string message, Guid? parentContextID = null);
     /// <summary>Debug level.</summary>
-    public void Debug(string message);
+    public void Debug(string message, Guid? parentContextID = null);
     /// <summary>Warning level.</summary>
-    public void Warning(string message);
+    public void Warning(string message, Guid? parentContextID = null);
     /// <summary>Error level.</summary>
-    public void Error(string message);
+    public void Error(string message, Guid? parentContextID = null);
     /// <summary>Critical level.</summary>
-    public void Critical(string message);
+    public void Critical(string message, Guid? parentContextID = null);
     /// <summary>System level.</summary>
-    public void System(string message);
+    public void System(string message, Guid? parentContextID = null);
 
     /// <summary>Add a log renderer.</summary>
     public void AddRenderer(ILogRenderer renderer);
