@@ -161,29 +161,64 @@ public static class ShellUtils {
         var contextID = Guid.NewGuid();
         var startTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
-        logger?.Log(new CommandExecutionLogEntry(contextID, info.Command, info.Args, workingDir));
+        logger?.Log(new LogPayload<CommandExecutionLogEntry>(
+            new LogHeader(LogLevel.Info,
+                "ShellUtils",
+                DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+                contextID
+            ),
+            new CommandExecutionLogEntry(info.Command, info.Args, workingDir)
+        ));
 
         StringBuilder stdOutBuilder = new();
         StringBuilder stdErrBuilder = new();
 
         void logStdOut(string data) {
             _ = stdOutBuilder.AppendLine(data);
-            logger?.Log(new CommandStdOutLogEntry(contextID, data, info.Quiet));
+            logger?.Log(new LogPayload<CommandStdOutLogEntry>(
+                new LogHeader(LogLevel.Info,
+                    "ShellUtils",
+                    DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+                    contextID
+                ),
+                new CommandStdOutLogEntry(data, info.Quiet)
+            ));
         }
         void logStdErr(string data) {
             _ = stdErrBuilder.AppendLine(data);
-            logger?.Log(new CommandStdErrLogEntry(contextID, data, info.Quiet));
+            logger?.Log(new LogPayload<CommandStdErrLogEntry>(
+                new LogHeader(LogLevel.Error,
+                    "ShellUtils",
+                    DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+                    contextID
+                ),
+                new CommandStdErrLogEntry(data, info.Quiet)
+            ));
         }
 
         var exitCode = Run(info, logStdOut, logStdErr);
 
         if (exitCode == 0) {
-            logger?.Log(new CommandExecutionFinishedLogEntry(
-                contextID, stdOutBuilder.ToString(), stdErrBuilder.ToString(), DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - startTime, exitCode
+            logger?.Log(new LogPayload<CommandExecutionFinishedLogEntry>(
+                new LogHeader(LogLevel.Info,
+                    "ShellUtils",
+                    DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+                    contextID
+                ),
+                new CommandExecutionFinishedLogEntry(
+                    stdOutBuilder.ToString(), stdErrBuilder.ToString(), DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - startTime, exitCode
+                )
             ));
         } else {
-            logger?.Log(new CommandExecutionFailedLogEntry(
-                contextID, stdOutBuilder.ToString(), stdErrBuilder.ToString(), DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - startTime, exitCode
+            logger?.Log(new LogPayload<CommandExecutionFailedLogEntry>(
+                new LogHeader(LogLevel.Error,
+                    "ShellUtils",
+                    DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+                    contextID
+                ),
+                new CommandExecutionFailedLogEntry(
+                    stdOutBuilder.ToString(), stdErrBuilder.ToString(), DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - startTime, exitCode
+                )
             ));
         }
 

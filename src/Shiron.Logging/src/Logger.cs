@@ -1,53 +1,63 @@
 using System.Collections.Concurrent;
-using System.Diagnostics;
-using System.Diagnostics.Contracts;
-using System.Linq;
-using System.Runtime.CompilerServices;
 using Shiron.Logging.Renderer;
 
 namespace Shiron.Logging;
 
+/// <summary>Immutable linked list node for context stack (avoids allocations on traversal).</summary>
+internal sealed class ContextNode(Guid id, ContextNode? parent) {
+    public readonly Guid Id = id;
+    public readonly ContextNode? Parent = parent;
+}
+
 /// <summary>Async-local context GUID stack.</summary>
 public class LogContext {
-    /// <summary>Async-local stack.</summary>
-    private readonly AsyncLocal<Stack<Guid>> _contextStack = new();
+    /// <summary>Async-local stack using immutable linked list.</summary>
+    private readonly AsyncLocal<ContextNode?> _contextStack = new();
 
-    public Guid? CurrentContextID => _contextStack.Value?.Count > 0 ? _contextStack.Value.Peek() : null;
+    public Guid? CurrentContextID => _contextStack.Value?.Id;
 
     /// <summary>Push context.</summary>
     /// <param name="contextId">Context GUID.</param>
     /// <returns>Disposable restorer.</returns>
-    public IDisposable PushContext(Guid contextId) {
-        var originalStack = _contextStack.Value;
-        var newStack = originalStack == null
-            ? new Stack<Guid>()
-            : new Stack<Guid>(originalStack.Reverse());
-
-        newStack.Push(contextId);
-        _contextStack.Value = newStack;
-        return new ContextRestorer(this, originalStack ?? new Stack<Guid>());
+    public ContextRestorer PushContext(Guid contextId) {
+        var original = _contextStack.Value;
+        _contextStack.Value = new ContextNode(contextId, original);
+        return new ContextRestorer(this, original);
     }
 
     /// <summary>Generate + push GUID.</summary>
     /// <param name="contextID">Generated GUID.</param>
     /// <returns>Disposable restorer.</returns>
-    public IDisposable PushContext(out Guid contextID) { contextID = Guid.NewGuid(); return PushContext(contextID); }
+    public ContextRestorer PushContext(out Guid contextID) { contextID = Guid.NewGuid(); return PushContext(contextID); }
 
-    /// <summary>Restorer disposable.</summary>
-    private sealed class ContextRestorer(LogContext context, Stack<Guid> stackToRestore) : IDisposable {
-        private readonly LogContext _owner = context;
-        private readonly Stack<Guid> _stackToRestore = stackToRestore;
+    /// <summary>Restorer struct - avoids heap allocation when used with 'using' statement.</summary>
+    public readonly struct ContextRestorer : IDisposable {
+        private readonly LogContext _owner;
+        private readonly ContextNode? _nodeToRestore;
+
+        internal ContextRestorer(LogContext context, ContextNode? nodeToRestore) {
+            _owner = context;
+            _nodeToRestore = nodeToRestore;
+        }
 
         /// <summary>Restore stack.</summary>
-        public void Dispose() { _owner._contextStack.Value = _stackToRestore; }
+        public void Dispose() => _owner._contextStack.Value = _nodeToRestore;
     }
 }
 
 /// <summary>Internal Manila logger.</summary>
 public class Logger(string? prefix) : ILogger {
-    /// <summary>Injector map.</summary>
+    /// <summary>Injector map for add/remove operations.</summary>
     private readonly ConcurrentDictionary<Guid, LogInjector> _activeInjectors = new();
+    /// <summary>Cached array snapshot for zero-allocation iteration. Updated on add/remove.</summary>
+    private volatile LogInjector[] _injectorSnapshot = [];
+    private readonly object _injectorLock = new();
+
     private readonly List<ILogRenderer> _renderers = [];
+    /// <summary>Cached array snapshot for zero-allocation iteration.</summary>
+    private volatile ILogRenderer[] _rendererSnapshot = [];
+    private readonly object _rendererLock = new();
+
     private readonly List<ILogger> _sub = [];
     private readonly Logger? _parrent = null;
     private readonly Logger? _rootLogger = null;
@@ -68,28 +78,33 @@ public class Logger(string? prefix) : ILogger {
 
     /// <inheritdoc/>
     public void AddInjector(Guid id, LogInjector injector) {
-        if (!_activeInjectors.TryAdd(id, injector)) {
-            throw new Exception($"An injector with ID {id} already exists.");
+        lock (_injectorLock) {
+            if (!_activeInjectors.TryAdd(id, injector)) {
+                throw new Exception($"An injector with ID {id} already exists.");
+            }
+            // Update snapshot array for zero-allocation iteration
+            _injectorSnapshot = [.. _activeInjectors.Values];
         }
     }
 
     /// <inheritdoc/>
     public void RemoveInjector(Guid id) {
-        if (!_activeInjectors.TryRemove(id, out _)) {
-            // Note: Depending on requirements, this could fail silently instead of throwing.
-            // Throwing makes behavior more explicit.
-            throw new Exception($"No injector with ID {id} exists to remove.");
+        lock (_injectorLock) {
+            if (!_activeInjectors.TryRemove(id, out _)) {
+                throw new Exception($"No injector with ID {id} exists to remove.");
+            }
+            // Update snapshot array for zero-allocation iteration
+            _injectorSnapshot = [.. _activeInjectors.Values];
         }
     }
 
     /// <inheritdoc/>
-    public void Log(ILogEntry entry) {
-        if (entry.ParentContextID == null && LogContext.CurrentContextID != null)
-            entry.ParentContextID = LogContext.CurrentContextID;
-
+    public void Log<T>(LogPayload<T> payload) where T : notnull {
         var suppressLog = false;
-        foreach (var injector in _activeInjectors.Values) {
-            suppressLog |= injector.Handle(entry);
+        // Use cached array snapshot - array iteration uses struct enumerator, no boxing
+        var injectors = _injectorSnapshot;
+        for (var i = 0; i < injectors.Length; i++) {
+            suppressLog |= injectors[i].Handle(payload);
         }
 
         if (suppressLog)
@@ -98,8 +113,10 @@ public class Logger(string? prefix) : ILogger {
         var handled = false;
         var logger = this;
         while (true) {
-            foreach (var renderer in logger._renderers) {
-                if (renderer.RenderLog(entry)) {
+            // Use cached array snapshot - array iteration is zero-allocation
+            var renderers = logger._rendererSnapshot;
+            for (var i = 0; i < renderers.Length; i++) {
+                if (renderers[i].RenderLog(payload)) {
                     handled = true;
                 }
             }
@@ -109,47 +126,64 @@ public class Logger(string? prefix) : ILogger {
         }
 
         if (!handled)
-            Warning($"Log entry was not handled by any renderer: {entry.GetType().Name}");
+            Warning($"Log entry was not handled by any renderer: {payload.Body.GetType().Name}");
     }
 
     /// <inheritdoc/>
-    public void MarkupLine(string message, bool logAlways = false) {
-        Log(new MarkupLogEntry(message, logAlways, LoggerPrefix));
-    }
+    public void MarkupLine(string message, LogLevel level) =>
+        Log(new LogPayload<MarkupLogEntry>(
+            new LogHeader(level, LoggerPrefix, GetTimestamp(), LogContext.CurrentContextID),
+            new MarkupLogEntry(message)
+        ));
 
     /// <inheritdoc/>
-    public void Info(string message) {
-        Log(new BasicLogEntry(message, LogLevel.Info, LoggerPrefix));
-    }
+    public void Info(string message, Guid? parentContextID = null) =>
+        Log(new LogPayload<BasicLogEntry>(
+            new LogHeader(LogLevel.Info, LoggerPrefix, GetTimestamp(), LogContext.CurrentContextID),
+            new BasicLogEntry(message)
+        ));
 
     /// <inheritdoc/>
-    public void Debug(string message) {
-        Log(new BasicLogEntry(message, LogLevel.Debug, LoggerPrefix));
-    }
+    public void Debug(string message, Guid? parentContextID = null) =>
+        Log(new LogPayload<BasicLogEntry>(
+            new LogHeader(LogLevel.Debug, LoggerPrefix, GetTimestamp(), LogContext.CurrentContextID),
+            new BasicLogEntry(message)
+        ));
 
     /// <inheritdoc/>
-    public void Warning(string message) {
-        Log(new BasicLogEntry(message, LogLevel.Warning, LoggerPrefix));
-    }
+    public void Warning(string message, Guid? parentContextID = null) =>
+        Log(new LogPayload<BasicLogEntry>(
+            new LogHeader(LogLevel.Warning, LoggerPrefix, GetTimestamp(), LogContext.CurrentContextID),
+            new BasicLogEntry(message)
+        ));
 
     /// <inheritdoc/>
-    public void Error(string message) {
-        Log(new BasicLogEntry(message, LogLevel.Error, LoggerPrefix));
-    }
+    public void Error(string message, Guid? parentContextID = null) =>
+        Log(new LogPayload<BasicLogEntry>(
+            new LogHeader(LogLevel.Error, LoggerPrefix, GetTimestamp(), LogContext.CurrentContextID),
+            new BasicLogEntry(message)
+        ));
 
     /// <inheritdoc/>
-    public void Critical(string message) {
-        Log(new BasicLogEntry(message, LogLevel.Critical, LoggerPrefix));
-    }
+    public void Critical(string message, Guid? parentContextID = null) =>
+        Log(new LogPayload<BasicLogEntry>(
+            new LogHeader(LogLevel.Critical, LoggerPrefix, GetTimestamp(), LogContext.CurrentContextID),
+            new BasicLogEntry(message)
+        ));
 
     /// <inheritdoc/>
-    public void System(string message) {
-        Log(new BasicLogEntry(message, LogLevel.System, LoggerPrefix));
-    }
+    public void System(string message, Guid? parentContextID = null) =>
+        Log(new LogPayload<BasicLogEntry>(
+            new LogHeader(LogLevel.System, LoggerPrefix, GetTimestamp(), LogContext.CurrentContextID),
+            new BasicLogEntry(message)
+        ));
 
     /// <inheritdoc/>
     public void AddRenderer(ILogRenderer renderer) {
-        _renderers.Add(renderer);
+        lock (_rendererLock) {
+            _renderers.Add(renderer);
+            _rendererSnapshot = [.. _renderers];
+        }
     }
 
     /// <inheritdoc/>
@@ -160,6 +194,8 @@ public class Logger(string? prefix) : ILogger {
 
         return sub;
     }
+
+    private static long GetTimestamp() => DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 }
 
 /// <summary>Logger extensions.</summary>
@@ -169,5 +205,5 @@ public static class LoggerExtensions {
     /// <param name="onLog">Callback.</param>
     /// <param name="contextId">Context GUID.</param>
     /// <returns>Injector instance.</returns>
-    public static LogInjector CreateContextInjector(this ILogger logger, Action<ILogEntry> onLog, Guid contextId) => new(logger, onLog, entry => entry.ParentContextID == contextId);
+    public static LogInjector CreateContextInjector(this ILogger logger, Action<CapturedLog> onLog) => new(logger, onLog, true);
 }

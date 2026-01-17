@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using Newtonsoft.Json;
+using System.Text.Json;
 using Shiron.Logging;
 
 namespace Shiron.Profiling;
@@ -60,6 +60,11 @@ public class Profiler(ILogger logger, bool logProfiling) : IProfiler {
 
     internal static readonly AsyncLocal<string?> _currentCategory = new();
 
+    private static readonly JsonSerializerOptions _jsonOptions = new() {
+        WriteIndented = false,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+    };
+
     /// <inheritdoc/>
     public void BeginEvent(string name, Dictionary<string, object>? args = null) {
         var e = new TraceEvent {
@@ -72,7 +77,14 @@ public class Profiler(ILogger logger, bool logProfiling) : IProfiler {
             Arguments = args ?? []
         };
 
-        if (_logProfiling) _logger.Log(new ProfileBeginLogEntry(e));
+        if (_logProfiling) _logger.Log(new LogPayload<ProfileBeingLogEntry>(
+            new LogHeader(LogLevel.Info,
+                "Profiler",
+                Utils.TimeNow(),
+                null
+            ),
+            new ProfileBeingLogEntry(e.Name, e.Category, e.ProcessId, e.ThreadId, e.Timestamp)
+        ));
 
         lock (_lock) {
             _events.Add(e);
@@ -91,7 +103,14 @@ public class Profiler(ILogger logger, bool logProfiling) : IProfiler {
             Arguments = args ?? []
         };
 
-        if (_logProfiling) _logger.Log(new ProfileEndLogEntry(e));
+        if (_logProfiling) _logger.Log(new LogPayload<ProfileCompleteLogEntry>(
+            new LogHeader(LogLevel.Info,
+                "Profiler",
+                Utils.TimeNow(),
+                null
+            ),
+            new ProfileCompleteLogEntry(e.Name, e.Category, e.ProcessId, e.ThreadId, e.Timestamp, 0)
+        ));
 
         lock (_lock) {
             _events.Add(e);
@@ -111,7 +130,14 @@ public class Profiler(ILogger logger, bool logProfiling) : IProfiler {
             Arguments = args ?? []
         };
 
-        if (_logProfiling) _logger.Log(new ProfileCompleteLogEntry(e));
+        if (_logProfiling) _logger.Log(new LogPayload<ProfileCompleteLogEntry>(
+            new LogHeader(LogLevel.Info,
+                "Profiler",
+                Utils.TimeNow(),
+                null
+            ),
+            new ProfileCompleteLogEntry(e.Name, e.Category, e.ProcessId, e.ThreadId, e.Timestamp, e.Duration)
+        ));
 
         lock (_lock) {
             _events.Add(e);
@@ -146,8 +172,7 @@ public class Profiler(ILogger logger, bool logProfiling) : IProfiler {
             string fileName = $"profile-{timestamp}.json";
             string filePath = Path.Combine(baseDir, fileName);
 
-            var settings = new JsonSerializerSettings { Formatting = Formatting.None }; // Use no formatting for smaller file sizes
-            string jsonString = JsonConvert.SerializeObject(_events, settings);
+            string jsonString = JsonSerializer.Serialize(_events, _jsonOptions);
             File.WriteAllText(filePath, jsonString);
             _logger.Debug($"Profiling data saved to: {filePath}");
             return filePath;

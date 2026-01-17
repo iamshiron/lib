@@ -1,48 +1,91 @@
+using System.Buffers;
 
 namespace Shiron.Logging;
 
-/// <summary>Log entry contract.</summary>
-public interface ILogEntry {
-    /// <summary>Unix ms timestamp.</summary>
-    long Timestamp { get; }
+public readonly record struct LogHeader(
+    LogLevel Level,
+    string? Prefix,
+    long Timestamp,
+    Guid? ContextId
+);
 
-    /// <summary>Severity level.</summary>
-    LogLevel Level { get; }
-
-    Guid? ParentContextID { get; set; }
-}
-
-/// <summary>Base log entry.</summary>
-public abstract class BaseLogEntry : ILogEntry {
-    /// <inheritdoc />
-    public long Timestamp { get; } = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-
-    /// <inheritdoc />
-    public abstract LogLevel Level { get; }
-
-    /// <summary>Parent context ID.</summary>
-    public virtual Guid? ParentContextID { get; set; }
-}
+public readonly record struct LogPayload<T>(
+    LogHeader Header,
+    T Body
+);
 
 /// <summary>Message entry.</summary>
-public class BasicLogEntry(string message, LogLevel level, string? loggerPrefix = null) : BaseLogEntry {
-    public override LogLevel Level { get; } = level;
-    public string Message { get; } = message;
-    public string? LoggerPrefix { get; } = loggerPrefix;
+public readonly record struct BasicLogEntry(string Message) : ISpanFormattable {
+    /// <summary>Format to span without allocation.</summary>
+    public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider) {
+        if (Message == null) {
+            charsWritten = 0;
+            return true;
+        }
+        if (Message.Length <= destination.Length) {
+            Message.AsSpan().CopyTo(destination);
+            charsWritten = Message.Length;
+            return true;
+        }
+        charsWritten = 0;
+        return false;
+    }
+
+    /// <summary>Fallback for string formatting.</summary>
+    public string ToString(string? format, IFormatProvider? formatProvider) => Message ?? string.Empty;
 }
 
 /// <summary>Markup (Info level) entry.</summary>
-public class MarkupLogEntry(string message, bool logAlways = false, string? loggerPrefix = null) : BaseLogEntry {
-    public override LogLevel Level { get; } = LogLevel.Info;
-    public string Message { get; } = message;
-    public string? LoggerPrefix { get; } = loggerPrefix;
-    public bool LogAlways { get; } = logAlways;
+public readonly record struct MarkupLogEntry(string Message) : ISpanFormattable {
+    /// <summary>Format to span without allocation.</summary>
+    public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider) {
+        if (Message == null) {
+            charsWritten = 0;
+            return true;
+        }
+        if (Message.Length <= destination.Length) {
+            Message.AsSpan().CopyTo(destination);
+            charsWritten = Message.Length;
+            return true;
+        }
+        charsWritten = 0;
+        return false;
+    }
+
+    /// <summary>Fallback for string formatting.</summary>
+    public string ToString(string? format, IFormatProvider? formatProvider) => Message ?? string.Empty;
 }
 
 /// <summary>A log entry captured by an injector <see cref="LogInjector"/>.</summary>
-public class CapturedLogEntry(ILogEntry captured) : BaseLogEntry {
-    /// <inheritdoc/>
-    public override LogLevel Level => LogLevel.System;
-    /// <summary>Captured entry.</summary>
-    public ILogEntry Captured { get; } = captured;
+public readonly record struct CapturedLogEntry : ISpanFormattable {
+    // Store the string directly if it's a basic entry
+    public string? Message { get; }
+
+    // Only use this for complex custom structs
+    public object? RawData { get; }
+
+    public CapturedLogEntry(string message) {
+        Message = message;
+        RawData = null;
+    }
+
+    public CapturedLogEntry(object data) {
+        Message = null;
+        RawData = data;
+    }
+
+    /// <summary>Format to span without allocation.</summary>
+    public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider) {
+        var content = Message ?? RawData?.ToString() ?? string.Empty;
+        if (content.Length <= destination.Length) {
+            content.AsSpan().CopyTo(destination);
+            charsWritten = content.Length;
+            return true;
+        }
+        charsWritten = 0;
+        return false;
+    }
+
+    /// <summary>Fallback for string formatting.</summary>
+    public string ToString(string? format, IFormatProvider? formatProvider) => Message ?? RawData?.ToString() ?? string.Empty;
 }

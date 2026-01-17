@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using Shiron.Logging;
 using Shiron.Profiling;
 
@@ -21,6 +22,21 @@ public static class HashUtils {
         using var stream = File.OpenRead(file);
         using var sha256 = SHA256.Create();
         var hash = sha256.ComputeHash(stream);
+
+        disposable?.Dispose();
+        return Convert.ToHexStringLower(hash);
+    }
+
+    /// <summary>Computes the SHA256 hash of a string.</summary>
+    /// <param name="input">The string to hash.</param>
+    /// <param name="profiler">Optional profiler for performance measurement.</param>
+    /// <returns>The SHA256 hash as a lowercase hexadecimal string.</returns>
+    public static string HashString(string input, IProfiler? profiler = null) {
+        ProfileScope? disposable = null;
+        if (profiler is not null) disposable = new ProfileScope(profiler, MethodBase.GetCurrentMethod()!);
+
+        var inputBytes = Encoding.UTF8.GetBytes(input);
+        var hash = SHA256.HashData(inputBytes);
 
         disposable?.Dispose();
         return Convert.ToHexStringLower(hash);
@@ -91,5 +107,17 @@ public static class HashUtils {
 
         disposable?.Dispose();
         return Convert.ToHexStringLower(finalHash);
+    }
+
+    public static string HashObject(object obj, IProfiler? profiler = null) {
+        ProfileScope? disposable = null;
+        if (profiler is not null) disposable = new ProfileScope(profiler, MethodBase.GetCurrentMethod()!);
+
+        var json = JsonSerializer.Serialize(obj);
+        var jsonBytes = Encoding.UTF8.GetBytes(json);
+        var hash = SHA256.HashData(jsonBytes);
+
+        disposable?.Dispose();
+        return Convert.ToHexStringLower(hash);
     }
 }
