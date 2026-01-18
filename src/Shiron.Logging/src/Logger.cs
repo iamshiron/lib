@@ -133,6 +133,11 @@ public class Logger(string? prefix) : ILogger {
             new LogHeader(level, LoggerPrefix, GetTimestamp(), LogContext.CurrentContextID),
             entry
         ));
+    public void Log(LogLevel level, string message) =>
+        Log(new LogPayload<BasicLogEntry>(
+            new LogHeader(level, LoggerPrefix, GetTimestamp(), LogContext.CurrentContextID),
+            new BasicLogEntry(message)
+        ));
 
     /// <inheritdoc/>
     public void MarkupLine(string message, LogLevel level) =>
