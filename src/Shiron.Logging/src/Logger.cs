@@ -99,7 +99,7 @@ public class Logger(string? prefix) : ILogger {
     }
 
     /// <inheritdoc/>
-    public void Log<T>(LogPayload<T> payload) where T : notnull {
+    public void Log<T>(in LogPayload<T> payload) where T : notnull {
         var suppressLog = false;
         // Use cached array snapshot - array iteration uses struct enumerator, no boxing
         var injectors = _injectorSnapshot;

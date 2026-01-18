@@ -7,7 +7,7 @@ namespace Shiron.Logging;
 public interface ILogger {
     /// <summary>Emit entry.</summary>
     /// <param name="entry">Log entry instance.</param>
-    public void Log<T>(LogPayload<T> entry) where T : notnull;
+    public void Log<T>(in LogPayload<T> entry) where T : notnull;
     public void Log<T>(LogLevel level, T entry) where T : notnull;
     public void Log(LogLevel level, string message);
 
