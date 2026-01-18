@@ -25,8 +25,13 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '9.x'
-      - run: dotnet tool update -g docfx
-      - run: docfx docs/docfx.json --disableGitFeatures
+      - name: Update docfx
+        run: dotnet tool update -g docfx
+      - name: Build docs
+        run: docfx docs/docfx.json --disableGitFeatures
+      - name: Add baseUrl to xrefmap
+        run: |
+          sed -i '1a baseUrl: https://iamshiron.github.io/lib/' docs/_site/xrefmap.yml
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
