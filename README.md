@@ -2,7 +2,7 @@
 [![CI](https://github.com/iamshiron/lib/actions/workflows/ci.yml/badge.svg)](https://github.com/iamshiron/lib/actions/workflows/ci.yml)
 [![Code Quality](https://github.com/iamshiron/lib/actions/workflows/code-quality.yml/badge.svg)](https://github.com/iamshiron/lib/actions/workflows/code-quality.yml)
 
-This repository contains a set of C\# utility libraries targeting **.NET 9.0**. It provides infrastructure for structured logging, performance profiling, and system interaction helpers used in my projects.
+This repository contains a set of C\# utility libraries targeting **.NET 10.0**. It provides infrastructure for structured logging, performance profiling, and system interaction helpers used in my projects.
 
 ## Modules
 ### 1\. Shiron.Logging
