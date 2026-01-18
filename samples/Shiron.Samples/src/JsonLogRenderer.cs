@@ -20,7 +20,7 @@ public class JsonLogRenderer : ILogRenderer, IDisposable {
         _writer = new Utf8JsonWriter(_outputStream, _options);
     }
 
-    public bool RenderLog<T>(in LogPayload<T> payload) where T : notnull {
+    public bool RenderLog<T>(in LogPayload<T> payload, in ILogger logger) where T : notnull {
         lock (_lock) {
             _writer.Reset(_outputStream);
 

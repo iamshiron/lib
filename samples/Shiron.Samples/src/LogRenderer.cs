@@ -6,7 +6,7 @@ namespace Shiron.Samples;
 public class LogRenderer : ILogRenderer {
     private readonly TextWriter _output = Console.Out;
 
-    public bool RenderLog<T>(in LogPayload<T> payload) where T : notnull {
+    public bool RenderLog<T>(in LogPayload<T> payload, in ILogger logger) where T : notnull {
         var color = payload.Header.Level switch {
             LogLevel.Debug => ConsoleColor.Gray,
             LogLevel.Info => ConsoleColor.White,
