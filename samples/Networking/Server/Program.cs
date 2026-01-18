@@ -1,4 +1,4 @@
-﻿
+
 using LiteNetLib;
 using Shiron.Networking;
 using Shiron.Samples.Networking.Common;
