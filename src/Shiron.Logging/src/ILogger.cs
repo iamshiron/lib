@@ -47,6 +47,8 @@ public interface ILogger {
 
     /// <summary>Create sub-logger with prefix.</summary>
     /// <param name="prefix">Prefix string.</param>
+    /// <param name="jsonLogger">Whether to enable JSON logging. Parent setting is always prioritized.</param>
+    /// <param name="stdoutStream">Optional custom output stream. If null, the parent's output stream is used.</param>
     /// <returns>Sub-logger instance.</returns>
-    public ILogger CreateSubLogger(string prefix);
+    public ILogger CreateSubLogger(string prefix, bool jsonLogger = false, Stream? stdoutStream = null);
 }

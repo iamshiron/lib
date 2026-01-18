@@ -46,7 +46,7 @@ public class LogContext {
 }
 
 /// <summary>Internal Manila logger.</summary>
-public class Logger(string? prefix) : ILogger {
+public class Logger : ILogger {
     /// <summary>Injector map for add/remove operations.</summary>
     private readonly ConcurrentDictionary<Guid, LogInjector> _activeInjectors = new();
     /// <summary>Cached array snapshot for zero-allocation iteration. Updated on add/remove.</summary>
@@ -56,17 +56,31 @@ public class Logger(string? prefix) : ILogger {
     private readonly List<ILogRenderer> _renderers = [];
     /// <summary>Cached array snapshot for zero-allocation iteration.</summary>
     private volatile ILogRenderer[] _rendererSnapshot = [];
-    private readonly object _rendererLock = new();
+    private readonly Lock _rendererLock = new();
 
     private readonly List<ILogger> _sub = [];
     private readonly Logger? _parent = null;
     private readonly Logger? _rootLogger = null;
     public LogContext LogContext { get; } = new();
 
-    public string? LoggerPrefix { get; } = prefix;
+    public string? LoggerPrefix { get; }
+    public readonly bool JsonLogger;
+    private readonly JsonLogRenderer? _jsonRenderer;
 
-    private Logger(string prefix, Logger parent) : this(prefix) {
+    private readonly Stream _stdoutStream;
+
+    public Logger(bool jsonLogger, Stream? stdoutStream = null) {
+        LoggerPrefix = null;
+        JsonLogger = jsonLogger;
+        _stdoutStream = stdoutStream ?? Console.OpenStandardOutput();
+        _jsonRenderer = JsonLogger ? new JsonLogRenderer(_stdoutStream) : null;
+    }
+    private Logger(string prefix, Logger parent, bool jsonLogger, Stream? stdoutStream = null) {
+        LoggerPrefix = parent.LoggerPrefix != null ? $"{parent.LoggerPrefix}/{prefix}" : prefix;
         _parent = parent;
+        JsonLogger = jsonLogger || parent.JsonLogger;
+        _stdoutStream = stdoutStream ?? parent._stdoutStream;
+        _jsonRenderer = JsonLogger ? new JsonLogRenderer(_stdoutStream) : null;
 
         // Find root logger by traversing up the parent chain.
         var current = parent;
@@ -113,7 +127,12 @@ public class Logger(string? prefix) : ILogger {
         var handled = false;
         var logger = this;
         while (true) {
-            // Use cached array snapshot - array iteration is zero-allocation
+            if (logger._jsonRenderer != null) {
+                _ = logger._jsonRenderer!.RenderLog(payload, logger);
+                handled = true;
+                break;
+            }
+
             var renderers = logger._rendererSnapshot;
             for (var i = 0; i < renderers.Length; i++) {
                 if (renderers[i].RenderLog(payload, this)) {
@@ -190,6 +209,11 @@ public class Logger(string? prefix) : ILogger {
 
     /// <inheritdoc/>
     public void AddRenderer(ILogRenderer renderer) {
+        if (_jsonRenderer != null) {
+            Warning("Cannot add renderers to a JSON logger.");
+            return;
+        }
+
         lock (_rendererLock) {
             _renderers.Add(renderer);
             _rendererSnapshot = [.. _renderers];
@@ -197,9 +221,8 @@ public class Logger(string? prefix) : ILogger {
     }
 
     /// <inheritdoc/>
-    public ILogger CreateSubLogger(string prefix) {
-        var combinedPrefix = LoggerPrefix != null ? $"{LoggerPrefix}/{prefix}" : prefix;
-        var sub = new Logger(combinedPrefix, this);
+    public ILogger CreateSubLogger(string prefix, bool jsonLogger = false, Stream? stdoutStream = null) {
+        var sub = new Logger(prefix, this, jsonLogger, stdoutStream);
         _sub.Add(sub);
 
         return sub;

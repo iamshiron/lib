@@ -12,12 +12,15 @@ var gcTracker3 = new GCTracker();
 
 gcTracker1.Start();
 var jsonLogging = args.Contains("--json");
-ILogRenderer renderer = jsonLogging ? new JsonLogRenderer(Console.OpenStandardOutput()) : new LogRenderer();
+ILogRenderer renderer = new LogRenderer();
 
-var logger = new Logger(null);
-logger.AddRenderer(renderer);
+var logger = new Logger(jsonLogging);
+if (!jsonLogging) {
+    logger.AddRenderer(renderer);
+}
 
 var sub = logger.CreateSubLogger("sub");
+var subSub = sub.CreateSubLogger("2");
 
 var profiler = new Profiler(logger, true);
 
@@ -32,6 +35,11 @@ using (new ProfileScope(profiler, "Sample Scope")) {
     sub.Info("This is an info message from sub-logger.");
     sub.Warning("This is a warning message from sub-logger.");
     sub.Error("This is an error message from sub-logger.");
+
+    subSub.Debug("This is a debug message from sub-sub-logger.");
+    subSub.Info("This is an info message from sub-sub-logger.");
+    subSub.Warning("This is a warning message from sub-sub-logger.");
+    subSub.Error("This is an error message from sub-sub-logger.");
 
     var outerInjector = new LogInjector(logger, (entry) => { });
     LogInjector injector = new LogInjector(logger, (entry) => { }, true);
