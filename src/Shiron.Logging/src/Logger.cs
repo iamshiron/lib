@@ -59,19 +59,19 @@ public class Logger(string? prefix) : ILogger {
     private readonly object _rendererLock = new();
 
     private readonly List<ILogger> _sub = [];
-    private readonly Logger? _parrent = null;
+    private readonly Logger? _parent = null;
     private readonly Logger? _rootLogger = null;
     public LogContext LogContext { get; } = new();
 
     public string? LoggerPrefix { get; } = prefix;
 
     private Logger(string prefix, Logger parent) : this(prefix) {
-        _parrent = parent;
+        _parent = parent;
 
         // Find root logger by traversing up the parent chain.
         var current = parent;
-        while (current._parrent != null) {
-            current = current._parrent;
+        while (current._parent != null) {
+            current = current._parent;
         }
         _rootLogger = current;
     }
@@ -121,13 +121,18 @@ public class Logger(string? prefix) : ILogger {
                 }
             }
 
-            if (handled || logger._parrent == null) break;
-            logger = logger._parrent;
+            if (handled || logger._parent == null) break;
+            logger = logger._parent;
         }
 
         if (!handled)
             Warning($"Log entry was not handled by any renderer: {payload.Body.GetType().Name}");
     }
+    public void Log<T>(LogLevel level, T entry) where T : notnull =>
+        Log(new LogPayload<T>(
+            new LogHeader(level, LoggerPrefix, GetTimestamp(), LogContext.CurrentContextID),
+            entry
+        ));
 
     /// <inheritdoc/>
     public void MarkupLine(string message, LogLevel level) =>
