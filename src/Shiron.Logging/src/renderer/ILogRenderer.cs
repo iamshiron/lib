@@ -4,8 +4,9 @@ public interface ILogRenderer {
     /// <summary>Render log entry.</summary>
     /// <typeparam name="T">Log entry data type.</typeparam>
     /// <param name="payload">Log payload.</param>
+    /// <param name="logger">Logger instance for logging back on custom entries.</param>
     /// <returns>Whether the log was rendered.</returns>
-    bool RenderLog<T>(in LogPayload<T> payload) where T : notnull;
+    bool RenderLog<T>(in LogPayload<T> payload, in ILogger logger) where T : notnull;
 }
 
 /// <summary>Helper utilities for low-allocation log rendering.</summary>

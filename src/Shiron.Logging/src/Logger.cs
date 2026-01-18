@@ -116,7 +116,7 @@ public class Logger(string? prefix) : ILogger {
             // Use cached array snapshot - array iteration is zero-allocation
             var renderers = logger._rendererSnapshot;
             for (var i = 0; i < renderers.Length; i++) {
-                if (renderers[i].RenderLog(payload)) {
+                if (renderers[i].RenderLog(payload, this)) {
                     handled = true;
                 }
             }
