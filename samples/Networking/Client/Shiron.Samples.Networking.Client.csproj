@@ -1,9 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Shiron.Logging\Shiron.Logging.csproj" />
-    <ProjectReference Include="..\..\src\Shiron.Profiling\Shiron.Profiling.csproj" />
-    <ProjectReference Include="..\..\src\Shiron.Utils\Shiron.Utils.csproj" />
+    <ProjectReference Include="..\Common\Shiron.Samples.Networking.Common.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

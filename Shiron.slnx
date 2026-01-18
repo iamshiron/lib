@@ -4,8 +4,16 @@
     <Platform Name="x64" />
     <Platform Name="x86" />
   </Configurations>
-  <Folder Name="/samples/">
-    <Project Path="samples/Shiron.Samples/Shiron.Samples.csproj" />
+  <Folder Name="/samples/" />
+  <Folder Name="/samples/Networking/" />
+  <Folder Name="/samples/Networking/Client/">
+    <Project Path="samples/Networking/Client/Shiron.Samples.Networking.Client.csproj" />
+  </Folder>
+  <Folder Name="/samples/Networking/Common/">
+    <Project Path="samples/Networking/Common/Shiron.Samples.Networking.Common.csproj" />
+  </Folder>
+  <Folder Name="/samples/Networking/Server/">
+    <Project Path="samples/Networking/Server/Shiron.Samples.Networking.Server.csproj" />
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/Shiron.Logging/Shiron.Logging.csproj" />
