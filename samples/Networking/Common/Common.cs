@@ -1,6 +1,6 @@
 using System.Diagnostics.Contracts;
 using MemoryPack;
-using Shiron.Networking;
+using Shiron.Lib.Networking;
 
 namespace Shiron.Samples.Networking.Common;
 

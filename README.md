@@ -5,13 +5,13 @@
 This repository contains a set of C\# utility libraries targeting **.NET 10.0**. It provides infrastructure for structured logging, performance profiling, and system interaction helpers used in my projects.
 
 ## Modules
-### 1\. Shiron.Logging
+### 1\. Shiron.Lib.Logging
 A library for structured logging implementing the `ILogger` interface.
   * **Context Tracking:** Uses `AsyncLocal<Stack<Guid>>` in `LogContext` to maintain execution context across asynchronous calls.
   * **Log Injection:** Defines a `LogInjector` class to subscribe to log events. Injectors receive `ILogEntry` objects and can filter or process them (e.g., writing to console or file).
   * **Data Structure:** Log entries are defined as `ILogEntry` implementations (e.g., `BasicLogEntry`, `MarkupLogEntry`), containing timestamps, log levels, and context IDs.
 
-### 2\. Shiron.Profiling
+### 2\. Shiron.Lib.Profiling
 A profiling library that generates data compatible with the **Chrome Trace Event Format**.
   * **Trace Events:** Records events (Begin, End, Complete) with timestamps, process/thread IDs, and arguments.
   * **Scoping:** Provides a `ProfileScope` struct (implementing `IDisposable`) to measure the duration of code blocks automatically.
@@ -20,7 +20,7 @@ A profiling library that generates data compatible with the **Chrome Trace Event
 **Usage Example:**
 
 ```csharp
-using Shiron.Profiling;
+using Shiron.Lib.Profiling;
 
 // Initialize profiler (optional: enable logging of profile events)
 var profiler = new Profiler(logger, logProfiling: true);
@@ -34,7 +34,7 @@ using (new ProfileScope(profiler, "DataProcessing")) {
 profiler.SaveToFile("profiles");
 ```
 
-### 3\. Shiron.Utils
+### 3\. Shiron.Lib.Utils
 A library containing static utility classes for system operations and data manipulation.
   * **ShellUtils:** A wrapper for `System.Diagnostics.Process` that executes shell commands. It captures `stdout` and `stderr` streams, sets environment variables (e.g., `TERM`), and provides synchronous execution methods.
   * **HashUtils:** Provides methods to compute SHA256 hashes for individual files or combined hashes for sets of files/directories.
@@ -50,7 +50,7 @@ dotnet build --configuration Release
 ```
 
 ### Structure
-  * `src/`: Source code for `Shiron.Logging`, `Shiron.Profiling`, and `Shiron.Utils`.
+  * `src/`: Source code for `Shiron.Lib.Logging`, `Shiron.Lib.Profiling`, and `Shiron.Lib.Utils`.
   * `samples/`: Sample project (`Shiron.Samples`) demonstrating library usage.
   * `profiles/`: Default output directory for profiling data.
 

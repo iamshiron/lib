@@ -1,0 +1,34 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Folder Name="/samples/" />
+  <Folder Name="/samples/Misc/">
+    <Project Path="samples/Misc/Shiron.Samples.Misc.csproj" />
+  </Folder>
+  <Folder Name="/samples/Networking/" />
+  <Folder Name="/samples/Networking/Client/">
+    <Project Path="samples/Networking/Client/Shiron.Samples.Networking.Client.csproj" />
+  </Folder>
+  <Folder Name="/samples/Networking/Common/">
+    <Project Path="samples/Networking/Common/Shiron.Samples.Networking.Common.csproj" />
+  </Folder>
+  <Folder Name="/samples/Networking/Server/">
+    <Project Path="samples/Networking/Server/Shiron.Samples.Networking.Server.csproj" />
+  </Folder>
+  <Folder Name="/src/" />
+  <Folder Name="/src/Logging/">
+    <Project Path="src/Logging/Shiron.Lib.Logging.csproj" />
+  </Folder>
+  <Folder Name="/src/Networking/">
+    <Project Path="src/Networking/Shiron.Lib.Networking.csproj" />
+  </Folder>
+  <Folder Name="/src/Profiling/">
+    <Project Path="src/Profiling/Shiron.Lib.Profiling.csproj" />
+  </Folder>
+  <Folder Name="/src/Utils/">
+    <Project Path="src/Utils/Shiron.Lib.Utils.csproj" />
+  </Folder>
+</Solution>
