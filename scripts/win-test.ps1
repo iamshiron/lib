@@ -3,7 +3,7 @@ $ErrorActionPreference = "Stop"
 
 # --- Configuration ---
 $RepoRoot = Get-Location
-$SolutionFile = Join-Path $RepoRoot "Shiron.slnx"
+$SolutionFile = Join-Path $RepoRoot "Shiron.Lib.slnx"
 $DocsFolder = Join-Path $RepoRoot "docs"
 
 # --- Functions ---

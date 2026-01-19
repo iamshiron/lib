@@ -8,7 +8,7 @@ set -e
 # Get the current directory, which is assumed to be the repository root.
 REPO_ROOT=$(pwd)
 # Define the path to the solution file.
-SOLUTION_FILE="${REPO_ROOT}/Manila.slnx"
+SOLUTION_FILE="${REPO_ROOT}/Shiron.Lib.slnx"
 
 # Function to print a green header message.
 write_header() {
