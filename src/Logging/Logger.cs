@@ -1,4 +1,6 @@
 using System.Collections.Concurrent;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Shiron.Lib.Logging.Renderer;
 
 namespace Shiron.Lib.Logging;
@@ -69,18 +71,20 @@ public class Logger : ILogger {
 
     private readonly Stream _stdoutStream;
 
+    public JsonLogRenderer? TempJsonRenderer => _jsonRenderer;
+
     public Logger(bool jsonLogger, Stream? stdoutStream = null) {
         LoggerPrefix = null;
         JsonLogger = jsonLogger;
         _stdoutStream = stdoutStream ?? Console.OpenStandardOutput();
-        _jsonRenderer = JsonLogger ? new JsonLogRenderer(_stdoutStream) : null;
+        _jsonRenderer = jsonLogger ? new JsonLogRenderer(_stdoutStream) : null;
     }
     private Logger(string prefix, Logger parent, bool jsonLogger, Stream? stdoutStream = null) {
         LoggerPrefix = parent.LoggerPrefix != null ? $"{parent.LoggerPrefix}/{prefix}" : prefix;
         _parent = parent;
-        JsonLogger = jsonLogger || parent.JsonLogger;
+        JsonLogger = jsonLogger;
         _stdoutStream = stdoutStream ?? parent._stdoutStream;
-        _jsonRenderer = JsonLogger ? new JsonLogRenderer(_stdoutStream) : null;
+        _jsonRenderer = jsonLogger ? new JsonLogRenderer(_stdoutStream) : null;
 
         // Find root logger by traversing up the parent chain.
         var current = parent;
@@ -110,6 +114,11 @@ public class Logger : ILogger {
             // Update snapshot array for zero-allocation iteration
             _injectorSnapshot = [.. _activeInjectors.Values];
         }
+    }
+
+    /// <inheritdoc/>
+    public void RegisterConverters(IEnumerable<JsonConverter> converters) {
+        _jsonRenderer?.RegisterConverters(converters);
     }
 
     /// <inheritdoc/>

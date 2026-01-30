@@ -1,4 +1,5 @@
 
+using System.Text.Json.Serialization;
 using Shiron.Lib.Logging.Renderer;
 
 namespace Shiron.Lib.Logging;
@@ -27,6 +28,9 @@ public interface ILogger {
     public void Critical(string message, Guid? parentContextID = null);
     /// <summary>System level.</summary>
     public void System(string message, Guid? parentContextID = null);
+
+    /// <summary> Register JSON converters for serialization. </summary>
+    public void RegisterConverters(IEnumerable<JsonConverter> converters);
 
     /// <summary>Add a log renderer.</summary>
     public void AddRenderer(ILogRenderer renderer);
