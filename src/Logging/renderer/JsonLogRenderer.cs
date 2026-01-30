@@ -29,8 +29,6 @@ public class JsonLogRenderer : ILogRenderer, IDisposable {
     }
 
     public void RegisterConverters(IEnumerable<JsonConverter> converters) {
-        System.Console.WriteLine($"Registering {converters.Count()} converters");
-
         lock (_optionsLock) {
             var copy = new JsonSerializerOptions(_serializerOptions);
             foreach (var converter in converters) {
