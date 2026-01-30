@@ -1,61 +1,77 @@
-# Shiron Libraries
+# Shiron.Lib
+
 [![CI](https://github.com/iamshiron/lib/actions/workflows/ci.yml/badge.svg)](https://github.com/iamshiron/lib/actions/workflows/ci.yml)
 [![Code Quality](https://github.com/iamshiron/lib/actions/workflows/code-quality.yml/badge.svg)](https://github.com/iamshiron/lib/actions/workflows/code-quality.yml)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-This repository contains a set of C\# utility libraries targeting **.NET 10.0**. It provides infrastructure for structured logging, performance profiling, and system interaction helpers used in my projects.
+A collection of high-performance C# utility libraries targeting **.NET 10.0**. These modules provide the infrastructure for game engine architecture, offering zero-allocation logging, instrumentation profiling, and systems interaction helpers.
 
 ## Modules
-### 1\. Shiron.Lib.Logging
-A library for structured logging implementing the `ILogger` interface.
-  * **Context Tracking:** Uses `AsyncLocal<Stack<Guid>>` in `LogContext` to maintain execution context across asynchronous calls.
-  * **Log Injection:** Defines a `LogInjector` class to subscribe to log events. Injectors receive `ILogEntry` objects and can filter or process them (e.g., writing to console or file).
-  * **Data Structure:** Log entries are defined as `ILogEntry` implementations (e.g., `BasicLogEntry`, `MarkupLogEntry`), containing timestamps, log levels, and context IDs.
+### 1. Shiron.Lib.Logging
+**Zero-Allocation Structured Logging** designed for high-frequency render loops. It decouples data capture from formatting to minimize GC pressure in hot paths.
 
-### 2\. Shiron.Lib.Profiling
-A profiling library that generates data compatible with the **Chrome Trace Event Format**.
-  * **Trace Events:** Records events (Begin, End, Complete) with timestamps, process/thread IDs, and arguments.
-  * **Scoping:** Provides a `ProfileScope` struct (implementing `IDisposable`) to measure the duration of code blocks automatically.
-  * **Output:** Serializes collected events to JSON files, which can be loaded into `chrome://tracing` or similar analysis tools.
+* **Hot-Path Safety:** Uses `struct` payloads and pooled resources.
+* **Dual-Mode Output:**
+    * **Console:** Human-readable formatting for development.
+    * **NDJSON:** Machine-readable structured output for observability (e.g., Seq, Datadog).
+* **Context Tracking:** Maintains execution context across `async`/`await` boundaries using `AsyncLocal`.
 
-**Usage Example:**
+**Example Output (NDJSON)**
+*Capturing Vulkan hardware state without allocations: (added indentation for showcase)*
+```json
+{
+    "timestamp": 1769749518056,
+    "level": 0,
+    "type": "...VulkanPhysicalDeviceLogEntry",
+    "body": {
+        "deviceName":"NVIDIA GeForce RTX 4080",
+        "deviceType":"DiscreteGpu",
+        "vendorId":4318,
+        "deviceId":9988
+    }
+}
+```
+
+### 2. Shiron.Lib.Profiling
+Instrumentation-based profiling library compatible with the **Chrome Trace Event Format** (`chrome://tracing`).
+* **Scoped Measurement:** `ProfileScope` struct for `using` block instrumentation.
+* **Visual Analysis:** serialized JSON output can be loaded into Perfetto or Chrome Tracing.
 
 ```csharp
 using Shiron.Lib.Profiling;
 
-// Initialize profiler (optional: enable logging of profile events)
+// Initialize with optional real-time logging
 var profiler = new Profiler(logger, logProfiling: true);
 
-using (new ProfileScope(profiler, "DataProcessing")) {
-    // Code block execution time is recorded
-    Thread.Sleep(100);
+using (new ProfileScope(profiler, "PhysicsStep")) {
+    // Execution time recorded automatically upon disposal
+    SimulatePhysics();
 }
 
-// Write collected events to disk, will not be saved if folder does not exist
-profiler.SaveToFile("profiles");
+// Flush events to disk (./profiles/)
+profiler.SaveToFile("frame_capture");
 ```
 
-### 3\. Shiron.Lib.Utils
-A library containing static utility classes for system operations and data manipulation.
-  * **ShellUtils:** A wrapper for `System.Diagnostics.Process` that executes shell commands. It captures `stdout` and `stderr` streams, sets environment variables (e.g., `TERM`), and provides synchronous execution methods.
-  * **HashUtils:** Provides methods to compute SHA256 hashes for individual files or combined hashes for sets of files/directories.
-  * **FunctionUtils:** Contains reflection helpers to convert `MethodInfo` into typed Delegates, falling back to Expression trees when `Delegate.CreateDelegate` is not applicable.
-  * **RegexUtils:** Hosts pre-compiled `Regex` patterns for parsing specific string formats (e.g., job identifiers, plugin specifications).
-  * **PlatformUtils & TimeUtils:** Helpers for detecting the operating system/architecture and formatting Unix timestamps.
+### 3. Shiron.Lib.Utils
+Static helpers for system operations and unsafe data manipulation.
+
+* **System Interaction (`ShellUtils`):** Wrapper for `Process` to execute shell commands with captured `stdout`/`stderr` and environment control.
+* **Data Integrity (`HashUtils`):** Simple to use SHA256 computation for files and directory trees.
+* **Runtime (`FunctionUtils`):** Reflection helpers to convert `MethodInfo` into typed Delegates (falling back to Expression Trees for performance).
+* **Platform (`PlatformUtils`):** OS and Architecture detection for cross-platform logic.
 
 ## Building
-The solution targets **.NET 9.0**. Build using the .NET CLI:
-
 ```bash
 dotnet build --configuration Release
 ```
 
-### Structure
-  * `src/`: Source code for `Shiron.Lib.Logging`, `Shiron.Lib.Profiling`, and `Shiron.Lib.Utils`.
-  * `samples/`: Sample project (`Shiron.Samples`) demonstrating library usage.
-  * `profiles/`: Default output directory for profiling data.
+### Directory Structure
+* `src/`: Source code for Logging, Profiling, and Utils.
+* `samples/`: Reference implementations and usage patterns.
+* `profiles/`: Default output directory for trace artifacts.
 
-## Projects using those libraries
-- [ManilaBuild](https://github.com/iamshiran/ManilaBuild): A work in progress polyglot build system
+## Used By
+* [ManilaBuild](https://github.com/iamshiron/ManilaBuild): Polyglot build system (WIP).
 
 ## 📄 License
-To be determined. All rights reserved by the author.
+This project is licensed under the [MIT License](LICENSE).
