@@ -11,6 +11,14 @@ namespace Shiron.Lib.Utils;
 /// </summary>
 public static class ShellUtils {
     /// <summary>
+    /// Represents the result of a process execution.
+    /// </summary>
+    /// <param name="ExitCode">The exit code of the process.</param>
+    /// <param name="StdOut">The standard output produced by the process.</param>
+    /// <param name="StdErr">The standard error output produced by the process.</param>
+    public record ProcessResult(int ExitCode, string StdOut, string StdErr);
+
+    /// <summary>
     /// Encapsulates all the information required to execute a shell command.
     /// </summary>
     /// <param name="command">The command or executable to run.</param>
@@ -48,8 +56,8 @@ public static class ShellUtils {
     /// <param name="command">The command to execute.</param>
     /// <param name="args">The command arguments.</param>
     /// <param name="workingDir">Optional working directory where the command will be executed. If null, the current directory is used.</param>
-    /// <returns>The exit code of the process.</returns>
-    public static int Run(string command, string[]? args = null, string? workingDir = null, ILogger? logger = null) {
+    /// <returns>The process result object containing the exit code, standard output, and standard error.</returns>
+    public static ProcessResult Run(string command, string[]? args = null, string? workingDir = null, ILogger? logger = null) {
         return Run(new(command, args, workingDir), logger);
     }
 
@@ -62,8 +70,8 @@ public static class ShellUtils {
     /// <param name="command">The command to execute.</param>
     /// <param name="args">The command arguments.</param>
     /// <param name="workingDir">Optional working directory where the command will be executed. If null, the current directory is used.</param>
-    /// <returns>The exit code of the process.</returns>
-    public static int RunSuppressed(string command, string[]? args, string? workingDir = null, ILogger? logger = null) {
+    /// <returns>The process result object containing the exit code, standard output, and standard error.</returns>
+    public static ProcessResult RunSuppressed(string command, string[]? args, string? workingDir = null, ILogger? logger = null) {
         return Run(new(command, args, workingDir, true, true), logger);
     }
 
@@ -73,8 +81,8 @@ public static class ShellUtils {
     /// <param name="command">The command to execute.</param>
     /// <param name="args">The command arguments.</param>
     /// <param name="workingDir">Optional working directory where the command will be executed. If null, the current directory is used.</param>
-    /// <returns>The exit code of the process.</returns>
-    public static int Run(string command, string[]? args = null, string? workingDir = null, Action<string>? onStdOut = null, Action<string>? onStdErr = null) {
+    /// <returns>The process result object containing the exit code, standard output, and standard error.</returns>
+    public static ProcessResult Run(string command, string[]? args = null, string? workingDir = null, Action<string>? onStdOut = null, Action<string>? onStdErr = null) {
         return Run(new(command, args, workingDir), onStdOut, onStdErr);
     }
 
@@ -87,8 +95,8 @@ public static class ShellUtils {
     /// <param name="command">The command to execute.</param>
     /// <param name="args">The command arguments.</param>
     /// <param name="workingDir">Optional working directory where the command will be executed. If null, the current directory is used.</param>
-    /// <returns>The exit code of the process.</returns>
-    public static int RunSuppressed(string command, string[]? args, string? workingDir = null) {
+    /// <returns>The process result object containing the exit code, standard output, and standard error.</returns>
+    public static ProcessResult RunSuppressed(string command, string[]? args, string? workingDir = null) {
         return Run(new(command, args, workingDir, true, true), null, null);
     }
 
@@ -101,8 +109,8 @@ public static class ShellUtils {
     /// Environment variables `TERM` and `FORCE_COLOR` are set to ensure consistent output formatting.
     /// </remarks>
     /// <param name="info">An object containing all configuration for the command execution.</param>
-    /// <returns>The exit code of the process.</returns>
-    public static int Run(CommandInfo info, Action<string>? onStdOut, Action<string>? onStdErr) {
+    /// <returns>The process result object containing the exit code, standard output, and standard error.</returns>
+    public static ProcessResult Run(CommandInfo info, Action<string>? onStdOut, Action<string>? onStdErr) {
         var workingDir = info.WorkingDir ?? Directory.GetCurrentDirectory();
         var contextID = Guid.NewGuid();
         var startTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
@@ -143,7 +151,11 @@ public static class ShellUtils {
         process.BeginErrorReadLine();
         process.WaitForExit();
 
-        return process.ExitCode;
+        return new(
+            process.ExitCode,
+            stdOutBuilder.ToString(),
+            stdErrBuilder.ToString()
+        );
     }
 
     /// <summary>
@@ -155,8 +167,8 @@ public static class ShellUtils {
     /// Environment variables `TERM` and `FORCE_COLOR` are set to ensure consistent output formatting.
     /// </remarks>
     /// <param name="info">An object containing all configuration for the command execution.</param>
-    /// <returns>The exit code of the process.</returns>
-    public static int Run(CommandInfo info, ILogger? logger = null) {
+    /// <returns>The process result object containing the exit code, standard output, and standard error.</returns>
+    public static ProcessResult Run(CommandInfo info, ILogger? logger = null) {
         var workingDir = info.WorkingDir ?? Directory.GetCurrentDirectory();
         var contextID = Guid.NewGuid();
         var startTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
@@ -196,9 +208,9 @@ public static class ShellUtils {
             ));
         }
 
-        var exitCode = Run(info, logStdOut, logStdErr);
+        var result = Run(info, logStdOut, logStdErr);
 
-        if (exitCode == 0) {
+        if (result.ExitCode == 0) {
             logger?.Log(new LogPayload<CommandExecutionFinishedLogEntry>(
                 new LogHeader(LogLevel.Info,
                     "ShellUtils",
@@ -206,7 +218,7 @@ public static class ShellUtils {
                     contextID
                 ),
                 new CommandExecutionFinishedLogEntry(
-                    stdOutBuilder.ToString(), stdErrBuilder.ToString(), DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - startTime, exitCode
+                    stdOutBuilder.ToString(), stdErrBuilder.ToString(), DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - startTime, result.ExitCode
                 )
             ));
         } else {
@@ -217,11 +229,11 @@ public static class ShellUtils {
                     contextID
                 ),
                 new CommandExecutionFailedLogEntry(
-                    stdOutBuilder.ToString(), stdErrBuilder.ToString(), DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - startTime, exitCode
+                    stdOutBuilder.ToString(), stdErrBuilder.ToString(), DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - startTime, result.ExitCode
                 )
             ));
         }
 
-        return exitCode;
+        return result;
     }
 }
