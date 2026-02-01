@@ -5,10 +5,10 @@ using Shiron.Lib.Profiling;
 
 namespace Shiron.Docs.Engine.Benchmarks;
 
-[MemoryDiagnoser] // <--- REQUIRED for memory tracking
-[SimpleJob(RunStrategy.Throughput)] // measures raw speed
+[MemoryDiagnoser]
+[SimpleJob(RunStrategy.Throughput)]
 public class ProfilerBenchmarks {
-    private Profiler _profiler;
+    private Profiler _profiler = null!;
 
     [IterationSetup]
     public void Setup() {
