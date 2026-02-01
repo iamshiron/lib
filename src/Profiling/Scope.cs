@@ -27,7 +27,7 @@ public readonly struct ProfileScope : IDisposable {
     private readonly IProfiler _profiler;
     private readonly string _name;
     private readonly long _startTimestampMicroseconds;
-    private readonly long _startAllocations;
+    private readonly long _startAllocationSizeBytes;
     private readonly Dictionary<string, object>? _args;
 
     /// <summary>Creates a profiling scope with a specified name. This is the Primary Constructor.</summary>
@@ -39,11 +39,9 @@ public readonly struct ProfileScope : IDisposable {
         _name = name;
         _args = args;
         _startTimestampMicroseconds = _profiler.GetTimestamp();
-        _startAllocations = GC.GetTotalAllocatedBytes();
+        _startAllocationSizeBytes = GC.GetTotalAllocatedBytes();
 
-        _profiler.RecordCounter("Memory", new Dictionary<string, object> {
-            { "totalAllocated", _startAllocations }
-        });
+        _profiler.RecordAllocations("Memory", _startAllocationSizeBytes);
     }
 
     /// <summary>Creates a profiling scope with the caller member name as the event name.</summary>
@@ -71,15 +69,9 @@ public readonly struct ProfileScope : IDisposable {
         }
 
         long durationMicroseconds = endTimestampMicroseconds - _startTimestampMicroseconds;
+        long endAllocationSizeBytes = GC.GetTotalAllocatedBytes();
 
-        long endAllocations = GC.GetTotalAllocatedBytes();
-        long allocatedBytes = endAllocations - _startAllocations;
-        var args = _args ?? [];
-        args["allocations"] = allocatedBytes;
-
-        _profiler.RecordCompleteEvent(_name, _startTimestampMicroseconds, durationMicroseconds, args);
-        _profiler.RecordCounter("Memory", new Dictionary<string, object> {
-            { "totalAllocated", endAllocations }
-        });
+        _profiler.RecordCompleteEvent(_name, _startTimestampMicroseconds, durationMicroseconds);
+        _profiler.RecordAllocations("Memory", endAllocationSizeBytes);
     }
 }
