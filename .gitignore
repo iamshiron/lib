@@ -12,6 +12,7 @@ run/bin
 run/bin-int
 
 log.txt
+log.json
 
 Shiron.Tests/TestResults
 
