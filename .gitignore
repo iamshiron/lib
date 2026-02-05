@@ -4,6 +4,7 @@
 **/obj
 
 .vscode/
+.idea/
 .VSCodeCounter
 
 run/.manila

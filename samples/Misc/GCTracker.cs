@@ -1,4 +1,6 @@
 
+using System;
+
 namespace Shiron.Samples.Misc;
 
 public class GCTracker {
@@ -9,7 +11,7 @@ public class GCTracker {
     }
 
     public long End() {
-        long end = GC.GetAllocatedBytesForCurrentThread();
+        var end = GC.GetAllocatedBytesForCurrentThread();
         return end - _start;
     }
 }

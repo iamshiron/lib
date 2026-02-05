@@ -1,3 +1,5 @@
+using System;
+using System.IO;
 using Shiron.Lib.Logging;
 using Shiron.Lib.Logging.Renderer;
 
