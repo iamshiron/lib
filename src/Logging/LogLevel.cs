@@ -1,4 +1,4 @@
-namespace Shiron.Lib.Logging;
+﻿namespace Shiron.Lib.Logging;
 
 /// <summary>
 /// Defines the severity levels for log entries.

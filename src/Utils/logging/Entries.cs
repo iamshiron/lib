@@ -1,4 +1,4 @@
-
+﻿
 using Shiron.Lib.Logging;
 
 namespace Shiron.Lib.Utils.Logging;

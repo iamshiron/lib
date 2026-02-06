@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -64,7 +64,8 @@ public readonly struct ProfileScope : IDisposable {
     public void Dispose() {
         long endTimestampMicroseconds = _profiler.GetTimestamp();
         // Ensure duration is at least 1 microsecond to avoid zero-duration events
-        if (endTimestampMicroseconds <= _startTimestampMicroseconds) {
+        if (endTimestampMicroseconds <= _startTimestampMicroseconds)
+        {
             endTimestampMicroseconds = _startTimestampMicroseconds + 1;
         }
 

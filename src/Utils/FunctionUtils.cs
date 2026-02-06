@@ -1,4 +1,4 @@
-using System.Linq.Expressions;
+﻿using System.Linq.Expressions;
 using System.Reflection;
 
 namespace Shiron.Lib.Utils;
@@ -18,8 +18,10 @@ public static class FunctionUtils {
     /// it falls back to using expression trees.
     /// </remarks>
     public static Delegate ToDelegate(object? o, MethodInfo method) {
-        try {
-            if (method.ReturnType == typeof(void)) {
+        try
+        {
+            if (method.ReturnType == typeof(void))
+            {
                 var paramTypes = method.GetParameters().Select(p => p.ParameterType).ToArray();
                 Type delegateType = paramTypes.Length switch {
                     0 => typeof(Action),
@@ -31,7 +33,8 @@ public static class FunctionUtils {
                 };
                 return Delegate.CreateDelegate(delegateType, o, method, throwOnBindFailure: false)
                        ?? CreateDelegateWithExpression(o, method, delegateType);
-            } else {
+            } else
+            {
                 var paramTypes = method.GetParameters().Select(p => p.ParameterType).ToArray();
                 Type[] typeArgs = paramTypes.Append(method.ReturnType).ToArray();
                 Type delegateType = paramTypes.Length switch {
@@ -45,7 +48,8 @@ public static class FunctionUtils {
                 return Delegate.CreateDelegate(delegateType, o, method, throwOnBindFailure: false)
                        ?? CreateDelegateWithExpression(o, method, delegateType);
             }
-        } catch (Exception ex) {
+        } catch (Exception ex)
+        {
             throw new ArgumentException(
                 $"Failed to create delegate for method {method.Name} on type {method.DeclaringType?.Name}. " +
                 $"Return type: {method.ReturnType.Name}, " +

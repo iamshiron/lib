@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -216,7 +216,8 @@ public class Profiler : IProfiler {
 
     /// <inheritdoc/>
     public string? SaveToFile(string baseDir) {
-        if (!Directory.Exists(baseDir)) {
+        if (!Directory.Exists(baseDir))
+        {
             return null;
         }
 
@@ -238,7 +239,8 @@ public class Profiler : IProfiler {
     public void Serialize(Utf8JsonWriter writer) {
         writer.WriteStartArray();
 
-        for (int i = 0; i < _events.Count; ++i) {
+        for (int i = 0; i < _events.Count; ++i)
+        {
             _events.ElementAt(i).Serialize(writer, _jsonOptions);
         }
 

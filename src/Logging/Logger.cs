@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Shiron.Lib.Logging.Renderer;
@@ -88,7 +88,8 @@ public class Logger : ILogger {
 
         // Find root logger by traversing up the parent chain.
         var current = parent;
-        while (current._parent != null) {
+        while (current._parent != null)
+        {
             current = current._parent;
         }
         _rootLogger = current;
@@ -96,8 +97,10 @@ public class Logger : ILogger {
 
     /// <inheritdoc/>
     public void AddInjector(Guid id, LogInjector injector) {
-        lock (_injectorLock) {
-            if (!_activeInjectors.TryAdd(id, injector)) {
+        lock (_injectorLock)
+        {
+            if (!_activeInjectors.TryAdd(id, injector))
+            {
                 throw new Exception($"An injector with ID {id} already exists.");
             }
             // Update snapshot array for zero-allocation iteration
@@ -107,8 +110,10 @@ public class Logger : ILogger {
 
     /// <inheritdoc/>
     public void RemoveInjector(Guid id) {
-        lock (_injectorLock) {
-            if (!_activeInjectors.TryRemove(id, out _)) {
+        lock (_injectorLock)
+        {
+            if (!_activeInjectors.TryRemove(id, out _))
+            {
                 throw new Exception($"No injector with ID {id} exists to remove.");
             }
             // Update snapshot array for zero-allocation iteration
@@ -126,7 +131,8 @@ public class Logger : ILogger {
         var suppressLog = false;
         // Use cached array snapshot - array iteration uses struct enumerator, no boxing
         var injectors = _injectorSnapshot;
-        for (var i = 0; i < injectors.Length; i++) {
+        for (var i = 0; i < injectors.Length; i++)
+        {
             suppressLog |= injectors[i].Handle(payload);
         }
 
@@ -135,16 +141,20 @@ public class Logger : ILogger {
 
         var handled = false;
         var logger = this;
-        while (true) {
-            if (logger._jsonRenderer != null) {
+        while (true)
+        {
+            if (logger._jsonRenderer != null)
+            {
                 _ = logger._jsonRenderer!.RenderLog(payload, logger);
                 handled = true;
                 break;
             }
 
             var renderers = logger._rendererSnapshot;
-            for (var i = 0; i < renderers.Length; i++) {
-                if (renderers[i].RenderLog(payload, this)) {
+            for (var i = 0; i < renderers.Length; i++)
+            {
+                if (renderers[i].RenderLog(payload, this))
+                {
                     handled = true;
                 }
             }
@@ -218,12 +228,14 @@ public class Logger : ILogger {
 
     /// <inheritdoc/>
     public void AddRenderer(ILogRenderer renderer) {
-        if (_jsonRenderer != null) {
+        if (_jsonRenderer != null)
+        {
             Warning("Cannot add renderers to a JSON logger.");
             return;
         }
 
-        lock (_rendererLock) {
+        lock (_rendererLock)
+        {
             _renderers.Add(renderer);
             _rendererSnapshot = [.. _renderers];
         }

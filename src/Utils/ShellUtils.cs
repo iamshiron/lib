@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
 using Shiron.Lib.Logging;
@@ -210,7 +210,8 @@ public static class ShellUtils {
 
         var result = Run(info, logStdOut, logStdErr);
 
-        if (result.ExitCode == 0) {
+        if (result.ExitCode == 0)
+        {
             logger?.Log(new LogPayload<CommandExecutionFinishedLogEntry>(
                 new LogHeader(LogLevel.Info,
                     "ShellUtils",
@@ -221,7 +222,8 @@ public static class ShellUtils {
                     stdOutBuilder.ToString(), stdErrBuilder.ToString(), DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - startTime, result.ExitCode
                 )
             ));
-        } else {
+        } else
+        {
             logger?.Log(new LogPayload<CommandExecutionFailedLogEntry>(
                 new LogHeader(LogLevel.Error,
                     "ShellUtils",

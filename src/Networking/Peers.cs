@@ -1,4 +1,4 @@
-
+﻿
 using LiteNetLib;
 using LiteNetLib.Utils;
 using MemoryPack;
@@ -102,7 +102,8 @@ public class NetworkClient(CommandRegistry registry) : NetworkPeer(registry), IN
     public event Action<INetworkCommand>? OnPacketReceived;
 
     public void Connect(string ip, uint port) {
-        if (!netManager.Start()) {
+        if (!netManager.Start())
+        {
             throw new Exception("Failed to start network manager.");
         }
         _server = netManager.Connect(ip, (int) port, "");
@@ -140,7 +141,8 @@ public class NetworkServer(CommandRegistry registry) : NetworkPeer(registry), IN
     public event Action<int, INetworkCommand>? OnPacketReceived;
 
     public void Start(uint port) {
-        if (!netManager.Start((int) port)) {
+        if (!netManager.Start((int) port))
+        {
             throw new Exception("Failed to start network manager.");
         }
     }

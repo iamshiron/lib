@@ -11,7 +11,7 @@
 # -----------------------------------------------------------------------------
 # Set the default for all files to automatically detect if they are text.
 # If so, normalize their line endings to LF in the repository. This is the
-# most important rule for cross-platform collaboration. 🤝
+# most important rule for cross-platform collaboration.
 * text=auto eol=lf
 
 # -----------------------------------------------------------------------------
@@ -54,7 +54,7 @@ app.manifest      text
 # Common Binary Files in .NET Projects
 # -----------------------------------------------------------------------------
 # Mark common binary files to prevent Git from touching them. This avoids
-# file corruption. 🛑
+# file corruption.
 
 # Compiled assemblies and debug symbols
 *.dll             binary
