@@ -1,15 +1,6 @@
 # Benchmarks
 ## Shiron.Lib.Collections
 ### RingBuffer
-```
-BenchmarkDotNet v0.15.8, Windows 11 (10.0.26200.7623/25H2/2025Update/HudsonValley2)
-13th Gen Intel Core i7-13700KF 3.40GHz, 1 CPU, 24 logical and 16 physical cores
-.NET SDK 10.0.102
-[Host]     : .NET 10.0.2 (10.0.2, 10.0.225.61305), X64 RyuJIT x86-64-v3
-Job-CEIKLR : .NET 10.0.2 (10.0.2, 10.0.225.61305), X64 RyuJIT x86-64-v3
-
-RunStrategy=Throughput
-```
 ---
 | Method                | Capacity |            Mean |       Error |      StdDev |          Median | Allocated |
 |---------------------- |--------- |----------------:|------------:|------------:|----------------:|----------:|
@@ -28,3 +19,29 @@ RunStrategy=Throughput
 | GetMedian             | 4096     | 139,658.3049 ns | 1,534.2152 ns | 1,435.1058 ns | 139,667.2119 ns |         - |
 | GetAverageLow1Percent | 4096     | 140,840.9031 ns | 1,570.5674 ns | 1,392.2671 ns | 140,885.2417 ns |         - |
 | GetStandardDeviation  | 4096     |       5.1741 ns |   0.0326 ns |   0.0289 ns |       5.1635 ns |         - |
+
+## Shiron.Lib.Utils
+### FunctionUtils
+| Method            | Mean       | Error     | StdDev    | Median     | Ratio | Gen0   | Allocated | Alloc Ratio |
+|------------------ |-----------:|----------:|----------:|-----------:|------:|-------:|----------:|------------:|
+| Reflection_Invoke | 14.1328 ns | 0.0438 ns | 0.0366 ns | 14.1244 ns | 1.000 | 0.0015 |      24 B |        1.00 |
+| Delegate_Invoke   |  0.0005 ns | 0.0011 ns | 0.0010 ns |  0.0000 ns | 0.000 |      - |         - |        0.00 |
+
+### HashUtils
+| Method     | Mean     | Error   | StdDev  | Gen0   | Allocated |
+|----------- |---------:|--------:|--------:|-------:|----------:|
+| HashObject | 466.6 ns | 2.08 ns | 1.84 ns | 0.0591 |     928 B |
+
+*Note*: The `HashObject` allocates memory during serialization. Use sparingly in hot paths.
+
+## Enviornment Info:
+This is where I ran all the benchmarks:
+```
+BenchmarkDotNet v0.15.8, Windows 11 (10.0.26200.7623/25H2/2025Update/HudsonValley2)
+13th Gen Intel Core i7-13700KF 3.40GHz, 1 CPU, 24 logical and 16 physical cores
+.NET SDK 10.0.102
+[Host]     : .NET 10.0.2 (10.0.2, 10.0.225.61305), X64 RyuJIT x86-64-v3
+Job-CEIKLR : .NET 10.0.2 (10.0.2, 10.0.225.61305), X64 RyuJIT x86-64-v3
+
+RunStrategy=Throughput
+```

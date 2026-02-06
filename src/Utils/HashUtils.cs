@@ -109,6 +109,23 @@ public static class HashUtils {
         return Convert.ToHexStringLower(finalHash);
     }
 
+    /// <summary>
+    /// Computes the SHA256 hash of an object by serializing it to JSON.
+    /// </summary>
+    /// <param name="obj">The object to hash. Must be serializable by System.Text.Json.</param>
+    /// <param name="profiler">Optional profiler for performance measurement.</param>
+    /// <returns>The SHA256 hash as a lowercase hexadecimal string.</returns>
+    /// <remarks>
+    /// <para>
+    /// <b>Performance Warning:</b> This method relies on JSON serialization, which allocates memory and is CPU-intensive.
+    /// It is NOT suitable for hot paths (e.g., inside game loops).
+    /// </para>
+    /// <para>
+    /// <b>Optimization Tip:</b> Avoid using this as a primary equality check for large objects. 
+    /// Instead, try to check a frequently changing field first (such as a <c>LastModified</c> timestamp, <c>Version</c> ID, or <c>Generation</c> counter).
+    /// Only resort to full object hashing if those simple checks pass or are unavailable.
+    /// </para>
+    /// </remarks>
     public static string HashObject(object obj, IProfiler? profiler = null) {
         ProfileScope? disposable = null;
         if (profiler is not null) disposable = new ProfileScope(profiler, MethodBase.GetCurrentMethod()!);
