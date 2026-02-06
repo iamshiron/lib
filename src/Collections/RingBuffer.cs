@@ -11,6 +11,7 @@ public sealed class RingBuffer {
     private readonly int _mask;
     private int _count;
     private double _currentSum;
+    private double _currentSumSquared;
     private int _head;
 
     public RingBuffer(int capacity) {
@@ -22,6 +23,7 @@ public sealed class RingBuffer {
         _head = 0;
         _count = 0;
         _currentSum = 0;
+        _currentSumSquared = 0;
     }
 
     public int Capacity => _buffer.Length;
@@ -33,10 +35,14 @@ public sealed class RingBuffer {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Add(double item) {
         // If full, subtract the value we are about to overwrite from the running sum
-        if (_count == _buffer.Length) _currentSum -= _buffer[_head];
+        if (_count == _buffer.Length) {
+            _currentSum -= _buffer[_head];
+            _currentSumSquared -= _buffer[_head] * _buffer[_head];
+        }
 
         _buffer[_head] = item;
         _currentSum += item;
+        _currentSumSquared += item * item;
 
         _head = _head + 1 & _mask;
         if (_count < _buffer.Length) _count++;
@@ -150,6 +156,33 @@ public sealed class RingBuffer {
         } finally {
             ArrayPool<double>.Shared.Return(temp);
         }
+    }
+
+    /// <summary>
+    /// Calculates the variance of the elements in the circular buffer in O(1).
+    /// Variance measures the dispersion of the buffer elements from their mean.
+    /// </summary>
+    /// <returns>
+    /// The variance of the buffer elements. Returns 0 if the buffer is empty.
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public double GetVariance() {
+        if (_count == 0) return 0;
+
+        var mean = _currentSum / _count;
+        var meanOfSquares = _currentSumSquared / _count;
+        return Math.Max(0, meanOfSquares - mean * mean);
+    }
+
+    /// <summary>
+    /// Calculates the standard deviation of the elements in the circular buffer in O(1).
+    /// The standard deviation is derived as the square root of the variance.
+    /// </summary>
+    /// <returns>
+    /// The standard deviation of the buffer elements. Returns 0 if the buffer is empty.
+    /// </returns>
+    public double GetStandardDeviation() {
+        return Math.Sqrt(GetVariance());
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

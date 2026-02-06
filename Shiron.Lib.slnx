@@ -4,6 +4,9 @@
     <Platform Name="x64" />
     <Platform Name="x86" />
   </Configurations>
+  <Folder Name="/Benchmarks/">
+    <Project Path="benchmarks/Collections/Shiron.Lib.Benchmarks.Collections.csproj" />
+  </Folder>
   <Folder Name="/Samples/">
     <Project Path="samples/Collections/Shiron.Lib.Samples.Collections.csproj" />
     <Project Path="samples/Misc/Shiron.Samples.Misc.csproj" />
