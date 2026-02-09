@@ -1,4 +1,4 @@
-﻿
+
 namespace Shiron.Lib.Profiling;
 
 /// <summary>Utility functions for profiling.</summary>

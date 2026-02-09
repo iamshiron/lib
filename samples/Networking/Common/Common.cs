@@ -1,4 +1,4 @@
-﻿using System.Diagnostics.Contracts;
+using System.Diagnostics.Contracts;
 using MemoryPack;
 using Shiron.Lib.Networking;
 

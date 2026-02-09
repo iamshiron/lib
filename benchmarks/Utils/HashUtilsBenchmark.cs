@@ -1,4 +1,4 @@
-﻿using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Attributes;
 using Shiron.Lib.Utils;
 
 namespace Shiron.Lib.Benchmarks.Utils;

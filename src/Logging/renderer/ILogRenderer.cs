@@ -1,4 +1,4 @@
-﻿namespace Shiron.Lib.Logging.Renderer;
+namespace Shiron.Lib.Logging.Renderer;
 
 public interface ILogRenderer {
     /// <summary>Render log entry.</summary>

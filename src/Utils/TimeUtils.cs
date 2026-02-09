@@ -1,4 +1,4 @@
-﻿
+
 namespace Shiron.Lib.Utils;
 
 /// <summary>

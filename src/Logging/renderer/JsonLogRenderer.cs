@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using Shiron.Lib.Logging;
 using Shiron.Lib.Logging.Renderer;

@@ -1,4 +1,4 @@
-﻿using Shiron.Lib.Collections;
+using Shiron.Lib.Collections;
 
 var buffer = new RingBuffer(512);
 

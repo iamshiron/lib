@@ -1,4 +1,4 @@
-﻿
+
 using MemoryPack;
 
 namespace Shiron.Lib.Networking;
