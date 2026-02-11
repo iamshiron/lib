@@ -41,32 +41,25 @@ public readonly record struct ProfilingEvent {
         writer.WriteNumber("tid"u8, ThreadID);
 
         writer.WriteStartObject("args"u8);
-        if (Args != null)
-        {
-            foreach (var kvp in Args)
-            {
+        if (Args != null) {
+            foreach (var kvp in Args) {
                 writer.WritePropertyName(kvp.Key);
                 WriteValue(writer, kvp.Value);
             }
         }
-        if (AllocationSizeBytes.HasValue)
-        {
+        if (AllocationSizeBytes.HasValue) {
             writer.WriteNumber("allocationSizeBytes"u8, AllocationSizeBytes.Value);
         }
-        if (CounterName != null)
-        {
-            if (CounterValue.HasValue)
-            {
+        if (CounterName != null) {
+            if (CounterValue.HasValue) {
                 writer.WriteNumber(CounterName, CounterValue.Value);
-            } else
-            {
+            } else {
                 writer.WriteNull(CounterName);
             }
         }
         writer.WriteEndObject();
 
-        if (Duration.HasValue)
-        {
+        if (Duration.HasValue) {
             writer.WriteNumber("dur"u8, Duration.Value);
         }
 
@@ -74,8 +67,7 @@ public readonly record struct ProfilingEvent {
     }
 
     private void WriteValue(Utf8JsonWriter writer, object value) {
-        switch (value)
-        {
+        switch (value) {
             case null:
                 writer.WriteNullValue();
                 break;
@@ -99,8 +91,7 @@ public readonly record struct ProfilingEvent {
                 break;
             case Dictionary<string, object> dict:
                 writer.WriteStartObject();
-                foreach (var kvp in dict)
-                {
+                foreach (var kvp in dict) {
                     writer.WritePropertyName(kvp.Key);
                     WriteValue(writer, kvp.Value);
                 }

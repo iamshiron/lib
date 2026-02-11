@@ -64,8 +64,7 @@ public readonly struct ProfileScope : IDisposable {
     public void Dispose() {
         long endTimestampMicroseconds = _profiler.GetTimestamp();
         // Ensure duration is at least 1 microsecond to avoid zero-duration events
-        if (endTimestampMicroseconds <= _startTimestampMicroseconds)
-        {
+        if (endTimestampMicroseconds <= _startTimestampMicroseconds) {
             endTimestampMicroseconds = _startTimestampMicroseconds + 1;
         }
 

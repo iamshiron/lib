@@ -4,8 +4,7 @@ namespace Shiron.Lib.Samples.Concurrency;
 
 public readonly record struct PrintJob(string Message) : IJob {
     public void Execute() {
-        while (true)
-        {
+        while (true) {
             Thread.Sleep(1000);
             Console.WriteLine(Message);
         }
@@ -22,8 +21,7 @@ public static class Program {
         var res = await scheduler.RunAsync(() => 27 + 19);
         Console.WriteLine($"Result: {res}");
 
-        while (true)
-        {
+        while (true) {
             if (Console.ReadLine() == "exit") break;
 
             Thread.Sleep(1);

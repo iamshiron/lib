@@ -18,13 +18,11 @@ public readonly record struct LogPayload<T>(
 public readonly record struct BasicLogEntry(string Message) : ISpanFormattable {
     /// <summary>Format to span without allocation.</summary>
     public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider) {
-        if (Message == null)
-        {
+        if (Message == null) {
             charsWritten = 0;
             return true;
         }
-        if (Message.Length <= destination.Length)
-        {
+        if (Message.Length <= destination.Length) {
             Message.AsSpan().CopyTo(destination);
             charsWritten = Message.Length;
             return true;
@@ -41,13 +39,11 @@ public readonly record struct BasicLogEntry(string Message) : ISpanFormattable {
 public readonly record struct MarkupLogEntry(string Message) : ISpanFormattable {
     /// <summary>Format to span without allocation.</summary>
     public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider) {
-        if (Message == null)
-        {
+        if (Message == null) {
             charsWritten = 0;
             return true;
         }
-        if (Message.Length <= destination.Length)
-        {
+        if (Message.Length <= destination.Length) {
             Message.AsSpan().CopyTo(destination);
             charsWritten = Message.Length;
             return true;
@@ -81,8 +77,7 @@ public readonly record struct CapturedLogEntry : ISpanFormattable {
     /// <summary>Format to span without allocation.</summary>
     public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider) {
         var content = Message ?? RawData?.ToString() ?? string.Empty;
-        if (content.Length <= destination.Length)
-        {
+        if (content.Length <= destination.Length) {
             content.AsSpan().CopyTo(destination);
             charsWritten = content.Length;
             return true;

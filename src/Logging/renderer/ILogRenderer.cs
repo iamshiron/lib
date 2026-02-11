@@ -45,11 +45,9 @@ public static class LogRenderUtils {
     /// <summary>Write a span-formattable value without allocation.</summary>
     public static void WriteSpanFormattable<T>(TextWriter writer, T value) where T : ISpanFormattable {
         Span<char> buffer = GetFormatBuffer();
-        if (value.TryFormat(buffer, out int charsWritten, default, null))
-        {
+        if (value.TryFormat(buffer, out int charsWritten, default, null)) {
             writer.Write(buffer[..charsWritten]);
-        } else
-        {
+        } else {
             // Fallback to string if buffer too small
             writer.Write(value.ToString());
         }

@@ -30,8 +30,7 @@ public class JobSchedulerBenchmarks {
 
     [Benchmark]
     public void Schedule_Lambda_FireAndForget() {
-        for (var i = 0; i < ItemCount; i++)
-        {
+        for (var i = 0; i < ItemCount; i++) {
             var index = i;
             _scheduler.RunAsync(() => _data[index]++);
         }

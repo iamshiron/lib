@@ -5,11 +5,9 @@ public sealed class JobScheduler : IDisposable {
 
     private readonly record struct LambdaJob<T>(Func<T> Lambda, TaskCompletionSource<T> Promise) : IJob {
         public void Execute() {
-            try
-            {
+            try {
                 Promise.SetResult(Lambda());
-            } catch (Exception e)
-            {
+            } catch (Exception e) {
                 Promise.SetException(e);
             }
         }
@@ -30,8 +28,7 @@ public sealed class JobScheduler : IDisposable {
     public JobScheduler(int workerCount = -1) {
         if (workerCount <= 0) workerCount = Math.Max(1, Environment.ProcessorCount - 2);
         _workers = new Thread[workerCount];
-        for (var i = 0; i < workerCount; ++i)
-        {
+        for (var i = 0; i < workerCount; ++i) {
             var t = new Thread(WorkerLoop) {
                 Name = $"Shiron_Lib_Worker_{i}",
                 IsBackground = true,
@@ -43,8 +40,7 @@ public sealed class JobScheduler : IDisposable {
     }
 
     public void Schedule(IJob job, int priority = 5) {
-        lock (_lock)
-        {
+        lock (_lock) {
             _queue.Enqueue(new JobWrapper(job, null), priority);
             Monitor.Pulse(_lock);
         }
@@ -54,10 +50,8 @@ public sealed class JobScheduler : IDisposable {
         // Example: 100 items, batchSize 32 -> 4 batches (32, 32, 32, 4)
         var batchCount = (count + batchSize - 1) / batchSize;
 
-        lock (_lock)
-        {
-            for (var b = 0; b < batchCount; b++)
-            {
+        lock (_lock) {
+            for (var b = 0; b < batchCount; b++) {
                 var start = b * batchSize;
                 var end = Math.Min(start + batchSize, count);
 
@@ -80,22 +74,18 @@ public sealed class JobScheduler : IDisposable {
     }
 
     private void WorkerLoop() {
-        while (_isRunning)
-        {
+        while (_isRunning) {
             JobWrapper item;
-            lock (_lock)
-            {
+            lock (_lock) {
                 while (_queue.Count == 0 && _isRunning) Monitor.Wait(_lock);
                 if (!_isRunning) return;
                 item = _queue.Dequeue();
             }
 
-            try
-            {
+            try {
                 item.Job.Execute();
                 item.Promise?.SetResult();
-            } catch (Exception e)
-            {
+            } catch (Exception e) {
                 Console.WriteLine($"Job failed!: {e}");
                 item.Promise?.SetException(e);
             }
@@ -104,8 +94,7 @@ public sealed class JobScheduler : IDisposable {
 
     public void Dispose() {
         _isRunning = false;
-        lock (_lock)
-        {
+        lock (_lock) {
             Monitor.PulseAll(_lock);
         }
     }

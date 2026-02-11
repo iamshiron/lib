@@ -11,8 +11,7 @@ server.OnClientConnected += (id) => Console.WriteLine($"[+] Client {id} connecte
 server.OnClientDisconnected += (id) => Console.WriteLine($"[-] Client {id} disconnected.");
 
 server.OnPacketReceived += (id, packet) => {
-    if (packet is CommandMessage chat)
-    {
+    if (packet is CommandMessage chat) {
         Console.WriteLine($"[{chat.Sender}]: {chat.Message}");
 
         // Broadcast back to everyone (Echo)
@@ -23,8 +22,7 @@ server.OnPacketReceived += (id, packet) => {
 server.Start(5566);
 Console.WriteLine("Server started on port 5566.");
 
-while (true)
-{
+while (true) {
     server.Poll();
     System.Threading.Thread.Sleep(15);
 }

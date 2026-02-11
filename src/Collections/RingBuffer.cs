@@ -35,8 +35,7 @@ public sealed class RingBuffer {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Add(double item) {
         // If full, subtract the value we are about to overwrite from the running sum
-        if (_count == _buffer.Length)
-        {
+        if (_count == _buffer.Length) {
             _currentSum -= _buffer[_head];
             _currentSumSquared -= _buffer[_head] * _buffer[_head];
         }
@@ -66,12 +65,10 @@ public sealed class RingBuffer {
     /// </returns>
     public double GetMedian() {
         var temp = ArrayPool<double>.Shared.Rent(_count);
-        try
-        {
+        try {
             FillAndSort(temp);
             return temp[_count / 2];
-        } finally
-        {
+        } finally {
             ArrayPool<double>.Shared.Return(temp);
         }
     }
@@ -84,16 +81,14 @@ public sealed class RingBuffer {
 
         var sampleCount = Math.Max(1, (int) Math.Ceiling(_count * percentile));
         var temp = ArrayPool<double>.Shared.Rent(_count);
-        try
-        {
+        try {
             FillAndSort(temp);
 
             double sum = 0;
             for (var i = 0; i < sampleCount; i++) sum += temp[i];
 
             return sum / sampleCount;
-        } finally
-        {
+        } finally {
             ArrayPool<double>.Shared.Return(temp);
         }
     }
@@ -106,16 +101,14 @@ public sealed class RingBuffer {
 
         var sampleCount = Math.Max(1, (int) Math.Ceiling(_count * percentile));
         var temp = ArrayPool<double>.Shared.Rent(_count);
-        try
-        {
+        try {
             FillAndSort(temp);
 
             var mid = sampleCount / 2;
             if (sampleCount % 2 != 0) return temp[mid];
 
             return (temp[mid - 1] + temp[mid]) / 2.0;
-        } finally
-        {
+        } finally {
             ArrayPool<double>.Shared.Return(temp);
         }
     }
@@ -128,8 +121,7 @@ public sealed class RingBuffer {
 
         var sampleCount = Math.Max(1, (int) Math.Ceiling(_count * percentile));
         var temp = ArrayPool<double>.Shared.Rent(_count);
-        try
-        {
+        try {
             FillAndSort(temp);
 
             double sum = 0;
@@ -137,8 +129,7 @@ public sealed class RingBuffer {
                 sum += temp[i];
 
             return sum / sampleCount;
-        } finally
-        {
+        } finally {
             ArrayPool<double>.Shared.Return(temp);
         }
     }
@@ -151,8 +142,7 @@ public sealed class RingBuffer {
 
         var sampleCount = Math.Max(1, (int) Math.Ceiling(_count * percentile));
         var temp = ArrayPool<double>.Shared.Rent(_count);
-        try
-        {
+        try {
             FillAndSort(temp);
 
             var startIndex = _count - sampleCount;
@@ -163,8 +153,7 @@ public sealed class RingBuffer {
 
             return (temp[startIndex + midOffset - 1] +
                     temp[startIndex + midOffset]) / 2.0;
-        } finally
-        {
+        } finally {
             ArrayPool<double>.Shared.Return(temp);
         }
     }

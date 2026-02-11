@@ -68,26 +68,21 @@ public class LogInjector(ILogger logger, Action<CapturedLog>? onLog, Func<Captur
     /// <param name="payload">Payload object.</param>
     internal bool Handle<T>(LogPayload<T> payload) where T : notnull {
         // Fast path: suppression-only injector with no callback, filter, or capture
-        if (_onLog == null && _filter == null && !_captureEntries)
-        {
+        if (_onLog == null && _filter == null && !_captureEntries) {
             return _suppressLogsDuringCapture;
         }
 
         CapturedLog captured;
-        if (typeof(T) == typeof(BasicLogEntry))
-        {
+        if (typeof(T) == typeof(BasicLogEntry)) {
             var temp = payload.Body;
             var basic = Unsafe.As<T, BasicLogEntry>(ref temp);
             captured = new CapturedLog(payload.Header, basic.Message);
-        } else
-        {
+        } else {
             captured = new CapturedLog(payload.Header, payload.Body);
         }
 
-        if (_filter == null || _filter(captured))
-        {
-            if (_captureEntries)
-            {
+        if (_filter == null || _filter(captured)) {
+            if (_captureEntries) {
                 CapturedEntries.Add(captured);
             }
             _onLog?.Invoke(captured);
@@ -107,12 +102,10 @@ public class LogInjector(ILogger logger, Action<CapturedLog>? onLog, Func<Captur
             return; // Nothing to dispose if logger was never injected
 
         GC.SuppressFinalize(this);
-        try
-        {
+        try {
             _logger.RemoveInjector(ID);
             IsInjected = false; // Allows for re-injection if needed
-        } catch
-        {
+        } catch {
             // Swallow exceptions on dispose to avoid tearing down due to race conditions
             // (e.g., injector already removed or logger shutting down).
         }
@@ -121,8 +114,7 @@ public class LogInjector(ILogger logger, Action<CapturedLog>? onLog, Func<Captur
     /// <summary>Utility function to replay captured entries to another logger.</summary>
     /// <param name="logger">Logger instance.</param>
     public void Replay(ILogger logger) {
-        foreach (var entry in CapturedEntries)
-        {
+        foreach (var entry in CapturedEntries) {
             logger.Log(new LogPayload<CapturedLogEntry>(
                 entry.Header,
                 new CapturedLogEntry(entry.RawBody ?? entry.Message!)

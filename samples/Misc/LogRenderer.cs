@@ -23,8 +23,7 @@ public class LogRenderer : ILogRenderer {
         LogRenderUtils.WriteTimestamp(_output, payload.Header.Timestamp);
         _output.Write("] ");
 
-        if (payload.Header.Prefix != null)
-        {
+        if (payload.Header.Prefix != null) {
             Console.ForegroundColor = ConsoleColor.Cyan;
             _output.Write('[');
             _output.Write(payload.Header.Prefix);
@@ -40,11 +39,9 @@ public class LogRenderer : ILogRenderer {
 
     private void WriteBody<T>(T body) {
         // Use ISpanFormattable for zero-allocation formatting when available
-        if (body is ISpanFormattable formattable)
-        {
+        if (body is ISpanFormattable formattable) {
             LogRenderUtils.WriteSpanFormattable(_output, formattable);
-        } else
-        {
+        } else {
             _output.Write(body?.ToString());
         }
     }

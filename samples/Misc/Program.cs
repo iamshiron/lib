@@ -11,14 +11,12 @@ var jsonLogging = args.Contains("--json");
 var logger = new Logger(jsonLogging);
 ILogRenderer renderer = new LogRenderer();
 
-if (!jsonLogging)
-{
+if (!jsonLogging) {
     logger.AddRenderer(renderer);
 }
 var profiler = new Profiler(logger);
 
-using (new ProfileScope(profiler, "Main"))
-{
+using (new ProfileScope(profiler, "Main")) {
     // Allocate some gc trackers so they don't appear during profiling
     var gcTracker1 = new GCTracker();
     var gcTracker2 = new GCTracker();
@@ -30,8 +28,7 @@ using (new ProfileScope(profiler, "Main"))
     var subSub = sub.CreateSubLogger("2");
 
     gcTracker2.Start();
-    using (new ProfileScope(profiler, "Sample Scope"))
-    {
+    using (new ProfileScope(profiler, "Sample Scope")) {
         logger.Info("This is an informational message.");
         logger.Warning("This is a warning message.");
         logger.Error("This is an error message.");
@@ -50,11 +47,9 @@ using (new ProfileScope(profiler, "Main"))
         var outerInjector = new LogInjector(logger, (entry) => { });
         LogInjector injector = new LogInjector(logger, (entry) => { }, true);
 
-        using (outerInjector.Inject())
-        {
+        using (outerInjector.Inject()) {
             logger.Info("This info log will be captured by the outer injector which will not suppress the log.");
-            using (injector.Inject())
-            {
+            using (injector.Inject()) {
                 logger.Info("This info log will be captured by the inner injector which will suppress the log.");
             }
         }
@@ -69,13 +64,10 @@ using (new ProfileScope(profiler, "Main"))
     var tracker = new GCTracker();
     tracker.Start();
 
-    using (new ProfileScope(profiler, "Allocation Spam"))
-    {
-        for (int i = 0; i < 1000; ++i)
-        {
+    using (new ProfileScope(profiler, "Allocation Spam")) {
+        for (int i = 0; i < 1000; ++i) {
             var list = new List<string>();
-            for (int j = 0; j < 100; ++j)
-            {
+            for (int j = 0; j < 100; ++j) {
                 list.Add($"String number {j} in list {i}");
             }
         }
@@ -85,23 +77,17 @@ using (new ProfileScope(profiler, "Main"))
     // Spam the logger to generate better GC results
     gcTracker3.Start();
     long maxLogs = 1000;
-    for (int i = 0; i < maxLogs; ++i)
-    {
+    for (int i = 0; i < maxLogs; ++i) {
         var randInt = RandomNumberGenerator.GetInt32(0, 1000);
-        if (randInt % 5 == 0)
-        {
+        if (randInt % 5 == 0) {
             logger.Debug($"Debug message");
-        } else if (randInt % 5 == 1)
-        {
+        } else if (randInt % 5 == 1) {
             logger.Info($"Info message");
-        } else if (randInt % 5 == 2)
-        {
+        } else if (randInt % 5 == 2) {
             logger.Warning($"Warning message");
-        } else if (randInt % 5 == 3)
-        {
+        } else if (randInt % 5 == 3) {
             logger.Error($"Error message");
-        } else
-        {
+        } else {
             logger.System($"System message");
         }
     }
@@ -110,8 +96,7 @@ using (new ProfileScope(profiler, "Main"))
     long res = gcTracker2.End();
 
 
-    if (!Directory.Exists("profiles"))
-    {
+    if (!Directory.Exists("profiles")) {
         _ = Directory.CreateDirectory("profiles");
     }
 

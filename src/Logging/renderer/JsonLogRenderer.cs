@@ -29,11 +29,9 @@ public class JsonLogRenderer : ILogRenderer, IDisposable {
     }
 
     public void RegisterConverters(IEnumerable<JsonConverter> converters) {
-        lock (_optionsLock)
-        {
+        lock (_optionsLock) {
             var copy = new JsonSerializerOptions(_serializerOptions);
-            foreach (var converter in converters)
-            {
+            foreach (var converter in converters) {
                 copy.Converters.Add(converter);
             }
             _serializerOptions = copy;
@@ -41,8 +39,7 @@ public class JsonLogRenderer : ILogRenderer, IDisposable {
     }
 
     public bool RenderLog<T>(in LogPayload<T> payload, in ILogger logger) where T : notnull {
-        lock (_writeLock)
-        {
+        lock (_writeLock) {
             _writer.Reset(_outputStream);
 
             _writer.WriteStartObject();
