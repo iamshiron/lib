@@ -2,11 +2,11 @@
 
 namespace Shiron.Lib.Flow;
 
-public class Debouncer {
+public class Throttler {
     private readonly long _interval;
     private long _sinceLast;
     
-    public Debouncer(long intervalMS) {
+    public Throttler(long intervalMS) {
         _interval = intervalMS * (Stopwatch.Frequency / 1000);
     }
 

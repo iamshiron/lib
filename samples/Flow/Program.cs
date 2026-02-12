@@ -1,7 +1,7 @@
 ﻿
 using Shiron.Lib.Flow;
 
-var debouncer = new Debouncer(1750);
+var debouncer = new Throttler(1750);
 
 while (true) {
     Thread.Sleep(50);
