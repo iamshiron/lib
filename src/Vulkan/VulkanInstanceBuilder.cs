@@ -1,6 +1,6 @@
 using System.Runtime.InteropServices;
+using Shiron.Lib.Utils;
 using Shiron.Lib.Vulkan.Exceptions;
-using Shiron.Phonon.Common.Utils;
 using Silk.NET.Core.Native;
 using Silk.NET.Vulkan;
 using Silk.NET.Vulkan.Extensions.EXT;
@@ -21,6 +21,7 @@ public sealed unsafe class VulkanInstanceBuilder {
 
     private bool _enableValidation;
     private IVulkanErrorCallback? _errorCallback;
+    private GCHandle? _errorCallbackHandle;
     private readonly List<string> _extensions = new();
     private readonly List<string> _layers = new();
 
@@ -62,8 +63,11 @@ public sealed unsafe class VulkanInstanceBuilder {
     }
 
     public VulkanInstanceBuilder EnableValidationLayers(IVulkanErrorCallback? callback = null) {
-        _enableValidation = callback != null;
+        _enableValidation = true;
         _errorCallback = callback;
+        if (callback != null) {
+            _errorCallbackHandle = GCHandle.Alloc(callback, GCHandleType.Normal);
+        }
         return this;
     }
 
@@ -126,12 +130,13 @@ public sealed unsafe class VulkanInstanceBuilder {
 
         ExtDebugUtils? debugUtils = null;
         DebugUtilsMessengerEXT debugMessenger = default;
-        GCHandle errorCallbackHandle = default;
 
-        if (_enableValidation) {
+        if (_enableValidation && _errorCallback != null) {
+            if (_errorCallbackHandle == null || !_errorCallbackHandle.Value.IsAllocated) {
+                throw new Exception("Unable to create Vulkan instance. Error callback handle is invalid.");
+            }
+
             debugUtils = new ExtDebugUtils(_vk.Context);
-            errorCallbackHandle = GCHandle.Alloc(_errorCallback);
-
             var messengerCi = new DebugUtilsMessengerCreateInfoEXT {
                 SType = StructureType.DebugUtilsMessengerCreateInfoExt,
                 MessageSeverity =
@@ -143,7 +148,7 @@ public sealed unsafe class VulkanInstanceBuilder {
                     DebugUtilsMessageTypeFlagsEXT.ValidationBitExt |
                     DebugUtilsMessageTypeFlagsEXT.PerformanceBitExt,
                 PfnUserCallback = (PfnDebugUtilsMessengerCallbackEXT) DebugCallback,
-                PUserData = (void*) errorCallbackHandle.AddrOfPinnedObject()
+                PUserData = (void*) GCHandle.ToIntPtr(_errorCallbackHandle.Value)
             };
 
             var res = debugUtils.CreateDebugUtilsMessenger(instance, &messengerCi, null, out debugMessenger);
@@ -153,12 +158,8 @@ public sealed unsafe class VulkanInstanceBuilder {
         }
 
         return new VulkanInstance(
-            _vk,
-            instance,
-            _enableValidation,
-            debugUtils,
-            debugMessenger,
-            errorCallbackHandle);
+            _vk, instance, _enableValidation, debugUtils, debugMessenger, _errorCallbackHandle
+        );
     }
 
     private static uint DebugCallback(
@@ -166,7 +167,8 @@ public sealed unsafe class VulkanInstanceBuilder {
         DebugUtilsMessageTypeFlagsEXT types,
         DebugUtilsMessengerCallbackDataEXT* data,
         void* userData) {
-        var target = GCHandle.FromIntPtr((IntPtr) userData).Target;
+        var handle = GCHandle.FromIntPtr((IntPtr) userData);
+        var target = handle.Target;
 
         if (target == null) {
             Console.WriteLine("[ERROR]: Unable to get callback target from handle.");

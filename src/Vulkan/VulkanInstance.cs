@@ -12,7 +12,7 @@ public sealed unsafe class VulkanInstance : IDisposable {
     private readonly bool _hasValidation;
     private readonly ExtDebugUtils? _debugUtils;
     private readonly DebugUtilsMessengerEXT _debugMessenger;
-    private readonly GCHandle _errorCallbackHandle;
+    private readonly GCHandle? _errorCallbackHandle;
 
     public Instance Instance { get; }
 
@@ -22,7 +22,7 @@ public sealed unsafe class VulkanInstance : IDisposable {
         bool hasValidation,
         ExtDebugUtils? debugUtils,
         DebugUtilsMessengerEXT debugMessenger,
-        GCHandle errorCallbackHandle) {
+        GCHandle? errorCallbackHandle) {
         _vk = vk ?? throw new ArgumentNullException(nameof(vk));
         Instance = instance;
         _hasValidation = hasValidation;
@@ -34,8 +34,9 @@ public sealed unsafe class VulkanInstance : IDisposable {
     public void Dispose() {
         if (_hasValidation) {
             _debugUtils?.DestroyDebugUtilsMessenger(Instance, _debugMessenger, null);
-            if (_errorCallbackHandle.IsAllocated) {
-                _errorCallbackHandle.Free();
+
+            if (_errorCallbackHandle != null && _errorCallbackHandle.Value.IsAllocated) {
+                _errorCallbackHandle.Value.Free();
             }
         }
 

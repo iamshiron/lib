@@ -1,4 +1,4 @@
-﻿using System.Numerics;
+using System.Numerics;
 using Silk.NET.Vulkan;
 
 namespace Shiron.Lib.Vulkan;

@@ -17,7 +17,6 @@ public sealed unsafe class VulkanSwapchainBuilder {
     private readonly SurfaceKHR _surface;
     private readonly KhrSurface _khrSurface;
     private readonly KhrSwapchain _khrSwapchain;
-    private readonly QueueFamilyIndices _queueFamilyIndices;
 
     // Configuration
     private Vector2D<uint>? _desiredExtent;
@@ -29,6 +28,8 @@ public sealed unsafe class VulkanSwapchainBuilder {
     private CompositeAlphaFlagsKHR _compositeAlpha = CompositeAlphaFlagsKHR.OpaqueBitKhr;
     private bool _clipped = true;
     private SwapchainKHR _oldSwapchain;
+    private readonly uint _graphicsQueueFamilyIndex;
+    private readonly uint _presentQueueFamilyIndex;
 
     // Cached surface info
     private SurfaceCapabilitiesKHR _surfaceCapabilities;
@@ -41,20 +42,29 @@ public sealed unsafe class VulkanSwapchainBuilder {
         PhysicalDevice physicalDevice,
         SurfaceKHR surface,
         KhrSurface khrSurface,
-        QueueFamilyIndices queueFamilyIndices) {
+        uint graphicsQueueFamilyIndex,
+        uint presentQueueFamilyIndex) {
         _vk = vk ?? throw new ArgumentNullException(nameof(vk));
-        if (device.Handle == 0) throw new ArgumentException("Invalid device.", nameof(device));
-        if (physicalDevice.Handle == 0) throw new ArgumentException("Invalid physical device.", nameof(physicalDevice));
-        if (surface.Handle == 0) throw new ArgumentException("Invalid surface.", nameof(surface));
+        if (device.Handle == 0) {
+            throw new ArgumentException("Invalid device.", nameof(device));
+        }
+        if (physicalDevice.Handle == 0) {
+            throw new ArgumentException("Invalid physical device.", nameof(physicalDevice));
+        }
+        if (surface.Handle == 0) {
+            throw new ArgumentException("Invalid surface.", nameof(surface));
+        }
 
         _device = device;
         _physicalDevice = physicalDevice;
         _surface = surface;
         _khrSurface = khrSurface ?? throw new ArgumentNullException(nameof(khrSurface));
-        _queueFamilyIndices = queueFamilyIndices;
+        _graphicsQueueFamilyIndex = graphicsQueueFamilyIndex;
+        _presentQueueFamilyIndex = presentQueueFamilyIndex;
 
-        if (!_vk.TryGetDeviceExtension(_vk.CurrentInstance!.Value, _device, out _khrSwapchain))
+        if (!_vk.TryGetDeviceExtension(_vk.CurrentInstance!.Value, _device, out _khrSwapchain)) {
             throw new VulkanException("Failed to get KHR_swapchain extension.", Result.ErrorExtensionNotPresent);
+        }
 
         QuerySurfaceSupport();
     }
@@ -157,10 +167,12 @@ public sealed unsafe class VulkanSwapchainBuilder {
 
         // Determine image count
         var imageCount = _desiredImageCount;
-        if (imageCount < _surfaceCapabilities.MinImageCount)
+        if (imageCount < _surfaceCapabilities.MinImageCount) {
             imageCount = _surfaceCapabilities.MinImageCount;
-        if (_surfaceCapabilities.MaxImageCount > 0 && imageCount > _surfaceCapabilities.MaxImageCount)
+        }
+        if (_surfaceCapabilities.MaxImageCount > 0 && imageCount > _surfaceCapabilities.MaxImageCount) {
             imageCount = _surfaceCapabilities.MaxImageCount;
+        }
 
         // Create swapchain
         var createInfo = new SwapchainCreateInfoKHR {
@@ -179,12 +191,8 @@ public sealed unsafe class VulkanSwapchainBuilder {
             OldSwapchain = _oldSwapchain
         };
 
-        // Handle queue family sharing (concurrent when graphics/present differ).
-        var graphicsFamily = _queueFamilyIndices.GraphicsFamily!.Value;
-        var presentFamily = _queueFamilyIndices.PresentFamily!.Value;
-
-        if (graphicsFamily != presentFamily) {
-            var queueFamilyIndices = stackalloc uint[] { graphicsFamily, presentFamily };
+        if (_graphicsQueueFamilyIndex != _presentQueueFamilyIndex) {
+            var queueFamilyIndices = stackalloc uint[] { _graphicsQueueFamilyIndex, _presentQueueFamilyIndex };
             createInfo.ImageSharingMode = SharingMode.Concurrent;
             createInfo.QueueFamilyIndexCount = 2;
             createInfo.PQueueFamilyIndices = queueFamilyIndices;
@@ -244,14 +252,16 @@ public sealed unsafe class VulkanSwapchainBuilder {
     private SurfaceFormatKHR ChooseSurfaceFormat() {
         // Look for desired format
         foreach (var format in _surfaceFormats) {
-            if (format.Format == _desiredFormat && format.ColorSpace == _desiredColorSpace)
+            if (format.Format == _desiredFormat && format.ColorSpace == _desiredColorSpace) {
                 return format;
+            }
         }
 
         // Look for any SRGB format
         foreach (var format in _surfaceFormats) {
-            if (format.ColorSpace == ColorSpaceKHR.SpaceSrgbNonlinearKhr)
+            if (format.ColorSpace == ColorSpaceKHR.SpaceSrgbNonlinearKhr) {
                 return format;
+            }
         }
 
         // Return first available
@@ -260,12 +270,14 @@ public sealed unsafe class VulkanSwapchainBuilder {
 
     private PresentModeKHR ChoosePresentMode() {
         // Look for desired present mode
-        if (_presentModes.Contains(_desiredPresentMode))
+        if (_presentModes.Contains(_desiredPresentMode)) {
             return _desiredPresentMode;
+        }
 
         // Mailbox (triple buffering) is preferred
-        if (_presentModes.Contains(PresentModeKHR.MailboxKhr))
+        if (_presentModes.Contains(PresentModeKHR.MailboxKhr)) {
             return PresentModeKHR.MailboxKhr;
+        }
 
         // FIFO is guaranteed to be available
         return PresentModeKHR.FifoKhr;
@@ -308,7 +320,7 @@ public sealed unsafe class VulkanSwapchainBuilder {
     private ImageView[] CreateImageViews(Image[] swapchainImages, Format swapchainFormat) {
         var swapchainImageViews = new ImageView[swapchainImages.Length];
 
-        for (int i = 0; i < swapchainImages.Length; i++) {
+        for (var i = 0; i < swapchainImages.Length; i++) {
             var createInfo = new ImageViewCreateInfo {
                 SType = StructureType.ImageViewCreateInfo,
                 Image = swapchainImages[i],

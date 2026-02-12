@@ -1,4 +1,4 @@
-﻿using Shiron.Lib.Vulkan.Exceptions;
+using Shiron.Lib.Vulkan.Exceptions;
 using Silk.NET.Vulkan;
 using Semaphore = Silk.NET.Vulkan.Semaphore;
 

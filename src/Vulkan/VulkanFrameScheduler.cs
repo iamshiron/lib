@@ -9,11 +9,10 @@ public unsafe class VulkanFrameScheduler : IDisposable {
     private readonly VulkanCommandBuffer[] _commandBuffers;
     private readonly VulkanSwapchain _swapchain;
 
-    // Synchronization
-    public const int MaxFramesInFlight = 2;
     private readonly Semaphore[] _imageAvailableSemaphores;
     private readonly Semaphore[] _renderFinishedSemaphores;
     private readonly Fence[] _inFlightFences;
+    private readonly int _framesInFlight;
 
     // State
     private uint _currentImageIndex;
@@ -32,30 +31,32 @@ public unsafe class VulkanFrameScheduler : IDisposable {
         VulkanCommandBuffer[] commandBuffers,
         VulkanSwapchain swapchain,
         Queue presentQueue,
-        Queue graphicsQueue) {
+        Queue graphicsQueue,
+        uint framesInFlight) {
         _vk = vk;
         _commandBuffers = commandBuffers;
         _device = device;
         _swapchain = swapchain;
         _presentQueue = presentQueue;
         _graphicsQueue = graphicsQueue;
+        _framesInFlight = (int) framesInFlight;
 
-        _imageAvailableSemaphores = new Semaphore[MaxFramesInFlight];
-        _inFlightFences = new Fence[MaxFramesInFlight];
+        _imageAvailableSemaphores = new Semaphore[_framesInFlight];
+        _inFlightFences = new Fence[_framesInFlight];
 
         _renderFinishedSemaphores = new Semaphore[_swapchain.ImageCount];
 
         var semaphoreInfo = new SemaphoreCreateInfo { SType = StructureType.SemaphoreCreateInfo };
         var fenceInfo = new FenceCreateInfo { SType = StructureType.FenceCreateInfo, Flags = FenceCreateFlags.SignaledBit };
 
-        for (var i = 0; i < MaxFramesInFlight; i++) {
+        for (var i = 0; i < _framesInFlight; i++) {
             if (vk.CreateSemaphore(device, in semaphoreInfo, null, out _imageAvailableSemaphores[i]) != Result.Success ||
                 vk.CreateFence(device, in fenceInfo, null, out _inFlightFences[i]) != Result.Success) {
                 throw new Exception("Failed to create synchronization objects (frames in flight)!");
             }
         }
 
-        for (var i = 0; i < _swapchain.ImageCount; i++) {
+        for (var i = 0; i < _framesInFlight; i++) {
             if (vk.CreateSemaphore(device, in semaphoreInfo, null, out _renderFinishedSemaphores[i]) != Result.Success) {
                 throw new Exception("Failed to create synchronization objects (swapchain images)!");
             }
@@ -71,7 +72,7 @@ public unsafe class VulkanFrameScheduler : IDisposable {
 
         var result = _swapchain.AcquireNextImage(
             _imageAvailableSemaphores[_currentFrame],
-            _inFlightFences[_currentFrame],
+            default,
             out _currentImageIndex
         );
 
@@ -119,14 +120,14 @@ public unsafe class VulkanFrameScheduler : IDisposable {
         }
 
         _swapchain.Present(_presentQueue, _currentImageIndex, _renderFinishedSemaphores[_currentImageIndex]);
-        _currentFrame = (_currentFrame + 1) % MaxFramesInFlight;
+        _currentFrame = (_currentFrame + 1) % _framesInFlight;
     }
 
     public void Dispose() {
         GC.SuppressFinalize(this);
         _vk.DeviceWaitIdle(_device);
 
-        for (var i = 0; i < MaxFramesInFlight; i++) {
+        for (var i = 0; i < _framesInFlight; i++) {
             _vk.DestroySemaphore(_device, _imageAvailableSemaphores[i], null);
             _vk.DestroyFence(_device, _inFlightFences[i], null);
         }
