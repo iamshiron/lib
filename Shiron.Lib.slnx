@@ -12,6 +12,7 @@
   <Folder Name="/Samples/">
     <Project Path="samples/Collections/Shiron.Lib.Samples.Collections.csproj" />
     <Project Path="samples/Concurrency/Shiron.Lib.Samples.Concurrency.csproj" />
+    <Project Path="samples/Flow/Shiron.Lib.Samples.Flow.csproj" />
     <Project Path="samples/Misc/Shiron.Samples.Misc.csproj" />
   </Folder>
   <Folder Name="/Samples/Networking/">
@@ -25,6 +26,7 @@
   </Folder>
   <Project Path="src/Collections/Shiron.Lib.Collections.csproj" />
   <Project Path="src/Concurrency/Shiron.Lib.Concurrency.csproj" />
+  <Project Path="src/Flow/Shiron.Lib.Flow.csproj" />
   <Project Path="src/Logging/Shiron.Lib.Logging.csproj" />
   <Project Path="src/Networking/Shiron.Lib.Networking.csproj" />
   <Project Path="src/Profiling/Shiron.Lib.Profiling.csproj" />
