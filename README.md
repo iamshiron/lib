@@ -5,7 +5,7 @@
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 
-A .NET 10 library providing collections, profiling, logging, networking, and utility functions.
+A .NET 10 library providing collections, flow control, profiling, logging, networking, and utility functions.
 
 ## Components
 
@@ -169,6 +169,65 @@ client.Send(new ChatMessage {
 }, DeliveryMethod.ReliableOrdered);
 ```
 
+### Flow
+
+Flow control utilities for throttling and debouncing operations.
+
+**Throttler** - Rate-limit operations to a specified interval:
+```csharp
+using Shiron.Lib.Flow;
+
+var throttler = new Throttler(500); // 500ms interval
+
+while (true) {
+    if (userInput && throttler.TryExecute()) {
+        ProcessInput(); // Only executes once per 500ms
+    }
+
+    // Check cooldown progress
+    float progress = throttler.CooldownProgress(); // 0.0 to 1.0
+    float remaining = throttler.GetTimeRemainingMS();
+}
+```
+
+**LatchedThrottler** - Throttler with latch mechanism for deferred execution:
+```csharp
+var latchedThrottler = new LatchedThrottler(1000);
+
+// Signal that execution is needed
+latchedThrottler.Trigger();
+
+// In your update loop
+if (latchedThrottler.Update()) {
+    // Executes once per interval when triggered
+    SaveConfiguration();
+}
+```
+
+**LeadingDebouncer** - Execute immediately, then ignore subsequent calls for a silence period:
+```csharp
+var debouncer = new LeadingDebouncer(300);
+
+// First call executes immediately, subsequent calls within 300ms are ignored
+if (debouncer.TryExecute()) {
+    SearchDatabase(query); // Executes on first input
+}
+```
+
+**TrailingDebouncer** - Execute only after activity stops for a silence period:
+```csharp
+var debouncer = new TrailingDebouncer(500);
+
+// Signal activity
+debouncer.Signal();
+
+// In your update loop
+if (debouncer.TryResolve()) {
+    // Executes 500ms after last Signal() call
+    AutoSave();
+}
+```
+
 ### Utilities
 
 **HashUtils** - SHA256 hashing for files, strings, and objects:
@@ -235,6 +294,7 @@ Then reference the projects you need in your `.csproj`:
 ```xml
 <ItemGroup>
   <ProjectReference Include="..\lib\Shiron.Lib\src\Collections\Shiron.Lib.Collections.csproj" />
+  <ProjectReference Include="..\lib\Shiron.Lib\src\Flow\Shiron.Lib.Flow.csproj" />
   <ProjectReference Include="..\lib\Shiron.Lib\src\Logging\Shiron.Lib.Logging.csproj" />
   <ProjectReference Include="..\lib\Shiron.Lib\src\Networking\Shiron.Lib.Networking.csproj" />
   <ProjectReference Include="..\lib\Shiron.Lib\src\Profiling\Shiron.Lib.Profiling.csproj" />
@@ -248,6 +308,7 @@ All projects target .NET 10.
 
 Working examples in `samples/`:
 - **Collections** - RingBuffer statistics
+- **Flow** - Interactive flow control visualization
 - **Profiling** - Chrome trace generation
 - **Misc** - Logging and GC tracking
 - **Networking** - Client/server chat
