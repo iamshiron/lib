@@ -27,7 +27,7 @@ public class Throttler(long intervalMS) {
     /// <returns>
     /// True if the operation is allowed based on the throttling interval, otherwise false.
     /// </returns>
-    public bool TryDebounce() {
+    public bool TryExecute() {
         var timePassed = Stopwatch.GetTimestamp() - _sinceLast;
         if (timePassed >= _interval) {
             _sinceLast = Stopwatch.GetTimestamp();
