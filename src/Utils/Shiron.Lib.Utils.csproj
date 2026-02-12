@@ -1,14 +1,15 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <ItemGroup>
-    <ProjectReference Include="..\Logging\Shiron.Lib.Logging.csproj" />
-    <ProjectReference Include="..\Profiling\Shiron.Lib.Profiling.csproj" />
-  </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="Silk.NET.Core" />
+        <ProjectReference Include="..\Logging\Shiron.Lib.Logging.csproj" />
+        <ProjectReference Include="..\Profiling\Shiron.Lib.Profiling.csproj" />
+    </ItemGroup>
 
-  <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-  </PropertyGroup>
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
 
 </Project>

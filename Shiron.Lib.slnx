@@ -29,4 +29,5 @@
   <Project Path="src/Networking/Shiron.Lib.Networking.csproj" />
   <Project Path="src/Profiling/Shiron.Lib.Profiling.csproj" />
   <Project Path="src/Utils/Shiron.Lib.Utils.csproj" />
+  <Project Path="src/Vulkan/Shiron.Lib.Vulkan.csproj" />
 </Solution>
