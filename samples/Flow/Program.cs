@@ -1,11 +1,28 @@
-﻿
-using Shiron.Lib.Flow;
+﻿using Shiron.Lib.Flow;
 
-var debouncer = new Throttler(1750);
+var throttler = new LatchedThrottler(5000);
+var shouldExit = false;
 
-while (true) {
+var thread = new Thread(() => {
+    while (true) {
+        var c = Console.ReadLine();
+        if (c == "exit") {
+            shouldExit = true;
+            break;
+        }
+        if (c == "run") {
+            throttler.Signal();
+        } else if (c == "reset") {
+            throttler.Reset();
+        }
+    }
+});
+thread.IsBackground = true;
+thread.Start();
+
+while (!shouldExit) {
     Thread.Sleep(50);
-    if (debouncer.TryDebounce()) {
-        Console.WriteLine($"Debounce at {DateTimeOffset.UtcNow}");
+    if (throttler.Update()) {
+        Console.WriteLine($"Update!");
     }
 }
