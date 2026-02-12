@@ -11,7 +11,7 @@ var thread = new Thread(() => {
             break;
         }
         if (c == "run") {
-            throttler.Signal();
+            throttler.Trigger();
         } else if (c == "reset") {
             throttler.Reset();
         }
