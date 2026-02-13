@@ -7,10 +7,10 @@ public unsafe class VulkanFrameScheduler : IDisposable {
     private readonly Vk _vk;
     private readonly Device _device;
     private readonly VulkanCommandBuffer[] _commandBuffers;
-    private readonly VulkanSwapchain _swapchain;
+    private VulkanSwapchain _swapchain;
 
     private readonly Semaphore[] _imageAvailableSemaphores;
-    private readonly Semaphore[] _renderFinishedSemaphores;
+    private Semaphore[] _renderFinishedSemaphores;
     private readonly Fence[] _inFlightFences;
     private readonly int _framesInFlight;
 
@@ -121,6 +121,32 @@ public unsafe class VulkanFrameScheduler : IDisposable {
 
         _swapchain.Present(_presentQueue, _currentImageIndex, _renderFinishedSemaphores[_currentImageIndex]);
         _currentFrame = (_currentFrame + 1) % _framesInFlight;
+    }
+
+    /// <summary>
+    /// Updates the current Vulkan swapchain and reinitializes related synchronization primitives.
+    /// </summary>
+    /// <param name="newSwapchain">The new Vulkan swapchain to replace the current one.</param>
+    /// <exception cref="Exception">Thrown if creating render-finished semaphores fails.</exception>
+    public void UpdateSwapchain(VulkanSwapchain newSwapchain) {
+        _vk.DeviceWaitIdle(_device);
+
+        foreach (var sem in _renderFinishedSemaphores) {
+            _vk.DestroySemaphore(_device, sem, null);
+        }
+
+        _swapchain = newSwapchain;
+
+        _renderFinishedSemaphores = new Semaphore[_swapchain.ImageCount];
+        var semaphoreInfo = new SemaphoreCreateInfo { SType = StructureType.SemaphoreCreateInfo };
+
+        for (var i = 0; i < _renderFinishedSemaphores.Length; i++) {
+            if (_vk.CreateSemaphore(_device, in semaphoreInfo, null, out _renderFinishedSemaphores[i]) != Result.Success) {
+                throw new Exception("Failed to create render finished semaphore during swapchain update!");
+            }
+        }
+
+        _currentFrame = 0;
     }
 
     public void Dispose() {
