@@ -7,6 +7,7 @@
   <Folder Name="/Benchmarks/">
     <Project Path="benchmarks/Collections/Shiron.Lib.Benchmarks.Collections.csproj" />
     <Project Path="benchmarks/Concurrency/Shiron.Lib.Benchmarks.Concurrency.csproj" />
+    <Project Path="benchmarks/Flow/Shiron.Lib.Benchmarks.Flow.csproj" />
     <Project Path="benchmarks/Utils/Shiron.Lib.Benchmarks.Utils.csproj" />
   </Folder>
   <Folder Name="/Samples/">
