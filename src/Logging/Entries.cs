@@ -5,8 +5,7 @@ namespace Shiron.Lib.Logging;
 public readonly record struct LogHeader(
     LogLevel Level,
     string? Prefix,
-    long Timestamp,
-    Guid? ContextId
+    long Timestamp
 );
 
 public readonly record struct LogPayload<T>(
