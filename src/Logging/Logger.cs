@@ -117,13 +117,16 @@ public class Logger : ILogger, IContextualLogger {
         }
 
         if (!handled) {
-            Warning($"Log entry was not handled by any renderer: {payload.Body.GetType().Name}");
+            // Avoid recursion if the warning itself is not handled.
+            if (payload.Body is not BasicLogEntry ble || !ble.Message.StartsWith("Log entry was not handled")) {
+                Warning($"Log entry was not handled by any renderer: {payload.Body.GetType().Name}");
+            }
         }
     }
     /// <inheritdoc/>
     public void Log<T>(in LogPayload<T> payload, out ContextualLogger logger) where T : notnull {
         var id = UUID.Random();
-        logger = ContextualLogger.Create(this, id);
+        logger = new ContextualLogger(this, LoggerPrefix, id);
         Log(payload with { Header = payload.Header with { ContextID = id, ParentContextID = null } });
     }
 
@@ -137,7 +140,7 @@ public class Logger : ILogger, IContextualLogger {
     /// <inheritdoc/>
     public void Log<T>(LogLevel level, T entry, out ContextualLogger logger) where T : notnull {
         var id = UUID.Random();
-        logger = ContextualLogger.Create(this, id);
+        logger = new ContextualLogger(this, LoggerPrefix, id);
         Log(new LogPayload<T>(
             new LogHeader(level, LoggerPrefix, GetTimestamp(), id, null),
             entry
@@ -154,7 +157,7 @@ public class Logger : ILogger, IContextualLogger {
     /// <inheritdoc/>
     public void Log(LogLevel level, string message, out ContextualLogger logger) {
         var id = UUID.Random();
-        logger = ContextualLogger.Create(this, id);
+        logger = new ContextualLogger(this, LoggerPrefix, id);
         Log(new LogPayload<BasicLogEntry>(
             new LogHeader(level, LoggerPrefix, GetTimestamp(), id, null),
             new BasicLogEntry(message)
@@ -171,7 +174,7 @@ public class Logger : ILogger, IContextualLogger {
     /// <inheritdoc/>
     public void MarkupLine(string message, LogLevel level, out ContextualLogger logger) {
         var id = UUID.Random();
-        logger = ContextualLogger.Create(this, id);
+        logger = new ContextualLogger(this, LoggerPrefix, id);
         Log(new LogPayload<MarkupLogEntry>(
             new LogHeader(level, LoggerPrefix, GetTimestamp(), id, null),
             new MarkupLogEntry(message)
@@ -258,57 +261,73 @@ public class Logger : ILogger, IContextualLogger {
     }
 }
 
-public readonly struct ContextualLogger(IContextualLogger parent, UUID parentContextID, UUID contextID) : IContextualLogger {
-    public string? LoggerPrefix => parent.LoggerPrefix;
+public readonly struct ContextualLogger(ILogger root, string? prefix, UUID contextID) : IContextualLogger {
+    public string? LoggerPrefix => prefix;
     public UUID ContextID { get; } = contextID;
-    private readonly UUID _parentContextID = parentContextID;
 
     public void Log<T>(in LogPayload<T> entry) where T : notnull {
-        parent.Log(entry with { Header = entry.Header with { ContextID = ContextID, ParentContextID = _parentContextID } });
+        var header = entry.Header;
+        // If the entry already has a ParentContextID (set by a nested call), we keep it.
+        // Otherwise, we set it to our ContextID.
+        if (header.ParentContextID == null || header.ParentContextID == new UUID(0, 0)) {
+            header = header with { ParentContextID = ContextID };
+        }
+        if (header.Prefix == null) {
+            header = header with { Prefix = LoggerPrefix };
+        }
+        root.Log(entry with { Header = header });
     }
+
     public void Log<T>(in LogPayload<T> entry, out ContextualLogger logger) where T : notnull {
-        logger = Create(this, ContextID);
-        parent.Log(entry with { Header = entry.Header with { ContextID = logger.ContextID, ParentContextID = ContextID } });
+        var id = UUID.Random();
+        logger = new ContextualLogger(root, LoggerPrefix, id);
+        Log(entry with { Header = entry.Header with { ContextID = id, ParentContextID = ContextID } });
     }
 
     public void Log<T>(LogLevel level, T entry) where T : notnull {
-        parent.Log(new LogPayload<T>(
-            new LogHeader(level, parent.LoggerPrefix, GetTimestamp(), null, parent.ContextID),
+        Log(new LogPayload<T>(
+            new LogHeader(level, LoggerPrefix, GetTimestamp(), null, ContextID),
             entry
         ));
     }
+
     public void Log<T>(LogLevel level, T entry, out ContextualLogger logger) where T : notnull {
-        logger = Create(this, ContextID);
-        parent.Log(new LogPayload<T>(
-            new LogHeader(level, parent.LoggerPrefix, GetTimestamp(), logger.ContextID, ContextID),
+        var id = UUID.Random();
+        logger = new ContextualLogger(root, LoggerPrefix, id);
+        Log(new LogPayload<T>(
+            new LogHeader(level, LoggerPrefix, GetTimestamp(), id, ContextID),
             entry
         ));
     }
 
     public void Log(LogLevel level, string message) {
         Log(new LogPayload<BasicLogEntry>(
-            new LogHeader(level, parent.LoggerPrefix, GetTimestamp(), null, parent.ContextID),
+            new LogHeader(level, LoggerPrefix, GetTimestamp(), null, ContextID),
             new BasicLogEntry(message)
         ));
     }
+
     public void Log(LogLevel level, string message, out ContextualLogger logger) {
-        logger = Create(this, ContextID);
+        var id = UUID.Random();
+        logger = new ContextualLogger(root, LoggerPrefix, id);
         Log(new LogPayload<BasicLogEntry>(
-            new LogHeader(level, parent.LoggerPrefix, GetTimestamp(), logger.ContextID, ContextID),
+            new LogHeader(level, LoggerPrefix, GetTimestamp(), id, ContextID),
             new BasicLogEntry(message)
         ));
     }
 
     public void MarkupLine(string message, LogLevel level) {
         Log(new LogPayload<MarkupLogEntry>(
-            new LogHeader(level, parent.LoggerPrefix, GetTimestamp(), null, parent.ContextID),
+            new LogHeader(level, LoggerPrefix, GetTimestamp(), null, ContextID),
             new MarkupLogEntry(message)
         ));
     }
+
     public void MarkupLine(string message, LogLevel level, out ContextualLogger logger) {
-        logger = Create(this, ContextID);
+        var id = UUID.Random();
+        logger = new ContextualLogger(root, LoggerPrefix, id);
         Log(new LogPayload<MarkupLogEntry>(
-            new LogHeader(level, parent.LoggerPrefix, GetTimestamp(), logger.ContextID, ContextID),
+            new LogHeader(level, LoggerPrefix, GetTimestamp(), id, ContextID),
             new MarkupLogEntry(message)
         ));
     }
@@ -316,6 +335,7 @@ public readonly struct ContextualLogger(IContextualLogger parent, UUID parentCon
     public void Info(string message) {
         Log(LogLevel.Info, message);
     }
+
     public void Info(string message, out ContextualLogger logger) {
         Log(LogLevel.Info, message, out logger);
     }
@@ -323,6 +343,7 @@ public readonly struct ContextualLogger(IContextualLogger parent, UUID parentCon
     public void Debug(string message) {
         Log(LogLevel.Debug, message);
     }
+
     public void Debug(string message, out ContextualLogger logger) {
         Log(LogLevel.Debug, message, out logger);
     }
@@ -330,6 +351,7 @@ public readonly struct ContextualLogger(IContextualLogger parent, UUID parentCon
     public void Warning(string message) {
         Log(LogLevel.Warning, message);
     }
+
     public void Warning(string message, out ContextualLogger logger) {
         Log(LogLevel.Warning, message, out logger);
     }
@@ -337,6 +359,7 @@ public readonly struct ContextualLogger(IContextualLogger parent, UUID parentCon
     public void Error(string message) {
         Log(LogLevel.Error, message);
     }
+
     public void Error(string message, out ContextualLogger logger) {
         Log(LogLevel.Error, message, out logger);
     }
@@ -344,6 +367,7 @@ public readonly struct ContextualLogger(IContextualLogger parent, UUID parentCon
     public void Critical(string message) {
         Log(LogLevel.Critical, message);
     }
+
     public void Critical(string message, out ContextualLogger logger) {
         Log(LogLevel.Critical, message, out logger);
     }
@@ -351,15 +375,12 @@ public readonly struct ContextualLogger(IContextualLogger parent, UUID parentCon
     public void System(string message) {
         Log(LogLevel.System, message);
     }
+
     public void System(string message, out ContextualLogger logger) {
         Log(LogLevel.System, message, out logger);
     }
 
     private static long GetTimestamp() {
         return DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-    }
-
-    public static ContextualLogger Create(IContextualLogger logger, UUID parentContextID) {
-        return new ContextualLogger(logger, parentContextID, UUID.Random());
     }
 }

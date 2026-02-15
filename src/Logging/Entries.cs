@@ -76,8 +76,13 @@ public readonly record struct CapturedLogEntry : ISpanFormattable {
     }
 
     public CapturedLogEntry(object data) {
-        Message = null;
-        RawData = data;
+        if (data is string message) {
+            Message = message;
+            RawData = null;
+        } else {
+            Message = null;
+            RawData = data;
+        }
     }
 
     /// <summary>Format to span without allocation.</summary>

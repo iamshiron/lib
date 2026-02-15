@@ -127,7 +127,7 @@ public class LogInjector(
         foreach (var entry in CapturedEntries) {
             logger.Log(new LogPayload<CapturedLogEntry>(
                 entry.Header,
-                new CapturedLogEntry(entry.RawBody ?? entry.Message!)
+                entry.Message != null ? new CapturedLogEntry(entry.Message) : new CapturedLogEntry(entry.RawBody!)
             ));
         }
     }
