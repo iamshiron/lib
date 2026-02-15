@@ -20,6 +20,31 @@
 | GetAverageLow1Percent | 4096     | 140,840.9031 ns | 1,570.5674 ns | 1,392.2671 ns | 140,885.2417 ns |         - |
 | GetStandardDeviation  | 4096     |       5.1741 ns |   0.0326 ns |   0.0289 ns |       5.1635 ns |         - |
 
+## Shiron.Lib.Logging
+### Standard Logging
+| Method                       | Mean      | Error    | StdDev   | Gen0   | Allocated |
+|----------------------------- |----------:|---------:|---------:|-------:|----------:|
+| BasicLogging_NoRenderer      |  25.53 ns | 0.162 ns | 0.152 ns |      - |         - |
+| BasicLogging_WithRenderer    |  26.80 ns | 0.055 ns | 0.049 ns |      - |         - |
+| JsonLogging                  | 112.15 ns | 0.433 ns | 0.405 ns | 0.0014 |      24 B |
+| Logging_WithCaptureInjector  | 617.36 ns | 2.048 ns | 1.915 ns | 0.0391 |     624 B |
+| Logging_WithSuppressInjector | 569.60 ns | 2.003 ns | 1.874 ns | 0.0153 |     248 B |
+
+### Log Rendering
+| Method                              | Mean      | Error     | StdDev    | Allocated |
+|------------------------------------ |----------:|----------:|----------:|----------:|
+| MultipleRenderers_Overhead          | 16.598 ns | 0.1490 ns | 0.1244 ns |         - |
+| LogRenderUtils_WriteLogLevel        |  7.167 ns | 0.0207 ns | 0.0173 ns |         - |
+| LogRenderUtils_WriteTimestamp       |  6.482 ns | 0.0397 ns | 0.0372 ns |         - |
+| LogRenderUtils_WriteSpanFormattable |  5.164 ns | 0.0142 ns | 0.0119 ns |         - |
+
+### Contextual Logging
+| Method                | Mean      | Error    | StdDev   | Allocated |
+|---------------------- |----------:|---------:|---------:|----------:|
+| RootContextCreation   |  35.64 ns | 0.250 ns | 0.221 ns |         - |
+| ChildContextCreation  |  70.18 ns | 0.735 ns | 0.817 ns |         - |
+| DeepContextualLogging | 138.91 ns | 0.275 ns | 0.244 ns |         - |
+
 ## Shiron.Lib.Utils
 ### FunctionUtils
 | Method            | Mean       | Error     | StdDev    | Median     | Ratio | Gen0   | Allocated | Alloc Ratio |

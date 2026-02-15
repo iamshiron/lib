@@ -76,18 +76,26 @@ profiler.SaveToFile("profiles");
 
 ### Logging
 
-Structured logging with log levels, hierarchical sub-loggers, custom renderers, and log injection for testing.
+Structured logging with log levels, hierarchical sub-loggers, custom renderers, and log injection for testing. Supports contextual logging to track operation flow.
 
 ```csharp
 using Shiron.Lib.Logging;
 
-var logger = new Logger(jsonMode: false);
+var logger = new Logger(jsonLogger: false);
 logger.AddRenderer(new ConsoleLogRenderer());
 
 // Standard levels with colorized output
 logger.Info("Application started");
 logger.Warning("Cache miss - rebuilding index");
 logger.Error("Failed to connect to service");
+
+// Contextual logging for tracking operation flow
+logger.Info("Starting batch process", out var batchLogger);
+batchLogger.Info("Processing item 1", out var itemLogger);
+itemLogger.Debug("Validating schema...");
+itemLogger.Info("Item 1 processed successfully");
+
+batchLogger.Info("Processing item 2"); // Shares parent context with item 1
 
 // Create hierarchical loggers
 var dbLogger = logger.CreateSubLogger("Database");
@@ -243,6 +251,24 @@ string projectHash = HashUtils.CreateFileSetHash(projectFiles, root: "src");
 
 // Hash arbitrary objects via JSON serialization
 string objectHash = HashUtils.HashObject(configObject);
+```
+
+**UUID** - RFC 4122 compliant UUIDv4 implementation:
+```csharp
+using Shiron.Lib.Utils;
+
+// Generate a random UUIDv4
+UUID id = UUID.Random();
+Console.WriteLine(id.ToString()); // "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+
+// Parse from string
+UUID parsed = UUID.FromString("550e8400-e29b-41d4-a716-446655440000");
+
+// Efficiently format to Span
+Span<char> buffer = stackalloc char[36];
+if (id.TryFormat(buffer, out int written, default, null)) {
+    // Use buffer...
+}
 ```
 
 **ShellUtils** - Execute shell commands with proper logging and error handling:
