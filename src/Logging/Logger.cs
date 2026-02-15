@@ -120,15 +120,43 @@ public class Logger : ILogger, IContextualLogger {
             Warning($"Log entry was not handled by any renderer: {payload.Body.GetType().Name}");
         }
     }
+    /// <inheritdoc/>
+    public void Log<T>(in LogPayload<T> payload, out ContextualLogger logger) where T : notnull {
+        var id = UUID.Random();
+        logger = ContextualLogger.Create(this, id);
+        Log(payload with { Header = payload.Header with { ContextID = id, ParentContextID = null } });
+    }
+
+    /// <inheritdoc/>
     public void Log<T>(LogLevel level, T entry) where T : notnull {
         Log(new LogPayload<T>(
-            new LogHeader(level, LoggerPrefix, GetTimestamp(), ContextID, null),
+            new LogHeader(level, LoggerPrefix, GetTimestamp(), null, null),
             entry
         ));
     }
+    /// <inheritdoc/>
+    public void Log<T>(LogLevel level, T entry, out ContextualLogger logger) where T : notnull {
+        var id = UUID.Random();
+        logger = ContextualLogger.Create(this, id);
+        Log(new LogPayload<T>(
+            new LogHeader(level, LoggerPrefix, GetTimestamp(), id, null),
+            entry
+        ));
+    }
+
+    /// <inheritdoc/>
     public void Log(LogLevel level, string message) {
         Log(new LogPayload<BasicLogEntry>(
-            new LogHeader(level, LoggerPrefix, GetTimestamp(), ContextID, null),
+            new LogHeader(level, LoggerPrefix, GetTimestamp(), null, null),
+            new BasicLogEntry(message)
+        ));
+    }
+    /// <inheritdoc/>
+    public void Log(LogLevel level, string message, out ContextualLogger logger) {
+        var id = UUID.Random();
+        logger = ContextualLogger.Create(this, id);
+        Log(new LogPayload<BasicLogEntry>(
+            new LogHeader(level, LoggerPrefix, GetTimestamp(), id, null),
             new BasicLogEntry(message)
         ));
     }
@@ -140,53 +168,68 @@ public class Logger : ILogger, IContextualLogger {
             new MarkupLogEntry(message)
         ));
     }
+    /// <inheritdoc/>
+    public void MarkupLine(string message, LogLevel level, out ContextualLogger logger) {
+        var id = UUID.Random();
+        logger = ContextualLogger.Create(this, id);
+        Log(new LogPayload<MarkupLogEntry>(
+            new LogHeader(level, LoggerPrefix, GetTimestamp(), id, null),
+            new MarkupLogEntry(message)
+        ));
+    }
 
     /// <inheritdoc/>
     public void Info(string message) {
-        Log(new LogPayload<BasicLogEntry>(
-            new LogHeader(LogLevel.Info, LoggerPrefix, GetTimestamp(), ContextID, null),
-            new BasicLogEntry(message)
-        ));
+        Log(LogLevel.Info, message);
+    }
+    /// <inheritdoc/>
+    public void Info(string message, out ContextualLogger logger) {
+        Log(LogLevel.Info, message, out logger);
     }
 
     /// <inheritdoc/>
     public void Debug(string message) {
-        Log(new LogPayload<BasicLogEntry>(
-            new LogHeader(LogLevel.Debug, LoggerPrefix, GetTimestamp(), ContextID, null),
-            new BasicLogEntry(message)
-        ));
+        Log(LogLevel.Debug, message);
+    }
+    /// <inheritdoc/>
+    public void Debug(string message, out ContextualLogger logger) {
+        Log(LogLevel.Debug, message, out logger);
     }
 
     /// <inheritdoc/>
     public void Warning(string message) {
-        Log(new LogPayload<BasicLogEntry>(
-            new LogHeader(LogLevel.Warning, LoggerPrefix, GetTimestamp(), ContextID, null),
-            new BasicLogEntry(message)
-        ));
+        Log(LogLevel.Warning, message);
+    }
+    /// <inheritdoc/>
+    public void Warning(string message, out ContextualLogger logger) {
+        Log(LogLevel.Warning, message, out logger);
     }
 
     /// <inheritdoc/>
     public void Error(string message) {
-        Log(new LogPayload<BasicLogEntry>(
-            new LogHeader(LogLevel.Error, LoggerPrefix, GetTimestamp(), ContextID, null),
-            new BasicLogEntry(message)
-        ));
+        Log(LogLevel.Error, message);
+    }
+    /// <inheritdoc/>
+    public void Error(string message, out ContextualLogger logger) {
+        Log(LogLevel.Error, message, out logger);
     }
 
     /// <inheritdoc/>
     public void Critical(string message) {
-        Log(new LogPayload<BasicLogEntry>(
-            new LogHeader(LogLevel.Critical, LoggerPrefix, GetTimestamp(), ContextID, null),
-            new BasicLogEntry(message)
-        ));
+        Log(LogLevel.Critical, message);
+    }
+    /// <inheritdoc/>
+    public void Critical(string message, out ContextualLogger logger) {
+        Log(LogLevel.Critical, message, out logger);
     }
 
     /// <inheritdoc/>
     public void System(string message) {
-        Log(new LogPayload<BasicLogEntry>(
-            new LogHeader(LogLevel.System, LoggerPrefix, GetTimestamp(), ContextID, null),
-            new BasicLogEntry(message)
-        ));
+        Log(LogLevel.System, message);
+    }
+    /// <inheritdoc/>
+    public void System(string message, out ContextualLogger logger) {
+        Log(LogLevel.System, message, out logger);
     }
 
     /// <inheritdoc/>
@@ -213,61 +256,110 @@ public class Logger : ILogger, IContextualLogger {
     private static long GetTimestamp() {
         return DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
     }
-
-    public ContextualLogger PushContext() {
-        return new ContextualLogger(this, UUID.Random());
-    }
 }
 
-public readonly struct ContextualLogger(IContextualLogger parent, UUID contextID) : IContextualLogger {
+public readonly struct ContextualLogger(IContextualLogger parent, UUID parentContextID, UUID contextID) : IContextualLogger {
     public string? LoggerPrefix => parent.LoggerPrefix;
     public UUID ContextID { get; } = contextID;
+    private readonly UUID _parentContextID = parentContextID;
 
     public void Log<T>(in LogPayload<T> entry) where T : notnull {
-        parent.Log(entry with { Header = entry.Header with { ContextID = ContextID, ParentContextID = parent.ContextID } });
+        parent.Log(entry with { Header = entry.Header with { ContextID = ContextID, ParentContextID = _parentContextID } });
     }
+    public void Log<T>(in LogPayload<T> entry, out ContextualLogger logger) where T : notnull {
+        logger = Create(this, ContextID);
+        parent.Log(entry with { Header = entry.Header with { ContextID = logger.ContextID, ParentContextID = ContextID } });
+    }
+
     public void Log<T>(LogLevel level, T entry) where T : notnull {
         parent.Log(new LogPayload<T>(
-            new LogHeader(level, parent.LoggerPrefix, GetTimestamp(), ContextID, parent.ContextID),
+            new LogHeader(level, parent.LoggerPrefix, GetTimestamp(), null, parent.ContextID),
             entry
         ));
     }
+    public void Log<T>(LogLevel level, T entry, out ContextualLogger logger) where T : notnull {
+        logger = Create(this, ContextID);
+        parent.Log(new LogPayload<T>(
+            new LogHeader(level, parent.LoggerPrefix, GetTimestamp(), logger.ContextID, ContextID),
+            entry
+        ));
+    }
+
     public void Log(LogLevel level, string message) {
         Log(new LogPayload<BasicLogEntry>(
-            new LogHeader(level, parent.LoggerPrefix, GetTimestamp(), ContextID, parent.ContextID),
+            new LogHeader(level, parent.LoggerPrefix, GetTimestamp(), null, parent.ContextID),
             new BasicLogEntry(message)
         ));
     }
+    public void Log(LogLevel level, string message, out ContextualLogger logger) {
+        logger = Create(this, ContextID);
+        Log(new LogPayload<BasicLogEntry>(
+            new LogHeader(level, parent.LoggerPrefix, GetTimestamp(), logger.ContextID, ContextID),
+            new BasicLogEntry(message)
+        ));
+    }
+
     public void MarkupLine(string message, LogLevel level) {
         Log(new LogPayload<MarkupLogEntry>(
-            new LogHeader(level, parent.LoggerPrefix, GetTimestamp(), ContextID, parent.ContextID),
+            new LogHeader(level, parent.LoggerPrefix, GetTimestamp(), null, parent.ContextID),
             new MarkupLogEntry(message)
         ));
     }
+    public void MarkupLine(string message, LogLevel level, out ContextualLogger logger) {
+        logger = Create(this, ContextID);
+        Log(new LogPayload<MarkupLogEntry>(
+            new LogHeader(level, parent.LoggerPrefix, GetTimestamp(), logger.ContextID, ContextID),
+            new MarkupLogEntry(message)
+        ));
+    }
+
     public void Info(string message) {
         Log(LogLevel.Info, message);
     }
+    public void Info(string message, out ContextualLogger logger) {
+        Log(LogLevel.Info, message, out logger);
+    }
+
     public void Debug(string message) {
         Log(LogLevel.Debug, message);
     }
+    public void Debug(string message, out ContextualLogger logger) {
+        Log(LogLevel.Debug, message, out logger);
+    }
+
     public void Warning(string message) {
         Log(LogLevel.Warning, message);
     }
+    public void Warning(string message, out ContextualLogger logger) {
+        Log(LogLevel.Warning, message, out logger);
+    }
+
     public void Error(string message) {
         Log(LogLevel.Error, message);
     }
+    public void Error(string message, out ContextualLogger logger) {
+        Log(LogLevel.Error, message, out logger);
+    }
+
     public void Critical(string message) {
         Log(LogLevel.Critical, message);
     }
+    public void Critical(string message, out ContextualLogger logger) {
+        Log(LogLevel.Critical, message, out logger);
+    }
+
     public void System(string message) {
         Log(LogLevel.System, message);
+    }
+    public void System(string message, out ContextualLogger logger) {
+        Log(LogLevel.System, message, out logger);
     }
 
     private static long GetTimestamp() {
         return DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
     }
 
-    public ContextualLogger PushContext() {
-        return new ContextualLogger(parent, UUID.Random());
+    public static ContextualLogger Create(IContextualLogger logger, UUID parentContextID) {
+        return new ContextualLogger(logger, parentContextID, UUID.Random());
     }
 }

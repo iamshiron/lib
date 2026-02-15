@@ -55,10 +55,12 @@ using (new ProfileScope(profiler, "Main")) {
         }
 
         // Test log contexts
-        logger.Info("Context Test");
-        var context = logger.PushContext();
+        logger.Info("Context Test", out var context);
         context.Info("1");
         context.Info("2");
+        context.Info("Sub Context", out var subContext);
+        subContext.Info("Starting...");
+        subContext.System("Done!");
         context.System("Done!");
 
         logger.Info($"Outer Logs Captured: {outerInjector.CapturedEntries.Count}, Inner Logs Captured: {injector.CapturedEntries.Count}");
