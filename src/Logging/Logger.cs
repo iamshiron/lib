@@ -2,13 +2,14 @@ using System.Collections.Concurrent;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Shiron.Lib.Logging.Renderer;
+using Shiron.Lib.Utils;
 
 namespace Shiron.Lib.Logging;
 
 /// <summary>Internal Manila logger.</summary>
 public class Logger : ILogger {
     /// <summary>Injector map for add/remove operations.</summary>
-    private readonly ConcurrentDictionary<Guid, LogInjector> _activeInjectors = new();
+    private readonly ConcurrentDictionary<UUID, LogInjector> _activeInjectors = new();
     /// <summary>Cached array snapshot for zero-allocation iteration. Updated on add/remove.</summary>
     private volatile LogInjector[] _injectorSnapshot = [];
     private readonly Lock _injectorLock = new();
@@ -52,7 +53,7 @@ public class Logger : ILogger {
     }
 
     /// <inheritdoc/>
-    public void AddInjector(Guid id, LogInjector injector) {
+    public void AddInjector(UUID id, LogInjector injector) {
         lock (_injectorLock) {
             if (!_activeInjectors.TryAdd(id, injector)) {
                 throw new Exception($"An injector with ID {id} already exists.");
@@ -63,7 +64,7 @@ public class Logger : ILogger {
     }
 
     /// <inheritdoc/>
-    public void RemoveInjector(Guid id) {
+    public void RemoveInjector(UUID id) {
         lock (_injectorLock) {
             if (!_activeInjectors.TryRemove(id, out _)) {
                 throw new Exception($"No injector with ID {id} exists to remove.");

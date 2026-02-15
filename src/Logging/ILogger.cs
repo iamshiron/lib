@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using Shiron.Lib.Logging.Renderer;
+using Shiron.Lib.Utils;
 
 namespace Shiron.Lib.Logging;
 
@@ -14,10 +15,10 @@ public interface ILogger : ILogFunctions {
     /// <summary>Add injector.</summary>
     /// <param name="id">Injector ID.</param>
     /// <param name="injector">Injector instance.</param>
-    void AddInjector(Guid id, LogInjector injector);
+    void AddInjector(UUID id, LogInjector injector);
     /// <summary>Remove injector.</summary>
     /// <param name="id">Injector ID.</param>
-    void RemoveInjector(Guid id);
+    void RemoveInjector(UUID id);
 
     /// <summary>Optional prefix.</summary>
     string? LoggerPrefix { get; }
