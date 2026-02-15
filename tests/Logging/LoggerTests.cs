@@ -81,7 +81,7 @@ public class LoggerTests {
 
         logger.Info("Normal message");
 
-        Assert.Equal(1, renderer.RenderedLogs.Count);
+        Assert.Single(renderer.RenderedLogs);
         Assert.Equal("Normal message", ((BasicLogEntry) renderer.RenderedLogs[0].Body).Message);
     }
 
