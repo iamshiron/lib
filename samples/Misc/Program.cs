@@ -45,7 +45,7 @@ using (new ProfileScope(profiler, "Main")) {
         subSub.Error("This is an error message from sub-sub-logger.");
 
         var outerInjector = new LogInjector(logger, (entry) => { });
-        LogInjector injector = new LogInjector(logger, (entry) => { }, true);
+        var injector = new LogInjector(logger, (entry) => { }, true);
 
         using (outerInjector.Inject()) {
             logger.Info("This info log will be captured by the outer injector which will not suppress the log.");
@@ -53,6 +53,13 @@ using (new ProfileScope(profiler, "Main")) {
                 logger.Info("This info log will be captured by the inner injector which will suppress the log.");
             }
         }
+
+        // Test log contexts
+        logger.Info("Context Test");
+        var context = logger.PushContext();
+        context.Info("1");
+        context.Info("2");
+        context.System("Done!");
 
         logger.Info($"Outer Logs Captured: {outerInjector.CapturedEntries.Count}, Inner Logs Captured: {injector.CapturedEntries.Count}");
         logger.Info("Outer Logs:");
@@ -65,19 +72,19 @@ using (new ProfileScope(profiler, "Main")) {
     tracker.Start();
 
     using (new ProfileScope(profiler, "Allocation Spam")) {
-        for (int i = 0; i < 1000; ++i) {
+        for (var i = 0; i < 1000; ++i) {
             var list = new List<string>();
-            for (int j = 0; j < 100; ++j) {
+            for (var j = 0; j < 100; ++j) {
                 list.Add($"String number {j} in list {i}");
             }
         }
     }
-    System.Console.WriteLine($"Allocation spam total bytes: {tracker.End()}");
+    Console.WriteLine($"Allocation spam total bytes: {tracker.End()}");
 
     // Spam the logger to generate better GC results
     gcTracker3.Start();
     long maxLogs = 1000;
-    for (int i = 0; i < maxLogs; ++i) {
+    for (var i = 0; i < maxLogs; ++i) {
         var randInt = RandomNumberGenerator.GetInt32(0, 1000);
         if (randInt % 5 == 0) {
             logger.Debug($"Debug message");
@@ -92,8 +99,8 @@ using (new ProfileScope(profiler, "Main")) {
         }
     }
 
-    long spamRes = gcTracker3.End();
-    long res = gcTracker2.End();
+    var spamRes = gcTracker3.End();
+    var res = gcTracker2.End();
 
 
     if (!Directory.Exists("profiles")) {

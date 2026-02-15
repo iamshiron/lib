@@ -7,7 +7,9 @@ using Shiron.Lib.Utils;
 namespace Shiron.Lib.Logging;
 
 /// <summary>Internal Manila logger.</summary>
-public class Logger : ILogger {
+public class Logger : ILogger, IContextualLogger {
+    public UUID ContextID => new(0, 0);
+
     /// <summary>Injector map for add/remove operations.</summary>
     private readonly ConcurrentDictionary<UUID, LogInjector> _activeInjectors = new();
     /// <summary>Cached array snapshot for zero-allocation iteration. Updated on add/remove.</summary>
@@ -120,13 +122,13 @@ public class Logger : ILogger {
     }
     public void Log<T>(LogLevel level, T entry) where T : notnull {
         Log(new LogPayload<T>(
-            new LogHeader(level, LoggerPrefix, GetTimestamp()),
+            new LogHeader(level, LoggerPrefix, GetTimestamp(), ContextID, null),
             entry
         ));
     }
     public void Log(LogLevel level, string message) {
         Log(new LogPayload<BasicLogEntry>(
-            new LogHeader(level, LoggerPrefix, GetTimestamp()),
+            new LogHeader(level, LoggerPrefix, GetTimestamp(), ContextID, null),
             new BasicLogEntry(message)
         ));
     }
@@ -134,7 +136,7 @@ public class Logger : ILogger {
     /// <inheritdoc/>
     public void MarkupLine(string message, LogLevel level) {
         Log(new LogPayload<MarkupLogEntry>(
-            new LogHeader(level, LoggerPrefix, GetTimestamp()),
+            new LogHeader(level, LoggerPrefix, GetTimestamp(), ContextID, null),
             new MarkupLogEntry(message)
         ));
     }
@@ -142,7 +144,7 @@ public class Logger : ILogger {
     /// <inheritdoc/>
     public void Info(string message) {
         Log(new LogPayload<BasicLogEntry>(
-            new LogHeader(LogLevel.Info, LoggerPrefix, GetTimestamp()),
+            new LogHeader(LogLevel.Info, LoggerPrefix, GetTimestamp(), ContextID, null),
             new BasicLogEntry(message)
         ));
     }
@@ -150,7 +152,7 @@ public class Logger : ILogger {
     /// <inheritdoc/>
     public void Debug(string message) {
         Log(new LogPayload<BasicLogEntry>(
-            new LogHeader(LogLevel.Debug, LoggerPrefix, GetTimestamp()),
+            new LogHeader(LogLevel.Debug, LoggerPrefix, GetTimestamp(), ContextID, null),
             new BasicLogEntry(message)
         ));
     }
@@ -158,7 +160,7 @@ public class Logger : ILogger {
     /// <inheritdoc/>
     public void Warning(string message) {
         Log(new LogPayload<BasicLogEntry>(
-            new LogHeader(LogLevel.Warning, LoggerPrefix, GetTimestamp()),
+            new LogHeader(LogLevel.Warning, LoggerPrefix, GetTimestamp(), ContextID, null),
             new BasicLogEntry(message)
         ));
     }
@@ -166,7 +168,7 @@ public class Logger : ILogger {
     /// <inheritdoc/>
     public void Error(string message) {
         Log(new LogPayload<BasicLogEntry>(
-            new LogHeader(LogLevel.Error, LoggerPrefix, GetTimestamp()),
+            new LogHeader(LogLevel.Error, LoggerPrefix, GetTimestamp(), ContextID, null),
             new BasicLogEntry(message)
         ));
     }
@@ -174,7 +176,7 @@ public class Logger : ILogger {
     /// <inheritdoc/>
     public void Critical(string message) {
         Log(new LogPayload<BasicLogEntry>(
-            new LogHeader(LogLevel.Critical, LoggerPrefix, GetTimestamp()),
+            new LogHeader(LogLevel.Critical, LoggerPrefix, GetTimestamp(), ContextID, null),
             new BasicLogEntry(message)
         ));
     }
@@ -182,7 +184,7 @@ public class Logger : ILogger {
     /// <inheritdoc/>
     public void System(string message) {
         Log(new LogPayload<BasicLogEntry>(
-            new LogHeader(LogLevel.System, LoggerPrefix, GetTimestamp()),
+            new LogHeader(LogLevel.System, LoggerPrefix, GetTimestamp(), ContextID, null),
             new BasicLogEntry(message)
         ));
     }
@@ -211,16 +213,61 @@ public class Logger : ILogger {
     private static long GetTimestamp() {
         return DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
     }
+
+    public ContextualLogger PushContext() {
+        return new ContextualLogger(this, UUID.Random());
+    }
 }
 
-/// <summary>Logger extensions.</summary>
-public static class LoggerExtensions {
-    /// <summary>Create context injector.</summary>
-    /// <param name="logger">Logger.</param>
-    /// <param name="onLog">Callback.</param>
-    /// <param name="contextId">Context GUID.</param>
-    /// <returns>Injector instance.</returns>
-    public static LogInjector CreateContextInjector(this ILogger logger, Action<CapturedLog> onLog) {
-        return new LogInjector(logger, onLog, true);
+public readonly struct ContextualLogger(IContextualLogger parent, UUID contextID) : IContextualLogger {
+    public string? LoggerPrefix => parent.LoggerPrefix;
+    public UUID ContextID { get; } = contextID;
+
+    public void Log<T>(in LogPayload<T> entry) where T : notnull {
+        parent.Log(entry with { Header = entry.Header with { ContextID = ContextID, ParentContextID = parent.ContextID } });
+    }
+    public void Log<T>(LogLevel level, T entry) where T : notnull {
+        parent.Log(new LogPayload<T>(
+            new LogHeader(level, parent.LoggerPrefix, GetTimestamp(), ContextID, parent.ContextID),
+            entry
+        ));
+    }
+    public void Log(LogLevel level, string message) {
+        Log(new LogPayload<BasicLogEntry>(
+            new LogHeader(level, parent.LoggerPrefix, GetTimestamp(), ContextID, parent.ContextID),
+            new BasicLogEntry(message)
+        ));
+    }
+    public void MarkupLine(string message, LogLevel level) {
+        Log(new LogPayload<MarkupLogEntry>(
+            new LogHeader(level, parent.LoggerPrefix, GetTimestamp(), ContextID, parent.ContextID),
+            new MarkupLogEntry(message)
+        ));
+    }
+    public void Info(string message) {
+        Log(LogLevel.Info, message);
+    }
+    public void Debug(string message) {
+        Log(LogLevel.Debug, message);
+    }
+    public void Warning(string message) {
+        Log(LogLevel.Warning, message);
+    }
+    public void Error(string message) {
+        Log(LogLevel.Error, message);
+    }
+    public void Critical(string message) {
+        Log(LogLevel.Critical, message);
+    }
+    public void System(string message) {
+        Log(LogLevel.System, message);
+    }
+
+    private static long GetTimestamp() {
+        return DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+    }
+
+    public ContextualLogger PushContext() {
+        return new ContextualLogger(parent, UUID.Random());
     }
 }

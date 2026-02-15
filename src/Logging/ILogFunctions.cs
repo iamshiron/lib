@@ -19,4 +19,6 @@ public interface ILogFunctions {
     void Critical(string message);
     /// <summary>System level.</summary>
     void System(string message);
+
+    ContextualLogger PushContext();
 }

@@ -1,11 +1,14 @@
 using System.Buffers;
+using Shiron.Lib.Utils;
 
 namespace Shiron.Lib.Logging;
 
 public readonly record struct LogHeader(
     LogLevel Level,
     string? Prefix,
-    long Timestamp
+    long Timestamp,
+    UUID? ContextID,
+    UUID? ParentContextID
 );
 
 public readonly record struct LogPayload<T>(
@@ -31,7 +34,9 @@ public readonly record struct BasicLogEntry(string Message) : ISpanFormattable {
     }
 
     /// <summary>Fallback for string formatting.</summary>
-    public string ToString(string? format, IFormatProvider? formatProvider) => Message ?? string.Empty;
+    public string ToString(string? format, IFormatProvider? formatProvider) {
+        return Message ?? string.Empty;
+    }
 }
 
 /// <summary>Markup (Info level) entry.</summary>
@@ -52,7 +57,9 @@ public readonly record struct MarkupLogEntry(string Message) : ISpanFormattable 
     }
 
     /// <summary>Fallback for string formatting.</summary>
-    public string ToString(string? format, IFormatProvider? formatProvider) => Message ?? string.Empty;
+    public string ToString(string? format, IFormatProvider? formatProvider) {
+        return Message ?? string.Empty;
+    }
 }
 
 /// <summary>A log entry captured by an injector <see cref="LogInjector"/>.</summary>
@@ -86,5 +93,7 @@ public readonly record struct CapturedLogEntry : ISpanFormattable {
     }
 
     /// <summary>Fallback for string formatting.</summary>
-    public string ToString(string? format, IFormatProvider? formatProvider) => Message ?? RawData?.ToString() ?? string.Empty;
+    public string ToString(string? format, IFormatProvider? formatProvider) {
+        return Message ?? RawData?.ToString() ?? string.Empty;
+    }
 }

@@ -20,13 +20,17 @@ public interface ILogger : ILogFunctions {
     /// <param name="id">Injector ID.</param>
     void RemoveInjector(UUID id);
 
-    /// <summary>Optional prefix.</summary>
-    string? LoggerPrefix { get; }
-
-    /// <summary>Create sub-logger with prefix.</summary>
+    /// <summary>Create a sub-logger with a prefix.</summary>
     /// <param name="prefix">Prefix string.</param>
     /// <param name="jsonLogger">Whether to enable JSON logging. Parent setting is always prioritized.</param>
     /// <param name="stdoutStream">Optional custom output stream. If null, the parent's output stream is used.</param>
     /// <returns>Sub-logger instance.</returns>
     ILogger CreateSubLogger(string prefix, bool jsonLogger = false, Stream? stdoutStream = null);
+}
+
+public interface IContextualLogger : ILogFunctions {
+    UUID ContextID { get; }
+
+    /// <summary>Optional prefix.</summary>
+    string? LoggerPrefix { get; }
 }
