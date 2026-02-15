@@ -6,7 +6,10 @@ using Shiron.Lib.Utils;
 
 namespace Shiron.Lib.Logging;
 
-/// <summary>Internal Manila logger.</summary>
+/// <summary>
+/// Provides logging functionality with support for hierarchical loggers, JSON formatting,
+/// contextual logging, and custom renderers.
+/// </summary>
 public class Logger : ILogger, IContextualLogger {
     public UUID ContextID => new(0, 0);
 
@@ -116,12 +119,13 @@ public class Logger : ILogger, IContextualLogger {
             logger = logger._parent;
         }
 
+        #if DEBUG
         if (!handled) {
-            // Avoid recursion if the warning itself is not handled.
             if (payload.Body is not BasicLogEntry ble || !ble.Message.StartsWith("Log entry was not handled")) {
-                Warning($"Log entry was not handled by any renderer: {payload.Body.GetType().Name}");
+                Warning($"Log entry was not handled by any renderer: {typeof(T).Name}");
             }
         }
+        #endif
     }
     /// <inheritdoc/>
     public void Log<T>(in LogPayload<T> payload, out ContextualLogger logger) where T : notnull {

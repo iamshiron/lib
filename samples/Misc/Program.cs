@@ -81,7 +81,7 @@ using (new ProfileScope(profiler, "Main")) {
             }
         }
     }
-    Console.WriteLine($"Allocation spam total bytes: {tracker.End()}");
+    logger.System($"Allocation spam total bytes: {tracker.End()}");
 
     // Spam the logger to generate better GC results
     gcTracker3.Start();
@@ -109,9 +109,9 @@ using (new ProfileScope(profiler, "Main")) {
         _ = Directory.CreateDirectory("profiles");
     }
 
-    Console.WriteLine($"Total bytes allocated: {gcTracker1.End()}");
-    Console.WriteLine($"Hot path bytes allocated: {res}");
-    Console.WriteLine($"Spam path bytes allocated: {spamRes}, over {maxLogs} logs. Avg: {spamRes / maxLogs} bytes/log");
+    logger.System($"Total bytes allocated: {gcTracker1.End()}");
+    logger.System($"Hot path bytes allocated: {res}");
+    logger.System($"Spam path bytes allocated: {spamRes}, over {maxLogs} logs. Avg: {spamRes / maxLogs} bytes/log");
 }
 
 profiler.SaveToFile("profiles");
