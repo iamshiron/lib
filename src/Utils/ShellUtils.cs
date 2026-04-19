@@ -1,8 +1,5 @@
 using System.Diagnostics;
-using System.Security.Cryptography;
 using System.Text;
-using Shiron.Lib.Logging;
-using Shiron.Lib.Utils.Logging;
 
 namespace Shiron.Lib.Utils;
 
@@ -24,9 +21,7 @@ public static class ShellUtils {
     /// <param name="command">The command or executable to run.</param>
     /// <param name="args">The arguments to pass to the command. Defaults to an empty array if null.</param>
     /// <param name="workingDir">The working directory for the command. If null, the current directory is used.</param>
-    /// <param name="quiet">If true, logs will be marked as quiet, indicating the command's output is not high-priority. It is still logged.</param>
-    /// <param name="suppress">If true, standard output and standard error will not be logged. Use this for commands that may handle sensitive data.</param>
-    public sealed class CommandInfo(string command, string[]? args = null, string? workingDir = null, bool quiet = false, bool suppress = false) {
+    public sealed class CommandInfo(string command, string[]? args = null, string? workingDir = null) {
         /// <summary>
         /// The command or executable to run.
         /// </summary>
@@ -39,15 +34,6 @@ public static class ShellUtils {
         /// The working directory for the command.
         /// </summary>
         public string? WorkingDir = workingDir;
-        /// <summary>
-        /// When true, logs are still created but are flagged as low-priority.
-        /// </summary>
-        public bool Quiet = quiet;
-        /// <summary>
-        /// When true, the output is not logged, which is useful for commands handling sensitive data.
-        /// For security reasons, this is marked as readonly.
-        /// </summary>
-        public readonly bool Suppress = suppress;
     }
 
     /// <summary>
@@ -57,22 +43,8 @@ public static class ShellUtils {
     /// <param name="args">The command arguments.</param>
     /// <param name="workingDir">Optional working directory where the command will be executed. If null, the current directory is used.</param>
     /// <returns>The process result object containing the exit code, standard output, and standard error.</returns>
-    public static ProcessResult Run(string command, string[]? args = null, string? workingDir = null, ILogger? logger = null) {
-        return Run(new(command, args, workingDir), logger);
-    }
-
-    /// <summary>
-    /// Runs a command with suppressed output logging. Standard output and error will not be logged.
-    /// </summary>
-    /// <remarks>
-    /// This is a convenience method that sets both <see cref="CommandInfo.Quiet"/> and <see cref="CommandInfo.Suppress"/> to true.
-    /// </remarks>
-    /// <param name="command">The command to execute.</param>
-    /// <param name="args">The command arguments.</param>
-    /// <param name="workingDir">Optional working directory where the command will be executed. If null, the current directory is used.</param>
-    /// <returns>The process result object containing the exit code, standard output, and standard error.</returns>
-    public static ProcessResult RunSuppressed(string command, string[]? args, string? workingDir = null, ILogger? logger = null) {
-        return Run(new(command, args, workingDir, true, true), logger);
+    public static ProcessResult Run(string command, string[]? args = null, string? workingDir = null) {
+        return Run(new CommandInfo(command, args, workingDir));
     }
 
     /// <summary>
@@ -82,22 +54,13 @@ public static class ShellUtils {
     /// <param name="args">The command arguments.</param>
     /// <param name="workingDir">Optional working directory where the command will be executed. If null, the current directory is used.</param>
     /// <returns>The process result object containing the exit code, standard output, and standard error.</returns>
-    public static ProcessResult Run(string command, string[]? args = null, string? workingDir = null, Action<string>? onStdOut = null, Action<string>? onStdErr = null) {
-        return Run(new(command, args, workingDir), onStdOut, onStdErr);
-    }
-
-    /// <summary>
-    /// Runs a command with suppressed output logging. Standard output and error will not be logged.
-    /// </summary>
-    /// <remarks>
-    /// This is a convenience method that sets both <see cref="CommandInfo.Quiet"/> and <see cref="CommandInfo.Suppress"/> to true.
-    /// </remarks>
-    /// <param name="command">The command to execute.</param>
-    /// <param name="args">The command arguments.</param>
-    /// <param name="workingDir">Optional working directory where the command will be executed. If null, the current directory is used.</param>
-    /// <returns>The process result object containing the exit code, standard output, and standard error.</returns>
-    public static ProcessResult RunSuppressed(string command, string[]? args, string? workingDir = null) {
-        return Run(new(command, args, workingDir, true, true), null, null);
+    public static ProcessResult Run(
+        string command,
+        string[]? args = null,
+        string? workingDir = null,
+        Action<string>? onStdOut = null,
+        Action<string>? onStdErr = null) {
+        return Run(new CommandInfo(command, args, workingDir), onStdOut, onStdErr);
     }
 
     /// <summary>
@@ -105,17 +68,15 @@ public static class ShellUtils {
     /// </summary>
     /// <remarks>
     /// This is the core execution method. It sets up the process, captures standard output and error,
-    /// logs the execution lifecycle (start, output, finish/fail), and waits for the command to complete.
+    /// and waits for the command to complete.
     /// Environment variables `TERM` and `FORCE_COLOR` are set to ensure consistent output formatting.
     /// </remarks>
     /// <param name="info">An object containing all configuration for the command execution.</param>
     /// <returns>The process result object containing the exit code, standard output, and standard error.</returns>
-    public static ProcessResult Run(CommandInfo info, Action<string>? onStdOut, Action<string>? onStdErr) {
+    public static ProcessResult Run(CommandInfo info, Action<string>? onStdOut = null, Action<string>? onStdErr = null) {
         var workingDir = info.WorkingDir ?? Directory.GetCurrentDirectory();
-        var contextID = Guid.NewGuid();
-        var startTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
-        var startInfo = new ProcessStartInfo() {
+        var startInfo = new ProcessStartInfo {
             FileName = info.Command,
             Arguments = string.Join(" ", info.Args),
             UseShellExecute = false,
@@ -135,15 +96,19 @@ public static class ShellUtils {
         StringBuilder stdErrBuilder = new();
 
         process.OutputDataReceived += (sender, e) => {
-            if (e.Data == null) return;
+            if (e.Data == null) {
+                return;
+            }
             _ = stdOutBuilder.AppendLine(e.Data);
-            if (!info.Suppress) onStdOut?.Invoke(e.Data);
+            onStdOut?.Invoke(e.Data);
         };
 
         process.ErrorDataReceived += (sender, e) => {
-            if (e.Data == null) return;
+            if (e.Data == null) {
+                return;
+            }
             _ = stdErrBuilder.AppendLine(e.Data);
-            if (!info.Suppress) onStdErr?.Invoke(e.Data);
+            onStdErr?.Invoke(e.Data);
         };
 
         _ = process.Start();
@@ -151,89 +116,10 @@ public static class ShellUtils {
         process.BeginErrorReadLine();
         process.WaitForExit();
 
-        return new(
+        return new ProcessResult(
             process.ExitCode,
             stdOutBuilder.ToString(),
             stdErrBuilder.ToString()
         );
-    }
-
-    /// <summary>
-    /// Executes a shell command using the provided <see cref="CommandInfo"/>.
-    /// </summary>
-    /// <remarks>
-    /// This is the core execution method. It sets up the process, captures standard output and error,
-    /// logs the execution lifecycle (start, output, finish/fail), and waits for the command to complete.
-    /// Environment variables `TERM` and `FORCE_COLOR` are set to ensure consistent output formatting.
-    /// </remarks>
-    /// <param name="info">An object containing all configuration for the command execution.</param>
-    /// <returns>The process result object containing the exit code, standard output, and standard error.</returns>
-    public static ProcessResult Run(CommandInfo info, ILogger? logger = null) {
-        var workingDir = info.WorkingDir ?? Directory.GetCurrentDirectory();
-        var contextID = Guid.NewGuid();
-        var startTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-
-        logger?.Log(new LogPayload<CommandExecutionLogEntry>(
-            new LogHeader(LogLevel.Info,
-                "ShellUtils",
-                DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
-                contextID
-            ),
-            new CommandExecutionLogEntry(info.Command, info.Args, workingDir)
-        ));
-
-        StringBuilder stdOutBuilder = new();
-        StringBuilder stdErrBuilder = new();
-
-        void logStdOut(string data) {
-            _ = stdOutBuilder.AppendLine(data);
-            logger?.Log(new LogPayload<CommandStdOutLogEntry>(
-                new LogHeader(LogLevel.Info,
-                    "ShellUtils",
-                    DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
-                    contextID
-                ),
-                new CommandStdOutLogEntry(data, info.Quiet)
-            ));
-        }
-        void logStdErr(string data) {
-            _ = stdErrBuilder.AppendLine(data);
-            logger?.Log(new LogPayload<CommandStdErrLogEntry>(
-                new LogHeader(LogLevel.Error,
-                    "ShellUtils",
-                    DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
-                    contextID
-                ),
-                new CommandStdErrLogEntry(data, info.Quiet)
-            ));
-        }
-
-        var result = Run(info, logStdOut, logStdErr);
-
-        if (result.ExitCode == 0) {
-            logger?.Log(new LogPayload<CommandExecutionFinishedLogEntry>(
-                new LogHeader(LogLevel.Info,
-                    "ShellUtils",
-                    DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
-                    contextID
-                ),
-                new CommandExecutionFinishedLogEntry(
-                    stdOutBuilder.ToString(), stdErrBuilder.ToString(), DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - startTime, result.ExitCode
-                )
-            ));
-        } else {
-            logger?.Log(new LogPayload<CommandExecutionFailedLogEntry>(
-                new LogHeader(LogLevel.Error,
-                    "ShellUtils",
-                    DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
-                    contextID
-                ),
-                new CommandExecutionFailedLogEntry(
-                    stdOutBuilder.ToString(), stdErrBuilder.ToString(), DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - startTime, result.ExitCode
-                )
-            ));
-        }
-
-        return result;
     }
 }

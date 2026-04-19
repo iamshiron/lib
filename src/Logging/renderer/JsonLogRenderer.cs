@@ -46,9 +46,17 @@ public class JsonLogRenderer : ILogRenderer, IDisposable {
 
             _writer.WriteNumber("timestamp"u8, payload.Header.Timestamp);
             _writer.WriteNumber("level"u8, (int) payload.Header.Level);
-            _writer.WriteString("contextId"u8, payload.Header.ContextId?.ToString());
             _writer.WriteString("type"u8, typeof(T).FullName ?? "unknown");
-            if (payload.Header.Prefix != null) _writer.WriteString("prefix"u8, payload.Header.Prefix);
+
+            if (payload.Header.ContextID != null) {
+                _writer.WriteString("contextID"u8, payload.Header.ContextID.ToString());
+            }
+            if (payload.Header.ParentContextID != null) {
+                _writer.WriteString("parentID"u8, payload.Header.ParentContextID.ToString());
+            }
+            if (payload.Header.Prefix != null) {
+                _writer.WriteString("prefix"u8, payload.Header.Prefix);
+            }
 
             _writer.WritePropertyName("body"u8);
             JsonSerializer.Serialize(_writer, payload.Body, _serializerOptions);

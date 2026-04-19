@@ -1,9 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <ItemGroup>
-        <PackageReference Include="Silk.NET.Core" />
-        <ProjectReference Include="..\Logging\Shiron.Lib.Logging.csproj" />
-        <ProjectReference Include="..\Profiling\Shiron.Lib.Profiling.csproj" />
+        <PackageReference Include="Silk.NET.Core"/>
     </ItemGroup>
 
     <PropertyGroup>

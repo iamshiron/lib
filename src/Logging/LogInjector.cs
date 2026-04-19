@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using Shiron.Lib.Utils;
 
 namespace Shiron.Lib.Logging;
 
@@ -27,9 +28,11 @@ public readonly record struct CapturedLog {
 /// <param name="filter">Entry predicate.</param>
 /// <param name="suppressLogsDuringCapture">If true, log entries captured by this injector will not be passed to renderers.</param>
 /// <param name="captureEntries">If true, captured entries are stored in CapturedEntries list. Set to false for suppression-only injectors to avoid allocations.</param>
-public class LogInjector(ILogger logger, Action<CapturedLog>? onLog, Func<CapturedLog, bool>? filter, bool suppressLogsDuringCapture = false, bool captureEntries = true) : IDisposable {
+public class LogInjector(
+    ILogger logger, Action<CapturedLog>? onLog, Func<CapturedLog, bool>? filter, bool suppressLogsDuringCapture = false, bool captureEntries = true
+) : IDisposable {
     /// <summary>Injector ID.</summary>
-    public readonly Guid ID = Guid.NewGuid();
+    public readonly UUID ID = UUID.Random();
 
     /// <summary>Callback handler (null for suppression-only injectors).</summary>
     internal readonly Action<CapturedLog>? _onLog = onLog;
@@ -50,15 +53,21 @@ public class LogInjector(ILogger logger, Action<CapturedLog>? onLog, Func<Captur
     /// <summary>Ctor (no filter).</summary>
     /// <param name="logger">Logger.</param>
     /// <param name="onLog">Callback handler.</param>
-    public LogInjector(ILogger logger, Action<CapturedLog> onLog, bool suppressLogsDuringCapture = false) : this(logger, onLog, null, suppressLogsDuringCapture, true) { }
+    public LogInjector(ILogger logger, Action<CapturedLog> onLog, bool suppressLogsDuringCapture = false) : this(logger, onLog, null, suppressLogsDuringCapture,
+        true) {
+    }
 
     /// <summary>Creates a suppression-only injector that blocks log output without capturing or callbacks (zero allocations per log).</summary>
     /// <param name="logger">Logger.</param>
     /// <returns>Suppression-only injector.</returns>
-    public static LogInjector CreateSuppressor(ILogger logger) => new(logger, null, null, true, false);
+    public static LogInjector CreateSuppressor(ILogger logger) {
+        return new LogInjector(logger, null, null, true, false);
+    }
 
     public LogInjector Inject() {
-        if (IsInjected) throw new InvalidOperationException("Injector is already injected");
+        if (IsInjected) {
+            throw new InvalidOperationException("Injector is already injected");
+        }
         _logger.AddInjector(ID, this);
         IsInjected = true;
         return this;
@@ -98,8 +107,9 @@ public class LogInjector(ILogger logger, Action<CapturedLog>? onLog, Func<Captur
 
     /// <summary>Detach injector.</summary>
     public void Dispose() {
-        if (!IsInjected)
+        if (!IsInjected) {
             return; // Nothing to dispose if logger was never injected
+        }
 
         GC.SuppressFinalize(this);
         try {
@@ -117,7 +127,7 @@ public class LogInjector(ILogger logger, Action<CapturedLog>? onLog, Func<Captur
         foreach (var entry in CapturedEntries) {
             logger.Log(new LogPayload<CapturedLogEntry>(
                 entry.Header,
-                new CapturedLogEntry(entry.RawBody ?? entry.Message!)
+                entry.Message != null ? new CapturedLogEntry(entry.Message) : new CapturedLogEntry(entry.RawBody!)
             ));
         }
     }

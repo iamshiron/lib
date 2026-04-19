@@ -8,6 +8,7 @@
     <Project Path="benchmarks/Collections/Shiron.Lib.Benchmarks.Collections.csproj" />
     <Project Path="benchmarks/Concurrency/Shiron.Lib.Benchmarks.Concurrency.csproj" />
     <Project Path="benchmarks/Flow/Shiron.Lib.Benchmarks.Flow.csproj" />
+    <Project Path="benchmarks/Logging/Shiron.Lib.Benchmarks.Logging.csproj" />
     <Project Path="benchmarks/Utils/Shiron.Lib.Benchmarks.Utils.csproj" />
   </Folder>
   <Folder Name="/Samples/">
@@ -24,6 +25,9 @@
   </Folder>
   <Folder Name="/samples/Networking/Server/">
     <Project Path="samples/Networking/Server/Shiron.Samples.Networking.Server.csproj" />
+  </Folder>
+  <Folder Name="/Tests/">
+    <Project Path="tests/Logging/Shiron.Lib.Tests.Logging.csproj" />
   </Folder>
   <Project Path="src/Collections/Shiron.Lib.Collections.csproj" />
   <Project Path="src/Concurrency/Shiron.Lib.Concurrency.csproj" />
