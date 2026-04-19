@@ -1,4 +1,4 @@
-﻿using System.Runtime.InteropServices;
+using System.Runtime.InteropServices;
 using Shiron.Lib.Utils;
 using Silk.NET.Maths;
 using Silk.NET.Vulkan;
@@ -149,7 +149,7 @@ public class VulkanContext {
         var builder = new VulkanSwapchainBuilder(Vk, Device, PhysicalDevice, Surface, KhrSurface, GraphicsQueueFamilyIndex, PresentQueueFamilyIndex)
             .WithExtent(size)
             .WithFormat(Format.B8G8R8A8Srgb)
-            .WithPresentMode(PresentModeKHR.MailboxKhr)
+            .WithPresentMode(PresentModeKHR.FifoKhr)
             .WithImageCount(_options.FramesInFlight);
 
         if (oldSwapchain != null) {
