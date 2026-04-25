@@ -1,5 +1,4 @@
 using System.Diagnostics.CodeAnalysis;
-using Silk.NET.Core;
 
 namespace Shiron.Lib.Utils;
 
@@ -29,13 +28,6 @@ public readonly record struct SemVer : ISpanFormattable, IComparable<SemVer> {
     }
     public string ToString(string? format, IFormatProvider? formatProvider) {
         return ToString();
-    }
-
-    public static implicit operator Version32(SemVer v) {
-        return new Version32(v.Major, v.Minor, v.Patch);
-    }
-    public static implicit operator SemVer(Version32 v) {
-        return new SemVer(v.Major, v.Minor, v.Patch);
     }
 
     public static implicit operator uint(SemVer v) {

@@ -1,4 +1,4 @@
-﻿namespace Shiron.Lib.Logging;
+namespace Shiron.Lib.Logging;
 
 public interface ILogFunctions {
     void Log<T>(in LogPayload<T> entry) where T : notnull;

@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using Shiron.Lib.Flow;
 
 var throttler = new Throttler(500);

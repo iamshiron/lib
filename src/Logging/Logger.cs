@@ -119,13 +119,13 @@ public class Logger : ILogger, IContextualLogger {
             logger = logger._parent;
         }
 
-        #if DEBUG
+#if DEBUG
         if (!handled) {
             if (payload.Body is not BasicLogEntry ble || !ble.Message.StartsWith("Log entry was not handled")) {
                 Warning($"Log entry was not handled by any renderer: {typeof(T).Name}");
             }
         }
-        #endif
+#endif
     }
     /// <inheritdoc/>
     public void Log<T>(in LogPayload<T> payload, out ContextualLogger logger) where T : notnull {
