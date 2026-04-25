@@ -27,6 +27,7 @@
     <Project Path="samples/Networking/Server/Shiron.Samples.Networking.Server.csproj" />
   </Folder>
   <Folder Name="/Tests/">
+    <Project Path="tests/Collections/Shiron.Lib.Tests.Collections.csproj" />
     <Project Path="tests/Logging/Shiron.Lib.Tests.Logging.csproj" />
   </Folder>
   <Project Path="src/Collections/Shiron.Lib.Collections.csproj" />
