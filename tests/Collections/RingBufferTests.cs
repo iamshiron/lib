@@ -66,6 +66,7 @@ public class RingBufferTests {
         }
 
         var expectedSumDecimal = window.Sum();
+        buffer.SyncSums();
         var actualSum = buffer.GetAverage() * buffer.Count;
         var expectedSumDouble = (double) expectedSumDecimal;
 
@@ -120,6 +121,7 @@ public class RingBufferTests {
         }
 
         var expectedSumDecimal = window.Sum();
+        buffer.SyncSums();
         var actualSum = buffer.GetAverage() * buffer.Count;
         var expectedSumDouble = (double) expectedSumDecimal;
 

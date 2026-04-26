@@ -6,7 +6,7 @@ namespace Shiron.Lib.Collections;
 /// <summary>
 /// Represents a circular buffer optimized for fixed-size storage and efficient insertion.
 /// </summary>
-public sealed class RingBuffer {
+public sealed class RingBuffer : IRingBuffer {
     private readonly double[] _buffer;
     private readonly int _mask;
     private int _count;
@@ -46,6 +46,18 @@ public sealed class RingBuffer {
 
         _head = _head + 1 & _mask;
         if (_count < _buffer.Length) _count++;
+        if (_head == 0) SyncSums();
+    }
+
+    public void SyncSums() {
+        _currentSum = 0;
+        _currentSumSquared = 0;
+        var start = (_head - _count) & _mask;
+        for (var i = 0; i < _count; i++) {
+            var val = _buffer[(start + i) & _mask];
+            _currentSum += val;
+            _currentSumSquared += val * val;
+        }
     }
 
     /// <summary>
