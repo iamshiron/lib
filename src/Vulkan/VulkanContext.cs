@@ -46,6 +46,8 @@ public class VulkanContext {
     public Queue? ComputeQueue { get; }
     public Queue? TransferQueue { get; }
 
+    public Format DepthFormat { get; init; }
+
     public PhysicalDeviceProperties PhysicalDeviceProperties { get; }
 
     private readonly VulkanContextOptions _options;
@@ -126,6 +128,8 @@ public class VulkanContext {
         PhysicalDeviceProperties = physicalDeviceSelector.Properties;
 
         Swapchain = CreateSwapchain(window.Size, null);
+
+        DepthFormat = VulkanUtils.FindDepthFormat(Vk, PhysicalDevice);
     }
 
     private static unsafe string[] GetRequiredWindowExtensions(IWindow window) {

@@ -53,6 +53,11 @@ public unsafe class VulkanBuffer : IDisposable {
     /// Maps memory and copies data from the CPU to the GPU (Host Visible memory only).
     /// </summary>
     public void SetData<T>(T[] data) where T : unmanaged {
+        long dataSize = data.Length * sizeof(T);
+        if ((ulong) dataSize > Size) {
+            throw new VulkanException("Data size exceeds buffer capacity.", Result.ErrorUnknown);
+        }
+
         void* mappedData;
         var res = _vk.MapMemory(_device, Memory, 0, Size, 0, &mappedData);
         if (res != Result.Success) {

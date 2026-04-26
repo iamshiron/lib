@@ -32,7 +32,7 @@ public unsafe class GraphicsPipelineBuilder(Vk vk, Device device) {
         LogicOpEnable = false,
         AttachmentCount = 1
     };
-    private readonly PipelineDepthStencilStateCreateInfo _depthStencil = new() {
+    private PipelineDepthStencilStateCreateInfo _depthStencil = new() {
         SType = StructureType.PipelineDepthStencilStateCreateInfo,
         DepthTestEnable = false,
         DepthWriteEnable = false,
@@ -164,5 +164,12 @@ public unsafe class GraphicsPipelineBuilder(Vk vk, Device device) {
                 ? throw new Exception("Failed to create graphics pipeline!")
                 : pipeline;
         }
+    }
+
+    public GraphicsPipelineBuilder SetDepthStencil(bool depthTestEnable, bool depthWriteEnable, CompareOp compareOp = CompareOp.Less) {
+        _depthStencil.DepthTestEnable = depthTestEnable;
+        _depthStencil.DepthWriteEnable = depthWriteEnable;
+        _depthStencil.DepthCompareOp = compareOp;
+        return this;
     }
 }
