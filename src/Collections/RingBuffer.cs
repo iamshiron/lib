@@ -3,9 +3,7 @@ using System.Runtime.CompilerServices;
 
 namespace Shiron.Lib.Collections;
 
-/// <summary>
-/// Represents a circular buffer optimized for fixed-size storage and efficient insertion.
-/// </summary>
+/// <inheritdoc/>
 public sealed class RingBuffer : IRingBuffer {
     private readonly double[] _buffer;
     private readonly int _mask;
@@ -26,12 +24,13 @@ public sealed class RingBuffer : IRingBuffer {
         _currentSumSquared = 0;
     }
 
+    /// <inheritdoc/>
     public int Capacity => _buffer.Length;
+
+    /// <inheritdoc/>
     public int Count => _count;
 
-    /// <summary>
-    /// Adds an item to the circular buffer. If the buffer is at full capacity, the oldest element will be overwritten.
-    /// </summary>
+    /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Add(double item) {
         // If full, subtract the value we are about to overwrite from the running sum
@@ -49,6 +48,7 @@ public sealed class RingBuffer : IRingBuffer {
         if (_head == 0) SyncSums();
     }
 
+    /// <inheritdoc/>
     public void SyncSums() {
         _currentSum = 0;
         _currentSumSquared = 0;
@@ -60,21 +60,14 @@ public sealed class RingBuffer : IRingBuffer {
         }
     }
 
-    /// <summary>
-    /// Calculates the average of the buffer in O(1).
-    /// </summary>
+    /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public double GetAverage() {
         if (_count == 0) return 0;
         return _currentSum / _count;
     }
-    /// <summary>
-    /// Calculates the median value of the elements in the circular buffer.
-    /// If the buffer contains an even number of elements, the lower middle value is returned.
-    /// </summary>
-    /// <returns>
-    /// The median value of the buffer elements. Returns 0 if the buffer is empty.
-    /// </returns>
+
+    /// <inheritdoc/>
     public double GetMedian() {
         var temp = ArrayPool<double>.Shared.Rent(_count);
         try {
@@ -85,9 +78,7 @@ public sealed class RingBuffer : IRingBuffer {
         }
     }
 
-    /// <summary>
-    /// Calculates the average of the lowest elements (e.g. 1% lows).
-    /// </summary>
+    /// <inheritdoc/>
     public double GetAverageLowPercentile(double percentile) {
         if (_count == 0) return 0;
 
@@ -105,9 +96,7 @@ public sealed class RingBuffer : IRingBuffer {
         }
     }
 
-    /// <summary>
-    /// Calculates the median of the lowest percentile.
-    /// </summary>
+    /// <inheritdoc/>
     public double GetMedianLowPercentile(double percentile) {
         if (_count == 0) return 0;
 
@@ -125,9 +114,7 @@ public sealed class RingBuffer : IRingBuffer {
         }
     }
 
-    /// <summary>
-    /// Calculates the average of the highest elements (e.g. 1% highs).
-    /// </summary>
+    /// <inheritdoc/>
     public double GetAverageHighPercentile(double percentile) {
         if (_count == 0) return 0;
 
@@ -146,9 +133,7 @@ public sealed class RingBuffer : IRingBuffer {
         }
     }
 
-    /// <summary>
-    /// Calculates the median of the highest percentile.
-    /// </summary>
+    /// <inheritdoc/>
     public double GetMedianHighPercentile(double percentile) {
         if (_count == 0) return 0;
 
@@ -170,13 +155,7 @@ public sealed class RingBuffer : IRingBuffer {
         }
     }
 
-    /// <summary>
-    /// Calculates the variance of the elements in the circular buffer in O(1).
-    /// Variance measures the dispersion of the buffer elements from their mean.
-    /// </summary>
-    /// <returns>
-    /// The variance of the buffer elements. Returns 0 if the buffer is empty.
-    /// </returns>
+    /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public double GetVariance() {
         if (_count == 0) return 0;
@@ -186,13 +165,7 @@ public sealed class RingBuffer : IRingBuffer {
         return Math.Max(0, meanOfSquares - mean * mean);
     }
 
-    /// <summary>
-    /// Calculates the standard deviation of the elements in the circular buffer in O(1).
-    /// The standard deviation is derived as the square root of the variance.
-    /// </summary>
-    /// <returns>
-    /// The standard deviation of the buffer elements. Returns 0 if the buffer is empty.
-    /// </returns>
+    /// <inheritdoc/>
     public double GetStandardDeviation() {
         return Math.Sqrt(GetVariance());
     }
