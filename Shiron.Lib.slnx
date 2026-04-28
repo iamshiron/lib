@@ -9,6 +9,7 @@
     <Project Path="benchmarks/Concurrency/Shiron.Lib.Benchmarks.Concurrency.csproj" />
     <Project Path="benchmarks/Flow/Shiron.Lib.Benchmarks.Flow.csproj" />
     <Project Path="benchmarks/Logging/Shiron.Lib.Benchmarks.Logging.csproj" />
+    <Project Path="benchmarks/Pipeline/Shiron.Lib.Benchmarks.Pipeline.csproj" />
     <Project Path="benchmarks/Utils/Shiron.Lib.Benchmarks.Utils.csproj" />
   </Folder>
   <Folder Name="/Samples/">
