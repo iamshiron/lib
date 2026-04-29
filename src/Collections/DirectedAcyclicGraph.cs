@@ -1,6 +1,5 @@
 namespace Shiron.Lib.Collections;
 
-/// <inheritdoc/>
 public class DirectedAcyclicGraph<T> : IDag<T> where T : notnull {
     private readonly Dictionary<T, HashSet<T>> _adjacencyList = [];
     private readonly Dictionary<T, HashSet<T>> _reverseAdjacencyList = [];

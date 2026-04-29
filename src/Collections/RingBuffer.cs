@@ -3,7 +3,6 @@ using System.Runtime.CompilerServices;
 
 namespace Shiron.Lib.Collections;
 
-/// <inheritdoc/>
 public sealed class RingBuffer : IRingBuffer {
     private readonly double[] _buffer;
     private readonly int _mask;
