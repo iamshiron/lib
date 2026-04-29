@@ -5,6 +5,7 @@
     <Platform Name="x86" />
   </Configurations>
   <Folder Name="/Benchmarks/">
+    <Project Path="benchmarks/All/Shiron.Lib.Benchmarks.All.csproj" />
     <Project Path="benchmarks/Collections/Shiron.Lib.Benchmarks.Collections.csproj" />
     <Project Path="benchmarks/Concurrency/Shiron.Lib.Benchmarks.Concurrency.csproj" />
     <Project Path="benchmarks/Flow/Shiron.Lib.Benchmarks.Flow.csproj" />
