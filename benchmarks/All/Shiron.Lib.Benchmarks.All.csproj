@@ -11,7 +11,6 @@
         <ProjectReference Include="..\Concurrency\Shiron.Lib.Benchmarks.Concurrency.csproj"/>
         <ProjectReference Include="..\Flow\Shiron.Lib.Benchmarks.Flow.csproj"/>
         <ProjectReference Include="..\Logging\Shiron.Lib.Benchmarks.Logging.csproj"/>
-        <ProjectReference Include="..\Pipeline\Shiron.Lib.Benchmarks.Pipeline.csproj"/>
         <ProjectReference Include="..\Utils\Shiron.Lib.Benchmarks.Utils.csproj"/>
     </ItemGroup>
 

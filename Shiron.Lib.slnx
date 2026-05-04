@@ -10,7 +10,6 @@
     <Project Path="benchmarks/Concurrency/Shiron.Lib.Benchmarks.Concurrency.csproj" />
     <Project Path="benchmarks/Flow/Shiron.Lib.Benchmarks.Flow.csproj" />
     <Project Path="benchmarks/Logging/Shiron.Lib.Benchmarks.Logging.csproj" />
-    <Project Path="benchmarks/Pipeline/Shiron.Lib.Benchmarks.Pipeline.csproj" />
     <Project Path="benchmarks/Utils/Shiron.Lib.Benchmarks.Utils.csproj" />
   </Folder>
   <Folder Name="/Samples/">
@@ -32,7 +31,6 @@
   <Folder Name="/Tests/">
     <Project Path="tests/Collections/Shiron.Lib.Tests.Collections.csproj" />
     <Project Path="tests/Logging/Shiron.Lib.Tests.Logging.csproj" />
-    <Project Path="tests/Pipeline/Shiron.Lib.Tests.Pipeline.csproj" />
   </Folder>
   <Project Path="src/Collections/Shiron.Lib.Collections.csproj" />
   <Project Path="src/Concurrency/Shiron.Lib.Concurrency.csproj" />
