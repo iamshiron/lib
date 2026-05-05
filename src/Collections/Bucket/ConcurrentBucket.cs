@@ -21,13 +21,14 @@ public class ConcurrentBucket<TK> where TK : IEquatable<TK> {
     /// If the key was previously bound to a different type, the old entry is evicted.
     /// </summary>
     public void Set<T>(TK key, T value) {
-        if (_keyRegistry.TryGetValue(key, out var oldType) && oldType != typeof(T)) {
-            if (_buckets.TryGetValue(oldType, out var oldBucket)) {
-                oldBucket.Remove(key);
+        var newType = typeof(T);
+        _keyRegistry.AddOrUpdate(key, newType, (k, oldType) => {
+            if (oldType != newType && _buckets.TryGetValue(oldType, out var oldBucket)) {
+                oldBucket.Remove(k);
             }
-        }
+            return newType;
+        });
 
-        _keyRegistry[key] = typeof(T);
         GetOrCreate<T>().Set(key, value);
     }
 
@@ -77,8 +78,12 @@ public class ConcurrentBucket<TK> where TK : IEquatable<TK> {
     /// Removes the typed entry for <paramref name="key"/>. Returns <c>true</c> if found.
     /// </summary>
     public bool Remove<T>(TK key) {
-        if (_buckets.TryGetValue(typeof(T), out var bucket)) {
-            return ((ConcurrentTypedBucket<TK, T>) bucket).Remove(key);
+        var kvp = new KeyValuePair<TK, Type>(key, typeof(T));
+        ICollection<KeyValuePair<TK, Type>> registryAsCollection = _keyRegistry;
+        if (registryAsCollection.Remove(kvp)) {
+            if (_buckets.TryGetValue(typeof(T), out var bucket)) {
+                return ((ConcurrentTypedBucket<TK, T>) bucket).Remove(key);
+            }
         }
         return false;
     }
