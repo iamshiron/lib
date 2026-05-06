@@ -6,6 +6,7 @@
 .vscode/
 .idea/
 .VSCodeCounter
+.output/
 
 run/.manila
 run/.env
