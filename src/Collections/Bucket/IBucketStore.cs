@@ -14,6 +14,11 @@ public interface IBucketStore<TK> where TK : IEquatable<TK> {
     void Set<T>(TK key, T value);
 
     /// <summary>
+    /// Sets the value for <paramref name="key"/> to <paramref name="value"/> using <paramref name="type"/> as the compile-time type.
+    /// </summary>
+    void Set(TK key, object? value, Type type);
+
+    /// <summary>
     /// Returns the typed value for <paramref name="key"/>, or <c>default</c> if not found.
     /// </summary>
     T? Get<T>(TK key);

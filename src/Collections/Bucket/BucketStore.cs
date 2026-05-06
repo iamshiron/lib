@@ -16,6 +16,17 @@ public class BucketStore<TK> : IBucketStore<TK> where TK : IEquatable<TK> {
         return newBucket;
     }
 
+    public void Set(TK key, object? value, Type type) {
+        var method = typeof(BucketStore<TK>)
+            .GetMethods()
+            .First(m => m.Name == nameof(Set)
+                     && m.IsGenericMethodDefinition
+                     && m.GetParameters().Length == 2)
+            .MakeGenericMethod(type);
+
+        method.Invoke(this, [key, value]);
+    }
+
     /// <inheritdoc/>
     public void Set<T>(TK key, T value) {
         var newType = typeof(T);
