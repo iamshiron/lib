@@ -7,7 +7,7 @@ namespace Shiron.Lib.Collections.Bucket;
 /// setting a key with a different type automatically evicts the previous entry.
 /// </summary>
 /// <typeparam name="TK">Key type.</typeparam>
-public class ConcurrentBucket<TK> where TK : IEquatable<TK> {
+public class ConcurrentBucketStore<TK> where TK : IEquatable<TK> {
     private readonly ConcurrentDictionary<Type, IBucket<TK>> _buckets = [];
     private readonly ConcurrentDictionary<TK, Type> _keyRegistry = [];
 
@@ -96,5 +96,20 @@ public class ConcurrentBucket<TK> where TK : IEquatable<TK> {
             return bucket.Remove(key);
         }
         return false;
+    }
+
+    /// <summary>
+    /// Returns <c>true</c> if the key is bound to a value.
+    /// </summary>
+    public bool Has<T>(TK key) {
+        if (!_keyRegistry.TryGetValue(key, out var type)) return false;
+        if (!_buckets.TryGetValue(type, out var bucket)) return false;
+        return bucket.Has(key);
+    }
+    /// <summary>
+    /// Returns <c>true</c> if the key is stored in any bucket.
+    /// </summary>
+    public bool HasAny(TK key) {
+        return _keyRegistry.ContainsKey(key);
     }
 }

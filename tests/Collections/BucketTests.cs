@@ -3,8 +3,10 @@ using Xunit;
 
 namespace Shiron.Lib.Tests.Collections;
 
-public class ConcurrentBucketTests {
-    private ConcurrentBucket<string> CreateBucket() => new();
+public class ConcurrentBucketStoreTests {
+    private ConcurrentBucketStore<string> CreateBucket() {
+        return new ConcurrentBucketStore<string>();
+    }
 
     [Fact]
     public void Set_And_Get_TypedValue() {

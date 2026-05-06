@@ -56,4 +56,9 @@ public class ConcurrentTypedBucket<TK, T> : IBucket<TK> where TK : IEquatable<TK
     public void Clear() {
         _data.Clear();
     }
+
+    /// <inheritdoc/>
+    public bool Has(TK key) {
+        return _data.ContainsKey(key);
+    }
 }
