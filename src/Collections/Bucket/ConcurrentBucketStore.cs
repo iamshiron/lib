@@ -31,6 +31,17 @@ public class ConcurrentBucketStore<TK> : IBucketStore<TK> where TK : IEquatable<
         GetOrCreate<T>().Set(key, value);
     }
 
+    public void Set(TK key, object? value, Type type) {
+        var method = typeof(ConcurrentBucketStore<TK>)
+            .GetMethods()
+            .First(m => m.Name == nameof(Set)
+                     && m.IsGenericMethodDefinition
+                     && m.GetParameters().Length == 2)
+            .MakeGenericMethod(type);
+
+        method.Invoke(this, [key, value]);
+    }
+
     /// <inheritdoc/>
     public T? Get<T>(TK key) {
         if (_buckets.TryGetValue(typeof(T), out var bucket)) {
