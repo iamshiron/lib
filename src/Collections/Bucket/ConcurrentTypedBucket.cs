@@ -9,6 +9,8 @@ namespace Shiron.Lib.Collections.Bucket;
 /// <typeparam name="T">Value type.</typeparam>
 public class ConcurrentTypedBucket<TK, T> : IBucket<TK> where TK : IEquatable<TK> {
     private readonly ConcurrentDictionary<TK, T> _data = [];
+    public ICollection<TK> Keys => _data.Keys;
+    public IReadOnlyDictionary<TK, T> ToDictionary => _data;
 
     /// <summary>
     /// Sets or overwrites the value for <paramref name="key"/>.

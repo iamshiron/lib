@@ -10,6 +10,8 @@ namespace Shiron.Lib.Collections.Bucket;
 public class ConcurrentBucketStore<TK> : IBucketStore<TK> where TK : IEquatable<TK> {
     private readonly ConcurrentDictionary<Type, IBucket<TK>> _buckets = [];
     private readonly ConcurrentDictionary<TK, Type> _keyRegistry = [];
+    public ICollection<TK> Keys => _keyRegistry.Keys;
+    public IReadOnlyDictionary<Type, IBucket<TK>> Buckets => _buckets;
 
     private ConcurrentTypedBucket<TK, T> GetOrCreate<T>() {
         var bucket = _buckets.GetOrAdd(typeof(T), _ => new ConcurrentTypedBucket<TK, T>());
@@ -93,5 +95,10 @@ public class ConcurrentBucketStore<TK> : IBucketStore<TK> where TK : IEquatable<
     /// <inheritdoc/>
     public bool HasAny(TK key) {
         return _keyRegistry.ContainsKey(key);
+    }
+
+    /// <inheritdoc/>
+    public Type? TypeOf(TK key) {
+        return _keyRegistry.GetValueOrDefault(key);
     }
 }
