@@ -7,7 +7,7 @@ namespace Shiron.Lib.Collections.Bucket;
 /// setting a key with a different type automatically evicts the previous entry.
 /// </summary>
 /// <typeparam name="TK">Key type.</typeparam>
-public class ConcurrentBucket<TK> where TK : IEquatable<TK> {
+public class ConcurrentBucketStore<TK> : IBucketStore<TK> where TK : IEquatable<TK> {
     private readonly ConcurrentDictionary<Type, IBucket<TK>> _buckets = [];
     private readonly ConcurrentDictionary<TK, Type> _keyRegistry = [];
 
@@ -16,10 +16,7 @@ public class ConcurrentBucket<TK> where TK : IEquatable<TK> {
         return (ConcurrentTypedBucket<TK, T>) bucket;
     }
 
-    /// <summary>
-    /// Sets or overwrites the typed value for <paramref name="key"/>.
-    /// If the key was previously bound to a different type, the old entry is evicted.
-    /// </summary>
+    /// <inheritdoc/>
     public void Set<T>(TK key, T value) {
         var newType = typeof(T);
         _keyRegistry.AddOrUpdate(key, newType, (k, oldType) => {
@@ -32,9 +29,7 @@ public class ConcurrentBucket<TK> where TK : IEquatable<TK> {
         GetOrCreate<T>().Set(key, value);
     }
 
-    /// <summary>
-    /// Returns the typed value for <paramref name="key"/>, or <c>default</c> if not found.
-    /// </summary>
+    /// <inheritdoc/>
     public T? Get<T>(TK key) {
         if (_buckets.TryGetValue(typeof(T), out var bucket)) {
             return ((ConcurrentTypedBucket<TK, T>) bucket).Get(key);
@@ -42,9 +37,7 @@ public class ConcurrentBucket<TK> where TK : IEquatable<TK> {
         return default;
     }
 
-    /// <summary>
-    /// Attempts to retrieve the typed value for <paramref name="key"/>.
-    /// </summary>
+    /// <inheritdoc/>
     public bool TryGet<T>(TK key, out T? value) {
         if (_buckets.TryGetValue(typeof(T), out var bucket)) {
             return ((ConcurrentTypedBucket<TK, T>) bucket).TryGet(key, out value!);
@@ -53,9 +46,7 @@ public class ConcurrentBucket<TK> where TK : IEquatable<TK> {
         return false;
     }
 
-    /// <summary>
-    /// Returns the value for <paramref name="key"/> (boxed), or <c>null</c> if not found.
-    /// </summary>
+    /// <inheritdoc/>
     public object? GetAny(TK key) {
         if (_keyRegistry.TryGetValue(key, out var type) && _buckets.TryGetValue(type, out var bucket)) {
             return bucket.GetAny(key);
@@ -63,9 +54,7 @@ public class ConcurrentBucket<TK> where TK : IEquatable<TK> {
         return null;
     }
 
-    /// <summary>
-    /// Attempts to retrieve the value for <paramref name="key"/> without knowing its compile-time type.
-    /// </summary>
+    /// <inheritdoc/>
     public bool TryGetAny(TK key, out object? value) {
         if (_keyRegistry.TryGetValue(key, out var type) && _buckets.TryGetValue(type, out var bucket)) {
             return bucket.TryGetAny(key, out value);
@@ -74,9 +63,7 @@ public class ConcurrentBucket<TK> where TK : IEquatable<TK> {
         return false;
     }
 
-    /// <summary>
-    /// Removes the typed entry for <paramref name="key"/>. Returns <c>true</c> if found.
-    /// </summary>
+    /// <inheritdoc/>
     public bool Remove<T>(TK key) {
         var kvp = new KeyValuePair<TK, Type>(key, typeof(T));
         ICollection<KeyValuePair<TK, Type>> registryAsCollection = _keyRegistry;
@@ -88,13 +75,23 @@ public class ConcurrentBucket<TK> where TK : IEquatable<TK> {
         return false;
     }
 
-    /// <summary>
-    /// Removes any entry for <paramref name="key"/> regardless of its type. Returns <c>true</c> if found.
-    /// </summary>
+    /// <inheritdoc/>
     public bool RemoveAny(TK key) {
         if (_keyRegistry.TryRemove(key, out var type) && _buckets.TryGetValue(type, out var bucket)) {
             return bucket.Remove(key);
         }
         return false;
+    }
+
+    /// <inheritdoc/>
+    public bool Has<T>(TK key) {
+        if (!_keyRegistry.TryGetValue(key, out var type)) return false;
+        if (!_buckets.TryGetValue(type, out var bucket)) return false;
+        return bucket.Has(key);
+    }
+
+    /// <inheritdoc/>
+    public bool HasAny(TK key) {
+        return _keyRegistry.ContainsKey(key);
     }
 }

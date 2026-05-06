@@ -24,4 +24,9 @@ public interface IBucket<in TK> where TK : IEquatable<TK> {
     /// Removes all entries.
     /// </summary>
     void Clear();
+
+    /// <summary>
+    /// Returns <c>true</c> if the bucket contains an entry for <paramref name="key"/>.
+    /// </summary>
+    bool Has(TK key);
 }
