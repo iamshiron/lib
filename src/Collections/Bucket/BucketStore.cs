@@ -3,6 +3,8 @@ namespace Shiron.Lib.Collections.Bucket;
 public class BucketStore<TK> : IBucketStore<TK> where TK : IEquatable<TK> {
     private readonly Dictionary<Type, IBucket<TK>> _buckets = [];
     private readonly Dictionary<TK, Type> _keyRegistry = [];
+    public ICollection<TK> Keys => _keyRegistry.Keys;
+    public IReadOnlyDictionary<Type, IBucket<TK>> Buckets => _buckets;
 
     private TypedBucket<TK, T> GetOrCreate<T>() {
         if (_buckets.TryGetValue(typeof(T), out var bucket)) {
@@ -88,5 +90,10 @@ public class BucketStore<TK> : IBucketStore<TK> where TK : IEquatable<TK> {
     /// <inheritdoc/>
     public bool HasAny(TK key) {
         return _keyRegistry.ContainsKey(key);
+    }
+
+    /// <inheritdoc/>
+    public Type? TypeOf(TK key) {
+        return _keyRegistry.GetValueOrDefault(key);
     }
 }
