@@ -1,18 +1,20 @@
 namespace Shiron.Lib.Collections.Bucket;
 
 public class BucketStore<TK> : IBucketStore<TK> where TK : IEquatable<TK> {
-    private readonly Dictionary<Type, IBucket<TK>> _buckets = [];
+    private readonly Dictionary<Type, IBucket<TK>> _valueTypes = [];
     private readonly Dictionary<TK, Type> _keyRegistry = [];
+    private readonly Dictionary<TK, object?> _referenceTypes = [];
+
     public ICollection<TK> Keys => _keyRegistry.Keys;
-    public IReadOnlyDictionary<Type, IBucket<TK>> Buckets => _buckets;
+    public IReadOnlyDictionary<Type, IBucket<TK>> ValueTypes => _valueTypes;
 
     private TypedBucket<TK, T> GetOrCreate<T>() {
-        if (_buckets.TryGetValue(typeof(T), out var bucket)) {
+        if (_valueTypes.TryGetValue(typeof(T), out var bucket)) {
             return (TypedBucket<TK, T>) bucket;
         }
 
         var newBucket = new TypedBucket<TK, T>();
-        _buckets[typeof(T)] = newBucket;
+        _valueTypes[typeof(T)] = newBucket;
         return newBucket;
     }
 
@@ -30,26 +32,55 @@ public class BucketStore<TK> : IBucketStore<TK> where TK : IEquatable<TK> {
     /// <inheritdoc/>
     public void Set<T>(TK key, T value) {
         var newType = typeof(T);
+
         if (_keyRegistry.TryGetValue(key, out var oldType) && oldType != newType) {
-            if (_buckets.TryGetValue(oldType, out var oldBucket)) {
+            if (!oldType.IsValueType) {
+                _referenceTypes.Remove(key);
+            } else if (_valueTypes.TryGetValue(oldType, out var oldBucket)) {
                 oldBucket.Remove(key);
             }
         }
 
         _keyRegistry[key] = newType;
+
+        if (!newType.IsValueType) {
+            _referenceTypes[key] = value;
+            return;
+        }
+
         GetOrCreate<T>().Set(key, value);
     }
 
     /// <inheritdoc/>
     public T? Get<T>(TK key) {
-        if (_buckets.TryGetValue(typeof(T), out var bucket)) {
+        var type = typeof(T);
+
+        if (!type.IsValueType) {
+            if (_referenceTypes.TryGetValue(key, out var value) && value is T typed) {
+                return typed;
+            }
+            return default;
+        }
+
+        if (_valueTypes.TryGetValue(type, out var bucket)) {
             return ((TypedBucket<TK, T>) bucket).Get(key);
         }
         return default;
     }
 
     public bool TryGet<T>(TK key, out T? value) {
-        if (_buckets.TryGetValue(typeof(T), out var bucket)) {
+        var type = typeof(T);
+
+        if (!type.IsValueType) {
+            if (_referenceTypes.TryGetValue(key, out var obj) && obj is T typed) {
+                value = typed;
+                return true;
+            }
+            value = default;
+            return false;
+        }
+
+        if (_valueTypes.TryGetValue(type, out var bucket)) {
             return ((TypedBucket<TK, T>) bucket).TryGet(key, out value!);
         }
         value = default;
@@ -58,15 +89,30 @@ public class BucketStore<TK> : IBucketStore<TK> where TK : IEquatable<TK> {
 
     /// <inheritdoc/>
     public object? GetAny(TK key) {
-        if (_keyRegistry.TryGetValue(key, out var type) && _buckets.TryGetValue(type, out var bucket)) {
-            return bucket.GetAny(key);
+        if (_keyRegistry.TryGetValue(key, out var type)) {
+            if (!type.IsValueType) {
+                return _referenceTypes.GetValueOrDefault(key);
+            }
+            if (_valueTypes.TryGetValue(type, out var bucket)) {
+                return bucket.GetAny(key);
+            }
         }
         return null;
     }
 
     public bool TryGetAny(TK key, out object? value) {
-        if (_keyRegistry.TryGetValue(key, out var type) && _buckets.TryGetValue(type, out var bucket)) {
-            return bucket.TryGetAny(key, out value);
+        if (_keyRegistry.TryGetValue(key, out var type)) {
+            if (!type.IsValueType) {
+                if (_referenceTypes.TryGetValue(key, out var refVal)) {
+                    value = refVal;
+                    return true;
+                }
+                value = null;
+                return false;
+            }
+            if (_valueTypes.TryGetValue(type, out var bucket)) {
+                return bucket.TryGetAny(key, out value);
+            }
         }
         value = null;
         return false;
@@ -74,19 +120,33 @@ public class BucketStore<TK> : IBucketStore<TK> where TK : IEquatable<TK> {
 
     /// <inheritdoc/>
     public bool Remove<T>(TK key) {
-        if (_keyRegistry.TryGetValue(key, out var type) && type == typeof(T)) {
-            _keyRegistry.Remove(key);
-            if (_buckets.TryGetValue(typeof(T), out var bucket)) {
-                return ((TypedBucket<TK, T>) bucket).Remove(key);
-            }
+        var type = typeof(T);
+
+        if (!_keyRegistry.TryGetValue(key, out var registeredType) || registeredType != type) {
+            return false;
+        }
+
+        _keyRegistry.Remove(key);
+
+        if (!type.IsValueType) {
+            return _referenceTypes.Remove(key);
+        }
+
+        if (_valueTypes.TryGetValue(type, out var bucket)) {
+            return ((TypedBucket<TK, T>) bucket).Remove(key);
         }
         return false;
     }
 
     /// <inheritdoc/>
     public bool RemoveAny(TK key) {
-        if (_keyRegistry.Remove(key, out var type) && _buckets.TryGetValue(type, out var bucket)) {
-            return bucket.Remove(key);
+        if (_keyRegistry.Remove(key, out var type)) {
+            if (!type.IsValueType) {
+                return _referenceTypes.Remove(key);
+            }
+            if (_valueTypes.TryGetValue(type, out var bucket)) {
+                return bucket.Remove(key);
+            }
         }
         return false;
     }
@@ -94,8 +154,14 @@ public class BucketStore<TK> : IBucketStore<TK> where TK : IEquatable<TK> {
     /// <inheritdoc/>
     public bool Has<T>(TK key) {
         if (!_keyRegistry.TryGetValue(key, out var type)) return false;
-        if (!_buckets.TryGetValue(type, out var bucket)) return false;
-        return bucket.Has(key);
+        if (typeof(T) != type) return false;
+        if (!type.IsValueType) {
+            return _referenceTypes.ContainsKey(key);
+        }
+        if (_valueTypes.TryGetValue(type, out var bucket)) {
+            return bucket.Has(key);
+        }
+        return false;
     }
 
     /// <inheritdoc/>
