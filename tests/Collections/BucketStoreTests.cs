@@ -139,10 +139,115 @@ public class BucketStoreTests {
     }
 
     [Fact]
-    public void Has_WrongType_ReturnsTrue() {
+    public void Has_WrongType_ReturnsFalse() {
         var store = CreateStore();
         store.Set("key1", 42);
+        Assert.False(store.Has<string>("key1"));
+    }
+
+    [Fact]
+    public void ReferenceType_SetGet_ReturnsStoredValue() {
+        var store = CreateStore();
+        store.Set("key1", "hello");
+        Assert.Equal("hello", store.Get<string>("key1"));
+    }
+
+    [Fact]
+    public void ReferenceType_TryGet_ReturnsTrueAndValue() {
+        var store = CreateStore();
+        store.Set("key1", "hello");
+        var result = store.TryGet("key1", out string? value);
+        Assert.True(result);
+        Assert.Equal("hello", value);
+    }
+
+    [Fact]
+    public void ReferenceType_GetAny_ReturnsValue() {
+        var store = CreateStore();
+        store.Set("key1", "hello");
+        Assert.Equal("hello", store.GetAny("key1"));
+    }
+
+    [Fact]
+    public void ReferenceType_TryGetAny_ReturnsTrueAndValue() {
+        var store = CreateStore();
+        store.Set("key1", "hello");
+        var result = store.TryGetAny("key1", out var value);
+        Assert.True(result);
+        Assert.Equal("hello", value);
+    }
+
+    [Fact]
+    public void ReferenceType_Remove_ReturnsTrue() {
+        var store = CreateStore();
+        store.Set("key1", "hello");
+        Assert.True(store.Remove<string>("key1"));
+        Assert.Null(store.Get<string>("key1"));
+        Assert.False(store.HasAny("key1"));
+    }
+
+    [Fact]
+    public void ReferenceType_Has_ReturnsTrue() {
+        var store = CreateStore();
+        store.Set("key1", "hello");
         Assert.True(store.Has<string>("key1"));
+        Assert.False(store.Has<int>("key1"));
+    }
+
+    [Fact]
+    public void ReferenceType_Overwrite_SameKeySameType() {
+        var store = CreateStore();
+        store.Set("key1", "hello");
+        store.Set("key1", "world");
+        Assert.Equal("world", store.Get<string>("key1"));
+    }
+
+    [Fact]
+    public void ReferenceType_SetSameKeyDifferentType_EvictsOldEntry() {
+        var store = CreateStore();
+        store.Set("key1", "hello");
+        store.Set("key1", 42);
+        Assert.Null(store.Get<string>("key1"));
+        Assert.Equal(42, store.Get<int>("key1"));
+    }
+
+    [Fact]
+    public void ValueType_SetSameKeyDifferentRefType_EvictsOldEntry() {
+        var store = CreateStore();
+        store.Set("key1", 42);
+        store.Set("key1", "hello");
+        Assert.Equal(0, store.Get<int>("key1"));
+        Assert.Equal("hello", store.Get<string>("key1"));
+    }
+
+    [Fact]
+    public void ReferenceType_RemoveAny_ReturnsTrue() {
+        var store = CreateStore();
+        store.Set("key1", "hello");
+        Assert.True(store.RemoveAny("key1"));
+        Assert.False(store.HasAny("key1"));
+    }
+
+    [Fact]
+    public void ReferenceType_Remove_WrongType_ReturnsFalse() {
+        var store = CreateStore();
+        store.Set("key1", "hello");
+        Assert.False(store.Remove<int>("key1"));
+        Assert.True(store.HasAny("key1"));
+    }
+
+    [Fact]
+    public void ReferenceType_TypeOf_ReturnsCorrectType() {
+        var store = CreateStore();
+        store.Set("key1", "hello");
+        Assert.Equal(typeof(string), store.TypeOf("key1"));
+    }
+
+    [Fact]
+    public void ReferenceType_Get_WrongType_ReturnsDefault() {
+        var store = CreateStore();
+        store.Set("key1", "hello");
+        Assert.Equal(0, store.Get<int>("key1"));
     }
 
     [Fact]

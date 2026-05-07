@@ -6,7 +6,7 @@ namespace Shiron.Lib.Collections.Bucket;
 /// <typeparam name="TK">The type of keys used in the bucket store.</typeparam>
 public interface IBucketStore<TK> where TK : IEquatable<TK> {
     ICollection<TK> Keys { get; }
-    IReadOnlyDictionary<Type, IBucket<TK>> Buckets { get; }
+    IReadOnlyDictionary<Type, IBucket<TK>> ValueTypes { get; }
 
     /// <summary>
     /// Sets the value for <paramref name="key"/> to <paramref name="value"/>.
