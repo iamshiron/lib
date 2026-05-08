@@ -24,6 +24,12 @@ public interface IBucketStore<TK> where TK : IEquatable<TK> {
     T? Get<T>(TK key);
 
     /// <summary>
+    /// Returns the typed value for <paramref name="key"/>, or <c>default</c> if not found.
+    /// Performs a cast if possible.
+    /// </summary>
+    T? GetAs<T>(TK key);
+
+    /// <summary>
     /// Attempts to retrieve the typed value for <paramref name="key"/>.
     /// </summary>
     bool TryGet<T>(TK key, out T? value);
@@ -51,6 +57,11 @@ public interface IBucketStore<TK> where TK : IEquatable<TK> {
     /// Returns <c>true</c> if the key is bound to a value.
     /// </summary>
     bool Has<T>(TK key);
+
+    /// <summary>
+    /// Returns <c>true</c> if the key can be cast to <typeparamref name="T"/>.
+    /// </summary>
+    bool CanCast<T>(TK key);
 
     /// <summary>
     /// Returns <c>true</c> if the key is stored in any bucket.
