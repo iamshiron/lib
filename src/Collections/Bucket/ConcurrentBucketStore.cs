@@ -50,6 +50,16 @@ public class ConcurrentBucketStore<TK> : IBucketStore<TK> where TK : IEquatable<
         GetOrCreate<T>().Set(key, value);
     }
 
+    /// <inheritdoc/>
+    public bool CanCast<T>(TK key) {
+        return _keyRegistry.TryGetValue(key, out var type) && type.IsAssignableTo(typeof(T));
+    }
+
+    /// <inheritdoc/>
+    public T? GetAs<T>(TK key) {
+        return CanCast<T>(key) ? (T?) GetAny(key) : default;
+    }
+
     public void Set(TK key, object? value, Type type) {
         var method = typeof(ConcurrentBucketStore<TK>)
             .GetMethods()

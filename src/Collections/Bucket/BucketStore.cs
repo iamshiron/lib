@@ -152,6 +152,16 @@ public class BucketStore<TK> : IBucketStore<TK> where TK : IEquatable<TK> {
     }
 
     /// <inheritdoc/>
+    public bool CanCast<T>(TK key) {
+        return _keyRegistry.TryGetValue(key, out var type) && type.IsAssignableTo(typeof(T));
+    }
+
+    /// <inheritdoc/>
+    public T? GetAs<T>(TK key) {
+        return CanCast<T>(key) ? (T?) GetAny(key) : default;
+    }
+
+    /// <inheritdoc/>
     public bool Has<T>(TK key) {
         if (!_keyRegistry.TryGetValue(key, out var type)) return false;
         if (typeof(T) != type) return false;
