@@ -289,6 +289,8 @@ var stats = executor.Execute(ctx);
 - **Serialization** — pipeline definitions and runtime state round-trip through JSON
 - **Node behaviors** — extensible `INodeBehavior` lifecycle (e.g., `ChipEnableBehavior`, `EnableOutBehavior`)
 
+See [`samples/Pipeline/`](samples/Pipeline/) for comprehensive examples including generic nodes, implicit casting, array ports, custom types, and serialization.
+
 ### Utilities
 
 **HashUtils** - SHA256 hashing for files, strings, and objects:
