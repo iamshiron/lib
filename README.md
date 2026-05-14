@@ -5,7 +5,7 @@
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 
-A .NET 10 library providing collections, flow control, profiling, logging, networking, and utility functions.
+A .NET 10 library providing collections, flow control, pipeline processing, profiling, logging, networking, and utility functions.
 
 ## Components
 
@@ -236,6 +236,58 @@ if (debouncer.TryResolve()) {
 }
 ```
 
+### Pipeline
+
+DAG-based data pipeline framework with a strongly-typed port system, generic node support, and type-safe implicit casting. Benchmarks are not yet available due to frequent feature additions and API changes that constantly reshape the underlying structures.
+
+```csharp
+using Shiron.Lib.Pipeline;
+using Shiron.Lib.Pipeline.Casting;
+using Shiron.Lib.Pipeline.Context;
+using Shiron.Lib.Pipeline.Node;
+using Shiron.Lib.Pipeline.Port.Builder;
+
+// Define nodes with typed ports
+class AddNode : AbstractNode {
+    public readonly IInputPort<int> A = Input(new NumericPortBuilder<int>("A").Input());
+    public readonly IInputPort<int> B = Input(new NumericPortBuilder<int>("B").Input());
+    public readonly IOutputPort<int> Sum = Output(new NumericPortBuilder<int>("Sum").Output());
+
+    protected override ValueTask<bool> ExecuteNodeAsync(INodeContext context) {
+        Sum.Write(context, A.Read(context) + B.Read(context));
+        return ValueTask.FromResult(true);
+    }
+}
+
+// Register and build
+var registry = new NodeRegistry();
+registry.Register(new AddNode());
+registry.RegisterGeneric(typeof(GenericAddNode<>)); // open generic with type inference
+
+var builder = new PipelineBuilder(registry)
+    .RegisterCast<string, int>(TypeCast.Lossy, s => int.Parse(s)); // custom domain casts
+
+var add = builder.AddNode(registry.Get<AddNode>()!);
+var consumer = builder.AddNode(new PrintNode());
+
+builder.AddConnection(add, add.Sum, consumer, consumer.Message);
+
+var pipeline = builder.Build();
+var ctx = builder.CreateContext(); // shares cast registry
+
+// Execute
+var executor = new PipelineExecutor(pipeline);
+var stats = executor.Execute(ctx);
+```
+
+**Key features:**
+- **Typed ports** with fluent builders and fail-fast validators (numeric ranges, string lengths, enum constraints)
+- **Generic nodes** with automatic type inference from connections — `GenericAddNode<T>` resolves to `GenericAddNode<int>` when connected to an int output
+- **Type casting** — implicit numeric casts (lossless/lossy), built-in ToString fallback, custom domain casts via `RegisterCast`, strict mode to reject lossy conversions
+- **Array ports** — `IArrayInputPort<T>` with frozen count and indexed connections, `IArrayOutputPort<T>` with element type metadata
+- **Serialization** — pipeline definitions and runtime state round-trip through JSON
+- **Node behaviors** — extensible `INodeBehavior` lifecycle (e.g., `ChipEnableBehavior`, `EnableOutBehavior`)
+
 ### Utilities
 
 **HashUtils** - SHA256 hashing for files, strings, and objects:
@@ -322,6 +374,7 @@ Then reference the projects you need in your `.csproj`:
   <ProjectReference Include="..\lib\Shiron.Lib\src\Collections\Shiron.Lib.Collections.csproj" />
   <ProjectReference Include="..\lib\Shiron.Lib\src\Flow\Shiron.Lib.Flow.csproj" />
   <ProjectReference Include="..\lib\Shiron.Lib\src\Logging\Shiron.Lib.Logging.csproj" />
+  <ProjectReference Include="..\lib\Shiron.Lib\src\Pipeline\Shiron.Lib.Pipeline.csproj" />
   <ProjectReference Include="..\lib\Shiron.Lib\src\Networking\Shiron.Lib.Networking.csproj" />
   <ProjectReference Include="..\lib\Shiron.Lib\src\Profiling\Shiron.Lib.Profiling.csproj" />
   <ProjectReference Include="..\lib\Shiron.Lib\src\Utils\Shiron.Lib.Utils.csproj" />
@@ -335,6 +388,7 @@ All projects target .NET 10.
 Working examples in `samples/`:
 - **Collections** - RingBuffer statistics
 - **Flow** - Interactive flow control visualization
+- **Pipeline** - Typed data pipeline with generic nodes and casting
 - **Profiling** - Chrome trace generation
 - **Misc** - Logging and GC tracking
 - **Networking** - Client/server chat
