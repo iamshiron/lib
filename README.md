@@ -261,13 +261,14 @@ class AddNode : AbstractNode {
 
 // Register and build
 var registry = new NodeRegistry();
-registry.Register<AddNode>();
+var addNode = registry.Register<AddNode>();
 registry.RegisterGeneric(typeof(GenericAddNode<>)); // open generic with type inference
 
 var builder = new PipelineBuilder(registry)
     .RegisterCast<string, int>(TypeCast.Lossy, s => int.Parse(s)); // custom domain casts
 
-var add = builder.AddNode(registry.Get<AddNode>()!);
+var add = builder.AddNode(addNode);
+var consumer = builder.AddNode(new PrintNode());
 var consumer = builder.AddNode(new PrintNode());
 
 builder.AddConnection(add, add.Sum, consumer, consumer.Message);
