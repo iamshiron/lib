@@ -261,7 +261,7 @@ class AddNode : AbstractNode {
 
 // Register and build
 var registry = new NodeRegistry();
-registry.Register(new AddNode());
+registry.Register<AddNode>();
 registry.RegisterGeneric(typeof(GenericAddNode<>)); // open generic with type inference
 
 var builder = new PipelineBuilder(registry)
