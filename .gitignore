@@ -5,6 +5,7 @@
 
 .vscode/
 .idea/
+*.DotSettings.user
 .VSCodeCounter
 .output/
 
