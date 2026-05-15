@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/iamshiron/lib/actions/workflows/ci.yml/badge.svg)](https://github.com/iamshiron/lib/actions/workflows/ci.yml)
 [![Code Quality](https://github.com/iamshiron/lib/actions/workflows/code-quality.yml/badge.svg)](https://github.com/iamshiron/lib/actions/workflows/code-quality.yml)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![License](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](LICENSE)
 
 
 A .NET 10 library providing collections, flow control, pipeline processing, profiling, logging, networking, and utility functions.
@@ -403,4 +403,4 @@ dotnet run --project <sample_to_run> -c Release
 
 ## License
 
-MIT
+GNU Affero General Public License v3.0 (AGPL-3.0)
