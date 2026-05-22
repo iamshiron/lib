@@ -31,6 +31,7 @@
   <Folder Name="/Tests/">
     <Project Path="tests/Collections/Shiron.Lib.Tests.Collections.csproj" />
     <Project Path="tests/Logging/Shiron.Lib.Tests.Logging.csproj" />
+    <Project Path="tests/Pipeline.Ext.DI/Shiron.Lib.Tests.Pipeline.Ext.DI.csproj" />
     <Project Path="tests/Pipeline/Shiron.Lib.Tests.Pipeline.csproj" />
   </Folder>
   <Project Path="src/Collections/Shiron.Lib.Collections.csproj" />
