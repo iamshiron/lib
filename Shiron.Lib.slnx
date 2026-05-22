@@ -38,6 +38,7 @@
   <Project Path="src/Flow/Shiron.Lib.Flow.csproj" />
   <Project Path="src/Logging/Shiron.Lib.Logging.csproj" />
   <Project Path="src/Networking/Shiron.Lib.Networking.csproj" />
+  <Project Path="src/Pipeline.Ext.DI/Shiron.Lib.Pipeline.Ext.DI.csproj" />
   <Project Path="src/Pipeline/Shiron.Lib.Pipeline.csproj" />
   <Project Path="src/Profiling/Shiron.Lib.Profiling.csproj" />
   <Project Path="src/Utils/Shiron.Lib.Utils.csproj" />
