@@ -14,5 +14,4 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Collections\Shiron.Lib.Collections.csproj" />
   </ItemGroup>
-
 </Project>

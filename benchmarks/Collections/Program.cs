@@ -1,4 +1,3 @@
 using BenchmarkDotNet.Running;
-using Shiron.Lib.Benchmarks.Collections;
 
-BenchmarkRunner.Run<RingBufferBenchmark>();
+BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args);
