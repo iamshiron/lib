@@ -12,6 +12,7 @@
         <ProjectReference Include="..\Flow\Shiron.Lib.Benchmarks.Flow.csproj"/>
         <ProjectReference Include="..\Logging\Shiron.Lib.Benchmarks.Logging.csproj"/>
         <ProjectReference Include="..\Utils\Shiron.Lib.Benchmarks.Utils.csproj"/>
+        <ProjectReference Include="..\Pipeline\Shiron.Lib.Benchmarks.Pipeline.csproj"/>
     </ItemGroup>
 
     <ItemGroup>
