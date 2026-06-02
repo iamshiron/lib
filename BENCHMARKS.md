@@ -246,6 +246,102 @@
 | RoundTrip_Linear    | 25   | 199.743 μs | 0.3436 μs | 0.2869 μs | 58.5938 | 29.2969 | 29.2969 | 557.58 KB |
 | RoundTrip_Complex   | 25   | 356.275 μs | 0.9243 μs | 0.8645 μs | 47.3633 | 47.3633 | 47.3633 | 850.12 KB |
 
+### Pipeline Build & Serialization
+| Method                | NodeCount | Mean        | Error       | StdDev      | Gen0    | Gen1   | Gen2   | Allocated |
+|---------------------- |---------- |------------:|------------:|------------:|--------:|-------:|-------:|----------:|
+| **Build_Serial**          | **2**         |  **5,501.1 ns** |    **20.19 ns** |    **16.86 ns** |  **1.9684** | **0.1602** |      **-** |  **30.17 KB** |
+| Build_FanOut          | 2         |  6,571.6 ns |    21.39 ns |    18.96 ns |  2.0752 | 0.1831 |      - |  31.85 KB |
+| SerializeDefinition   | 2         |    819.6 ns |     1.48 ns |     1.31 ns |  0.1783 |      - |      - |   2.73 KB |
+| SerializeInputs       | 2         |    385.6 ns |     1.00 ns |     0.93 ns |  0.0787 |      - |      - |   1.21 KB |
+| DeserializeDefinition | 2         |  2,634.7 ns |     4.06 ns |     3.39 ns |  0.3777 |      - |      - |    5.8 KB |
+| DeserializeInputs     | 2         |  2,543.1 ns |    17.80 ns |    14.87 ns |  0.5379 | 0.0114 |      - |   8.24 KB |
+| LoadExecutor          | 2         |    678.5 ns |     6.51 ns |     5.77 ns |  0.0935 | 0.0038 | 0.0019 |   1.44 KB |
+| **Build_Serial**          | **5**         |  **9,570.9 ns** |    **99.38 ns** |    **82.98 ns** |  **2.4567** | **0.2136** |      **-** |  **37.65 KB** |
+| Build_FanOut          | 5         | 10,897.1 ns |   214.34 ns |   333.70 ns |  2.5330 | 0.2289 |      - |  38.93 KB |
+| SerializeDefinition   | 5         |  1,941.0 ns |     9.88 ns |     7.72 ns |  0.4387 |      - |      - |   6.73 KB |
+| SerializeInputs       | 5         |    427.0 ns |     7.48 ns |     6.63 ns |  0.0939 |      - |      - |   1.45 KB |
+| DeserializeDefinition | 5         |  7,276.6 ns |   113.77 ns |   106.42 ns |  0.9689 | 0.0229 |      - |  14.91 KB |
+| DeserializeInputs     | 5         |  2,728.5 ns |    52.56 ns |    73.69 ns |  0.5417 | 0.0076 |      - |   8.35 KB |
+| LoadExecutor          | 5         |  1,684.0 ns |    32.57 ns |    36.20 ns |  0.2022 | 0.0038 | 0.0019 |   3.14 KB |
+| **Build_Serial**          | **10**        | **16,434.5 ns** |   **211.79 ns** |   **176.86 ns** |  **3.3569** | **0.3662** |      **-** |  **51.77 KB** |
+| Build_FanOut          | 10        | 17,817.6 ns |   312.34 ns |   347.17 ns |  3.3569 | 0.3357 |      - |  51.52 KB |
+| SerializeDefinition   | 10        |  3,944.9 ns |    63.44 ns |    59.34 ns |  0.8698 | 0.0076 |      - |  13.38 KB |
+| SerializeInputs       | 10        |    484.7 ns |     9.60 ns |    13.14 ns |  0.1192 |      - |      - |   1.84 KB |
+| DeserializeDefinition | 10        | 14,556.9 ns |   223.83 ns |   209.37 ns |  1.9989 | 0.0916 |      - |  30.66 KB |
+| DeserializeInputs     | 10        |  2,737.4 ns |    36.55 ns |    30.52 ns |  0.5493 | 0.0076 |      - |   8.46 KB |
+| LoadExecutor          | 10        |  3,077.5 ns |    41.13 ns |    34.35 ns |  0.4044 | 0.0076 |      - |    6.2 KB |
+| **Build_Serial**          | **20**        | **29,591.4 ns** |   **447.56 ns** |   **396.75 ns** |  **5.1880** | **0.6714** |      **-** |  **79.49 KB** |
+| Build_FanOut          | 20        | 30,992.4 ns |   478.26 ns |   423.97 ns |  5.0049 | 0.6714 |      - |  76.84 KB |
+| SerializeDefinition   | 20        |  7,531.8 ns |   147.56 ns |   186.61 ns |  1.7395 | 0.0229 |      - |  26.74 KB |
+| SerializeInputs       | 20        |    615.4 ns |     2.25 ns |     1.99 ns |  0.1707 |      - |      - |   2.62 KB |
+| DeserializeDefinition | 20        | 30,558.1 ns |   578.85 ns |   666.60 ns |  4.0283 | 0.3967 |      - |  62.05 KB |
+| DeserializeInputs     | 20        |  3,043.7 ns |    60.16 ns |    82.34 ns |  0.5722 | 0.0114 |      - |   8.79 KB |
+| LoadExecutor          | 20        |  5,901.0 ns |    60.53 ns |    56.62 ns |  0.8011 | 0.0153 |      - |  12.34 KB |
+| **Build_Serial**          | **50**        | **67,479.9 ns** |   **251.01 ns** |   **209.60 ns** | **10.2539** | **2.1973** |      **-** | **157.16 KB** |
+| Build_FanOut          | 50        | 70,966.9 ns | 1,172.28 ns | 1,039.19 ns |  9.5215 | 1.8311 |      - | 146.92 KB |
+| SerializeDefinition   | 50        | 18,073.5 ns |   356.05 ns |   365.63 ns |  4.3335 | 0.0610 |      - |  66.81 KB |
+| SerializeInputs       | 50        |  1,023.8 ns |    20.51 ns |    35.39 ns |  0.3223 |      - |      - |   4.96 KB |
+| DeserializeDefinition | 50        | 75,550.7 ns |   940.06 ns |   879.33 ns | 10.0098 | 2.1973 |      - | 153.52 KB |
+| DeserializeInputs     | 50        |  3,477.4 ns |    32.01 ns |    26.73 ns |  0.6371 | 0.0191 |      - |   9.77 KB |
+| LoadExecutor          | 50        | 14,125.9 ns |   234.41 ns |   219.27 ns |  1.8921 | 0.0305 |      - |  29.09 KB |
+
+### Pipeline Context
+| Method                | PortCount | Mean         | Error      | StdDev     | Median       | Gen0   | Gen1   | Allocated |
+|---------------------- |---------- |-------------:|-----------:|-----------:|-------------:|-------:|-------:|----------:|
+| **Write_SingleInt**       | **1**         |    **528.85 ns** |   **9.364 ns** |   **7.820 ns** |    **529.50 ns** | **0.3481** | **0.0057** |    **5464 B** |
+| Read_SingleInt        | 1         |     18.35 ns |   0.358 ns |   0.335 ns |     18.36 ns |      - |      - |         - |
+| Read_SingleIntMissing | 1         |    346.87 ns |   6.923 ns |  14.298 ns |    344.47 ns | 0.2518 | 0.0024 |    3952 B |
+| WriteRead_SingleInt   | 1         |    551.79 ns |   9.043 ns |   7.552 ns |    549.09 ns | 0.3500 | 0.0067 |    5496 B |
+| Write_SingleString    | 1         |    408.18 ns |   6.464 ns |   6.916 ns |    405.11 ns | 0.2608 | 0.0038 |    4096 B |
+| Write_ManyInts        | 1         |    515.66 ns |   9.619 ns |   8.033 ns |    514.32 ns | 0.3519 | 0.0067 |    5528 B |
+| Read_ManyInts         | 1         |     16.06 ns |   0.024 ns |   0.021 ns |     16.06 ns |      - |      - |         - |
+| Write_DirectGuid      | 1         |    525.48 ns |  10.188 ns |  12.128 ns |    523.02 ns | 0.3481 | 0.0057 |    5464 B |
+| Read_DirectGuid       | 1         |     13.32 ns |   0.054 ns |   0.045 ns |     13.30 ns |      - |      - |         - |
+| **Write_SingleInt**       | **10**        |    **512.83 ns** |  **10.133 ns** |   **8.461 ns** |    **508.70 ns** | **0.3481** | **0.0057** |    **5464 B** |
+| Read_SingleInt        | 10        |     17.60 ns |   0.137 ns |   0.128 ns |     17.59 ns |      - |      - |         - |
+| Read_SingleIntMissing | 10        |    332.22 ns |   4.841 ns |   3.780 ns |    332.43 ns | 0.2518 | 0.0024 |    3952 B |
+| WriteRead_SingleInt   | 10        |    585.76 ns |  11.595 ns |  27.782 ns |    586.54 ns | 0.3500 | 0.0067 |    5496 B |
+| Write_SingleString    | 10        |    425.80 ns |   7.971 ns |  12.410 ns |    427.74 ns | 0.2608 | 0.0038 |    4096 B |
+| Write_ManyInts        | 10        |  2,186.98 ns |  43.590 ns |  88.054 ns |  2,169.39 ns | 0.7782 | 0.0267 |   12248 B |
+| Read_ManyInts         | 10        |    167.04 ns |   1.097 ns |   0.972 ns |    166.66 ns |      - |      - |         - |
+| Write_DirectGuid      | 10        |    519.56 ns |  10.269 ns |  21.661 ns |    516.50 ns | 0.3481 | 0.0057 |    5464 B |
+| Read_DirectGuid       | 10        |     14.03 ns |   0.069 ns |   0.057 ns |     14.03 ns |      - |      - |         - |
+| **Write_SingleInt**       | **100**       |    **529.48 ns** |  **10.432 ns** |  **16.547 ns** |    **530.38 ns** | **0.3481** | **0.0057** |    **5464 B** |
+| Read_SingleInt        | 100       |     17.46 ns |   0.024 ns |   0.019 ns |     17.45 ns |      - |      - |         - |
+| Read_SingleIntMissing | 100       |    330.32 ns |   5.914 ns |   7.895 ns |    327.37 ns | 0.2518 | 0.0024 |    3952 B |
+| WriteRead_SingleInt   | 100       |    544.66 ns |   3.795 ns |   3.364 ns |    544.58 ns | 0.3500 | 0.0067 |    5496 B |
+| Write_SingleString    | 100       |    421.78 ns |   8.339 ns |   8.190 ns |    423.09 ns | 0.2608 | 0.0038 |    4096 B |
+| Write_ManyInts        | 100       | 14,549.77 ns | 278.962 ns | 310.066 ns | 14,489.77 ns | 4.4098 | 0.6256 |   69296 B |
+| Read_ManyInts         | 100       |  1,973.70 ns |  31.757 ns |  28.151 ns |  1,962.59 ns |      - |      - |         - |
+| Write_DirectGuid      | 100       |    519.65 ns |  10.261 ns |  19.769 ns |    511.20 ns | 0.3481 | 0.0057 |    5464 B |
+| Read_DirectGuid       | 100       |     13.80 ns |   0.299 ns |   0.356 ns |     13.63 ns |      - |      - |         - |
+
+### Pipeline Execution (Topology Variants)
+| Method                 | NodeCount | Mean        | Error     | StdDev    | Median      | Gen0   | Gen1   | Allocated |
+|----------------------- |---------- |------------:|----------:|----------:|------------:|-------:|-------:|----------:|
+| **Execute_Serial**         | **2**         |    **983.7 ns** |  **19.61 ns** |  **33.83 ns** |    **965.1 ns** | **0.3872** | **0.0076** |   **5.95 KB** |
+| Execute_FanOut         | 2         |  1,267.4 ns |  43.82 ns | 127.81 ns |  1,225.2 ns | 0.4082 | 0.0076 |   6.27 KB |
+| Execute_FanOutToSerial | 2         |  2,023.6 ns |  39.33 ns |  46.82 ns |  2,020.5 ns | 0.4921 | 0.0076 |   7.59 KB |
+| Execute_BinaryOut      | 2         |  1,138.5 ns |  22.52 ns |  58.14 ns |  1,113.9 ns | 0.4082 | 0.0076 |   6.27 KB |
+| **Execute_Serial**         | **5**         |  **1,558.9 ns** |  **27.63 ns** |  **53.24 ns** |  **1,535.5 ns** | **0.4520** | **0.0095** |   **6.93 KB** |
+| Execute_FanOut         | 5         |  1,722.5 ns |   8.48 ns |   7.51 ns |  1,720.7 ns | 0.4730 | 0.0095 |   7.26 KB |
+| Execute_FanOutToSerial | 5         |  3,579.5 ns |  41.26 ns |  38.60 ns |  3,558.2 ns | 0.6866 | 0.0153 |  10.54 KB |
+| Execute_BinaryOut      | 5         |  1,901.9 ns |  37.88 ns |  40.53 ns |  1,904.4 ns | 0.4940 | 0.0114 |   7.59 KB |
+| **Execute_Serial**         | **10**        |  **2,401.9 ns** |  **27.39 ns** |  **21.38 ns** |  **2,403.4 ns** | **0.5569** | **0.0114** |   **8.57 KB** |
+| Execute_FanOut         | 10        |  2,582.2 ns |   8.63 ns |   7.21 ns |  2,581.9 ns | 0.5798 | 0.0114 |    8.9 KB |
+| Execute_FanOutToSerial | 10        |  9,606.9 ns | 159.12 ns | 141.05 ns |  9,591.3 ns | 1.9989 | 0.1373 |  30.63 KB |
+| Execute_BinaryOut      | 10        |  4,288.1 ns |  17.42 ns |  13.60 ns |  4,288.9 ns | 1.0223 | 0.0381 |  15.73 KB |
+| **Execute_Serial**         | **20**        |  **5,430.3 ns** |  **26.22 ns** |  **24.53 ns** |  **5,428.7 ns** | **1.1215** | **0.0381** |  **17.27 KB** |
+| Execute_FanOut         | 20        |  5,549.7 ns |  23.21 ns |  20.57 ns |  5,544.3 ns | 1.1215 | 0.0458 |  17.19 KB |
+| Execute_FanOutToSerial | 20        | 19,290.3 ns | 297.07 ns | 277.88 ns | 19,192.4 ns | 4.0283 | 0.4883 |  61.95 KB |
+| Execute_BinaryOut      | 20        |  9,529.7 ns |  35.58 ns |  31.54 ns |  9,525.3 ns | 2.0294 | 0.1221 |  31.24 KB |
+| **Execute_Serial**         | **50**        | **12,946.9 ns** |  **43.66 ns** |  **38.71 ns** | **12,940.4 ns** | **2.4414** | **0.1678** |  **37.48 KB** |
+| Execute_FanOut         | 50        | 13,273.2 ns | 204.09 ns | 209.59 ns | 13,182.5 ns | 2.4872 | 0.1831 |  38.11 KB |
+| Execute_FanOutToSerial | 50        | 47,463.8 ns | 615.54 ns | 575.77 ns | 47,414.0 ns | 9.4604 | 2.0752 | 145.72 KB |
+| Execute_BinaryOut      | 50        | 15,834.2 ns | 102.44 ns |  95.82 ns | 15,828.9 ns | 2.7161 | 0.2136 |  41.95 KB |
+
+*Note*: The `NodeCount` parameter reflects the initialization count, not the actual node count in the resulting graph. Different topologies (Serial, FanOut, FanOutToSerial, BinaryOut) produce different total node counts for the same `NodeCount` value.
+
 ## Shiron.Lib.Utils
 ### FunctionUtils
 | Method            | Mean       | Error     | StdDev    | Median     | Ratio | Gen0   | Allocated | Alloc Ratio |
