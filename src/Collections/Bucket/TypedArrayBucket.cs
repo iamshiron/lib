@@ -23,5 +23,8 @@ public class TypedArrayBucket<T>(int size) : IArrayBucket {
         value = Get(index);
         return value != null;
     }
+    public void Clear(int index) {
+        _data[index] = default;
+    }
     public int Size => size;
 }

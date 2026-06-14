@@ -4,17 +4,14 @@ using Xunit;
 
 namespace Shiron.Lib.Tests.Collections;
 
-public class BucketStoreTests {
-    protected virtual IBucketStore<string> CreateStore() {
+public class BucketStoreTests : BucketStoreContractTests<string> {
+    protected override IBucketStore<string> CreateStore() {
         return new BucketStore<string>();
     }
 
-    [Fact]
-    public void Set_Get_ReturnsStoredValue() {
-        var store = CreateStore();
-        store.Set("key1", 42);
-        Assert.Equal(42, store.Get<int>("key1"));
-    }
+    protected override string Key1 => "key1";
+    protected override string Key2 => "key2";
+    protected override string Key3 => "key3";
 
     [Fact]
     public void Get_NonexistentKey_ReturnsDefault() {
@@ -30,28 +27,11 @@ public class BucketStoreTests {
     }
 
     [Fact]
-    public void TryGet_ExistingKey_ReturnsTrueAndValue() {
-        var store = CreateStore();
-        store.Set("key1", 42);
-        var result = store.TryGet("key1", out int value);
-        Assert.True(result);
-        Assert.Equal(42, value);
-    }
-
-    [Fact]
     public void TryGet_NonexistentKey_ReturnsFalse() {
         var store = CreateStore();
         var result = store.TryGet("nonexistent", out int value);
         Assert.False(result);
         Assert.Equal(0, value);
-    }
-
-    [Fact]
-    public void Set_SameKeySameType_OverwritesValue() {
-        var store = CreateStore();
-        store.Set("key1", 42);
-        store.Set("key1", 99);
-        Assert.Equal(99, store.Get<int>("key1"));
     }
 
     [Fact]
@@ -65,25 +45,9 @@ public class BucketStoreTests {
     }
 
     [Fact]
-    public void GetAny_ExistingKey_ReturnsValue() {
-        var store = CreateStore();
-        store.Set("key1", 42);
-        Assert.Equal(42, store.GetAny("key1"));
-    }
-
-    [Fact]
     public void GetAny_NonexistentKey_ReturnsNull() {
         var store = CreateStore();
         Assert.Null(store.GetAny("nonexistent"));
-    }
-
-    [Fact]
-    public void TryGetAny_ExistingKey_ReturnsTrueAndValue() {
-        var store = CreateStore();
-        store.Set("key1", 42);
-        var result = store.TryGetAny("key1", out var value);
-        Assert.True(result);
-        Assert.Equal(42, value);
     }
 
     [Fact]
@@ -146,33 +110,10 @@ public class BucketStoreTests {
     }
 
     [Fact]
-    public void ReferenceType_SetGet_ReturnsStoredValue() {
-        var store = CreateStore();
-        store.Set("key1", "hello");
-        Assert.Equal("hello", store.Get<string>("key1"));
-    }
-
-    [Fact]
     public void ReferenceType_TryGet_ReturnsTrueAndValue() {
         var store = CreateStore();
         store.Set("key1", "hello");
         var result = store.TryGet("key1", out string? value);
-        Assert.True(result);
-        Assert.Equal("hello", value);
-    }
-
-    [Fact]
-    public void ReferenceType_GetAny_ReturnsValue() {
-        var store = CreateStore();
-        store.Set("key1", "hello");
-        Assert.Equal("hello", store.GetAny("key1"));
-    }
-
-    [Fact]
-    public void ReferenceType_TryGetAny_ReturnsTrueAndValue() {
-        var store = CreateStore();
-        store.Set("key1", "hello");
-        var result = store.TryGetAny("key1", out var value);
         Assert.True(result);
         Assert.Equal("hello", value);
     }
@@ -192,14 +133,6 @@ public class BucketStoreTests {
         store.Set("key1", "hello");
         Assert.True(store.Has<string>("key1"));
         Assert.False(store.Has<int>("key1"));
-    }
-
-    [Fact]
-    public void ReferenceType_Overwrite_SameKeySameType() {
-        var store = CreateStore();
-        store.Set("key1", "hello");
-        store.Set("key1", "world");
-        Assert.Equal("world", store.Get<string>("key1"));
     }
 
     [Fact]
@@ -237,13 +170,6 @@ public class BucketStoreTests {
     }
 
     [Fact]
-    public void ReferenceType_TypeOf_ReturnsCorrectType() {
-        var store = CreateStore();
-        store.Set("key1", "hello");
-        Assert.Equal(typeof(string), store.TypeOf("key1"));
-    }
-
-    [Fact]
     public void ReferenceType_Get_WrongType_ReturnsDefault() {
         var store = CreateStore();
         store.Set("key1", "hello");
@@ -267,18 +193,6 @@ public class BucketStoreTests {
     public void HasAny_NonexistentKey_ReturnsFalse() {
         var store = CreateStore();
         Assert.False(store.HasAny("nonexistent"));
-    }
-
-    [Fact]
-    public void MultipleTypes_StoredIndependently() {
-        var store = CreateStore();
-        store.Set("intKey", 42);
-        store.Set("stringKey", "hello");
-        store.Set("doubleKey", 3.14);
-
-        Assert.Equal(42, store.Get<int>("intKey"));
-        Assert.Equal("hello", store.Get<string>("stringKey"));
-        Assert.Equal(3.14, store.Get<double>("doubleKey"));
     }
 }
 

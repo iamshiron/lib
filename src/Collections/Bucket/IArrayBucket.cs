@@ -23,5 +23,10 @@ public interface IArrayBucket {
     /// </remarks>
     bool TryGetValue(int index, out object? value);
 
+    /// <summary>
+    /// Clears the value at <paramref name="index"/>, resetting it to the default for the bucket's type.
+    /// </summary>
+    void Clear(int index);
+
     int Size { get; }
 }

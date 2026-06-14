@@ -30,19 +30,26 @@ public class ArrayBucketStore : IBucketStore<int> {
     }
 
     private void EvictPrevious(int key, Type newType) {
+        if (_keyRegistry.TryGetValue(key, out var oldType) && oldType != newType) {
+            if (!oldType.IsValueType) {
+                _referenceTypes.Set(key, null);
+            } else if (_valueTypes.TryGetValue(oldType, out var oldBucket)) {
+                oldBucket.Clear(key);
+            }
+        }
+
         _keyRegistry[key] = newType;
     }
 
     public void Set<T>(int key, T value) {
         var newType = typeof(T);
+        EvictPrevious(key, newType);
+
         if (!newType.IsValueType) {
-            EvictPrevious(key, newType);
             _referenceTypes.Set(key, value);
-            _keyRegistry[key] = newType;
             return;
         }
 
-        EvictPrevious(key, newType);
         GetBucket<T>().Set(key, value);
     }
     public void Set(int key, object? value, Type type) {
@@ -71,6 +78,17 @@ public class ArrayBucketStore : IBucketStore<int> {
         return bucket.Get(key);
     }
     public bool TryGet<T>(int key, out T? value) {
+        var type = typeof(T);
+
+        if (!type.IsValueType) {
+            if (_referenceTypes.TryGetValue(key, out var obj) && obj is T typed) {
+                value = typed;
+                return true;
+            }
+            value = default;
+            return false;
+        }
+
         var bucket = GetBucket<T>();
         value = bucket.Get(key);
         return value is not null;
