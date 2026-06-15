@@ -3,11 +3,13 @@ namespace Shiron.Lib.Collections.Bucket;
 public class TypedArrayBucket<T>(int size) : IArrayBucket {
     private readonly T?[] _data = new T?[size];
 
-    public void Set(int key, T? value) {
-        _data[key] = value;
+    public void Set(int index, T? value) {
+        if (index < 0 || index >= size) throw new ArgumentOutOfRangeException(nameof(index));
+        _data[index] = value;
     }
-    public T? Get(int key) {
-        return _data[key];
+    public T? Get(int index) {
+        if (index < 0 || index >= size) throw new ArgumentOutOfRangeException(nameof(index));
+        return _data[index];
     }
 
     /// <inheritdoc/>
@@ -24,6 +26,7 @@ public class TypedArrayBucket<T>(int size) : IArrayBucket {
         return value != null;
     }
     public void Clear(int index) {
+        if (index < 0 || index >= size) throw new ArgumentOutOfRangeException(nameof(index));
         _data[index] = default;
     }
     public int Size => size;

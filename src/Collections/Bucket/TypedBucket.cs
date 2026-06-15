@@ -2,8 +2,6 @@ namespace Shiron.Lib.Collections.Bucket;
 
 public class TypedBucket<TK, T> : IBucket<TK> where TK : IEquatable<TK> {
     private readonly Dictionary<TK, T> _data = [];
-    public ICollection<TK> Keys => _data.Keys;
-    public IReadOnlyDictionary<TK, T> ToDictionary => _data;
 
     public void Set(TK key, T value) {
         _data[key] = value;

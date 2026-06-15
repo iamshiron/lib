@@ -5,9 +5,6 @@ public class BucketStore<TK> : IBucketStore<TK> where TK : IEquatable<TK> {
     private readonly Dictionary<TK, Type> _keyRegistry = [];
     private readonly Dictionary<TK, object?> _referenceTypes = [];
 
-    public ICollection<TK> Keys => _keyRegistry.Keys;
-    public IReadOnlyDictionary<Type, IBucket<TK>> ValueTypes => _valueTypes;
-
     private TypedBucket<TK, T> GetOrCreate<T>() {
         if (_valueTypes.TryGetValue(typeof(T), out var bucket)) {
             return (TypedBucket<TK, T>) bucket;
@@ -22,8 +19,8 @@ public class BucketStore<TK> : IBucketStore<TK> where TK : IEquatable<TK> {
         var method = typeof(BucketStore<TK>)
             .GetMethods()
             .First(m => m.Name == nameof(Set)
-                     && m.IsGenericMethodDefinition
-                     && m.GetParameters().Length == 2)
+                && m.IsGenericMethodDefinition
+                && m.GetParameters().Length == 2)
             .MakeGenericMethod(type);
 
         method.Invoke(this, [key, value]);

@@ -3,20 +3,19 @@ namespace Shiron.Lib.Collections.Bucket;
 /// <summary>
 /// Type-erased read/remove interface for a key-addressed bucket store.
 /// </summary>
-/// <typeparam name="TK">Key type.</typeparam>
 public interface IArrayBucket {
     /// <summary>
-    /// Attempts to retrieve the value for <paramref name="key"/> without knowing its compile-time type.
+    /// Attempts to retrieve the value for <paramref name="index"/> without knowing its compile-time type.
     /// </summary>
     bool TryGetAny(int index, out object? value);
 
     /// <summary>
-    /// Returns the value for <paramref name="key"/> (boxed), or <c>null</c> if not found.
+    /// Returns the value for <paramref name="index"/> (boxed), or <c>null</c> if not found.
     /// </summary>
     object? GetAny(int index);
 
     /// <summary>
-    /// Attempts to retrieve the value for <paramref name="key"/> without knowing its compile-time type.
+    /// Attempts to retrieve the value for <paramref name="index"/> without knowing its compile-time type.
     /// </summary>
     /// <remarks>
     /// Keep in mind that this will box your value.
