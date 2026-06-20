@@ -34,6 +34,7 @@
     <Project Path="tests/Logging/Shiron.Lib.Tests.Logging.csproj" />
     <Project Path="tests/Pipeline.Ext.DI/Shiron.Lib.Tests.Pipeline.Ext.DI.csproj" />
     <Project Path="tests/Pipeline/Shiron.Lib.Tests.Pipeline.csproj" />
+    <Project Path="tests/Types/Shiron.Lib.Tests.Types.csproj" />
   </Folder>
   <Project Path="src/Collections/Shiron.Lib.Collections.csproj" />
   <Project Path="src/Concurrency/Shiron.Lib.Concurrency.csproj" />
@@ -43,6 +44,9 @@
   <Project Path="src/Pipeline.Ext.DI/Shiron.Lib.Pipeline.Ext.DI.csproj" />
   <Project Path="src/Pipeline/Shiron.Lib.Pipeline.csproj" />
   <Project Path="src/Profiling/Shiron.Lib.Profiling.csproj" />
+  <Project Path="src/Types/Shiron.Lib.Types.csproj" />
+  <Project Path="src/Types.Ext.Conversion/Shiron.Lib.Types.Ext.Conversion.csproj" />
+  <Project Path="src/Types.Ext.EFCore/Shiron.Lib.Types.Ext.EFCore.csproj" />
   <Project Path="src/Utils/Shiron.Lib.Utils.csproj" />
   <Project Path="src/Vulkan/Shiron.Lib.Vulkan.csproj" />
 </Solution>
