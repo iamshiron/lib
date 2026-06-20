@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Shiron.Lib.Types;
 using Shiron.Lib.Types.Ext.Conversion;
 using Xunit;
@@ -12,9 +11,9 @@ public class LabColorExtensionsTests {
 
         var color = lab.ToColor32();
 
-        color.R.Should().Be(0);
-        color.G.Should().Be(0);
-        color.B.Should().Be(0);
+        Assert.Equal(0, color.R);
+        Assert.Equal(0, color.G);
+        Assert.Equal(0, color.B);
     }
 
     [Fact]
@@ -23,9 +22,9 @@ public class LabColorExtensionsTests {
 
         var color = lab.ToColor32();
 
-        color.R.Should().Be(255);
-        color.G.Should().Be(255);
-        color.B.Should().Be(255);
+        Assert.Equal(255, color.R);
+        Assert.Equal(255, color.G);
+        Assert.Equal(255, color.B);
     }
 
     [Fact]
@@ -34,7 +33,7 @@ public class LabColorExtensionsTests {
 
         var color = lab.ToColor32();
 
-        color.A.Should().Be(255);
+        Assert.Equal(255, color.A);
     }
 
     [Fact]
@@ -43,7 +42,7 @@ public class LabColorExtensionsTests {
 
         var color = lab.ToColor32(128);
 
-        color.A.Should().Be(128);
+        Assert.Equal(128, color.A);
     }
 
     [Fact]
@@ -52,7 +51,7 @@ public class LabColorExtensionsTests {
 
         var color = lab.ToColor32(0);
 
-        color.A.Should().Be(0);
+        Assert.Equal(0, color.A);
     }
 
     [Fact]
@@ -61,9 +60,9 @@ public class LabColorExtensionsTests {
 
         var roundTripped = original.ToLabColor().ToColor32();
 
-        roundTripped.R.Should().Be(original.R);
-        roundTripped.G.Should().Be(original.G);
-        roundTripped.B.Should().Be(original.B);
+        Assert.Equal(original.R, roundTripped.R);
+        Assert.Equal(original.G, roundTripped.G);
+        Assert.Equal(original.B, roundTripped.B);
     }
 
     [Fact]
@@ -72,9 +71,9 @@ public class LabColorExtensionsTests {
 
         var roundTripped = original.ToLabColor().ToColor32();
 
-        roundTripped.R.Should().Be(original.R);
-        roundTripped.G.Should().Be(original.G);
-        roundTripped.B.Should().Be(original.B);
+        Assert.Equal(original.R, roundTripped.R);
+        Assert.Equal(original.G, roundTripped.G);
+        Assert.Equal(original.B, roundTripped.B);
     }
 
     [Fact]
@@ -83,9 +82,9 @@ public class LabColorExtensionsTests {
 
         var roundTripped = original.ToLabColor().ToColor32();
 
-        roundTripped.R.Should().Be(original.R);
-        roundTripped.G.Should().Be(original.G);
-        roundTripped.B.Should().Be(original.B);
+        Assert.Equal(original.R, roundTripped.R);
+        Assert.Equal(original.G, roundTripped.G);
+        Assert.Equal(original.B, roundTripped.B);
     }
 
     [Theory]
@@ -99,9 +98,9 @@ public class LabColorExtensionsTests {
 
         var roundTripped = original.ToLabColor().ToColor32();
 
-        roundTripped.R.Should().Be(original.R);
-        roundTripped.G.Should().Be(original.G);
-        roundTripped.B.Should().Be(original.B);
+        Assert.Equal(original.R, roundTripped.R);
+        Assert.Equal(original.G, roundTripped.G);
+        Assert.Equal(original.B, roundTripped.B);
     }
 
     [Fact]
@@ -110,9 +109,9 @@ public class LabColorExtensionsTests {
 
         var color = lab.ToColor32();
 
-        color.R.Should().Be(255);
-        color.G.Should().Be(255);
-        color.B.Should().Be(255);
+        Assert.Equal(255, color.R);
+        Assert.Equal(255, color.G);
+        Assert.Equal(255, color.B);
     }
 
     [Fact]
@@ -121,9 +120,9 @@ public class LabColorExtensionsTests {
 
         var color = lab.ToColor32();
 
-        color.R.Should().Be(0);
-        color.G.Should().Be(0);
-        color.B.Should().Be(0);
+        Assert.Equal(0, color.R);
+        Assert.Equal(0, color.G);
+        Assert.Equal(0, color.B);
     }
 
     [Fact]
@@ -132,8 +131,8 @@ public class LabColorExtensionsTests {
 
         var roundTripped = original.ToLabColor().ToColor32();
 
-        roundTripped.R.Should().Be(original.R);
-        roundTripped.G.Should().Be(original.G);
-        roundTripped.B.Should().Be(original.B);
+        Assert.Equal(original.R, roundTripped.R);
+        Assert.Equal(original.G, roundTripped.G);
+        Assert.Equal(original.B, roundTripped.B);
     }
 }

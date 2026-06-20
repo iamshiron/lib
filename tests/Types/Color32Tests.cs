@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Shiron.Lib.Types;
 using Xunit;
 
@@ -9,80 +8,80 @@ public class Color32Tests {
     public void Constructor_WithRgbaBytes_SetsProperties() {
         var color = new Color32(10, 20, 30, 40);
 
-        color.R.Should().Be(10);
-        color.G.Should().Be(20);
-        color.B.Should().Be(30);
-        color.A.Should().Be(40);
+        Assert.Equal(10, color.R);
+        Assert.Equal(20, color.G);
+        Assert.Equal(30, color.B);
+        Assert.Equal(40, color.A);
     }
 
     [Fact]
     public void Constructor_WithMaxValues_SetsProperties() {
         var color = new Color32(255, 255, 255, 255);
 
-        color.R.Should().Be(255);
-        color.G.Should().Be(255);
-        color.B.Should().Be(255);
-        color.A.Should().Be(255);
+        Assert.Equal(255, color.R);
+        Assert.Equal(255, color.G);
+        Assert.Equal(255, color.B);
+        Assert.Equal(255, color.A);
     }
 
     [Fact]
     public void Constructor_WithZeroValues_SetsProperties() {
         var color = new Color32(0, 0, 0, 0);
 
-        color.R.Should().Be(0);
-        color.G.Should().Be(0);
-        color.B.Should().Be(0);
-        color.A.Should().Be(0);
+        Assert.Equal(0, color.R);
+        Assert.Equal(0, color.G);
+        Assert.Equal(0, color.B);
+        Assert.Equal(0, color.A);
     }
 
     [Fact]
     public void Constructor_WithRgbaInt_ExtractsBytesCorrectly() {
         var color = new Color32(0x0A14_1E28);
 
-        color.R.Should().Be(0x0A);
-        color.G.Should().Be(0x14);
-        color.B.Should().Be(0x1E);
-        color.A.Should().Be(0x28);
+        Assert.Equal(0x0A, color.R);
+        Assert.Equal(0x14, color.G);
+        Assert.Equal(0x1E, color.B);
+        Assert.Equal(0x28, color.A);
     }
 
     [Fact]
     public void Constructor_WithRgbaInt_AllOnes_IsWhite() {
         var color = new Color32(unchecked((int) 0xFFFF_FFFF));
 
-        color.R.Should().Be(255);
-        color.G.Should().Be(255);
-        color.B.Should().Be(255);
-        color.A.Should().Be(255);
+        Assert.Equal(255, color.R);
+        Assert.Equal(255, color.G);
+        Assert.Equal(255, color.B);
+        Assert.Equal(255, color.A);
     }
 
     [Fact]
     public void Constructor_WithRgbaInt_AllZeros_IsBlackTransparent() {
         var color = new Color32(0x0000_0000);
 
-        color.R.Should().Be(0);
-        color.G.Should().Be(0);
-        color.B.Should().Be(0);
-        color.A.Should().Be(0);
+        Assert.Equal(0, color.R);
+        Assert.Equal(0, color.G);
+        Assert.Equal(0, color.B);
+        Assert.Equal(0, color.A);
     }
 
     [Fact]
     public void Constructor_WithRgbIntAndAlpha_ExtractsBytesCorrectly() {
         var color = new Color32(0xFF_80_00, 0xCC);
 
-        color.R.Should().Be(0xFF);
-        color.G.Should().Be(0x80);
-        color.B.Should().Be(0x00);
-        color.A.Should().Be(0xCC);
+        Assert.Equal(0xFF, color.R);
+        Assert.Equal(0x80, color.G);
+        Assert.Equal(0x00, color.B);
+        Assert.Equal(0xCC, color.A);
     }
 
     [Fact]
     public void Constructor_WithRgbIntAndAlpha_RgbZeroAlphaNonZero() {
         var color = new Color32(0x000000, 128);
 
-        color.R.Should().Be(0);
-        color.G.Should().Be(0);
-        color.B.Should().Be(0);
-        color.A.Should().Be(128);
+        Assert.Equal(0, color.R);
+        Assert.Equal(0, color.G);
+        Assert.Equal(0, color.B);
+        Assert.Equal(128, color.A);
     }
 
     [Fact]
@@ -94,38 +93,38 @@ public class Color32Tests {
         color.B = 200;
         color.A = 250;
 
-        color.R.Should().Be(100);
-        color.G.Should().Be(150);
-        color.B.Should().Be(200);
-        color.A.Should().Be(250);
+        Assert.Equal(100, color.R);
+        Assert.Equal(150, color.G);
+        Assert.Equal(200, color.B);
+        Assert.Equal(250, color.A);
     }
 
     [Fact]
     public void ToRgba_PacksComponentsCorrectly() {
         var color = new Color32(0x12, 0x34, 0x56, 0x78);
 
-        color.ToRgba.Should().Be(0x1234_5678);
+        Assert.Equal(0x1234_5678, color.ToRgba);
     }
 
     [Fact]
     public void ToRgba_WithBlackOpaque_IsCorrect() {
         var color = new Color32(0, 0, 0, 255);
 
-        color.ToRgba.Should().Be(0x0000_00FF);
+        Assert.Equal(0x0000_00FF, color.ToRgba);
     }
 
     [Fact]
     public void ToRgba_WithWhiteOpaque_IsCorrect() {
         var color = new Color32(255, 255, 255, 255);
 
-        color.ToRgba.Should().Be(-1);
+        Assert.Equal(-1, color.ToRgba);
     }
 
     [Fact]
     public void ToRgb_PacksComponentsCorrectly() {
         var color = new Color32(0xAB, 0xCD, 0xEF, 0x12);
 
-        color.ToRgb.Should().Be(0xAB_CD_EF);
+        Assert.Equal(0xAB_CD_EF, color.ToRgb);
     }
 
     [Fact]
@@ -133,42 +132,42 @@ public class Color32Tests {
         var color1 = new Color32(10, 20, 30, 0);
         var color2 = new Color32(10, 20, 30, 255);
 
-        color1.ToRgb.Should().Be(color2.ToRgb);
+        Assert.Equal(color2.ToRgb, color1.ToRgb);
     }
 
     [Fact]
     public void ToHex_ReturnsFormattedHexString() {
         var color = new Color32(0x0A, 0x1B, 0x2C, 0x3D);
 
-        color.ToHex().Should().Be("#0A1B2C3D");
+        Assert.Equal("#0A1B2C3D", color.ToHex());
     }
 
     [Fact]
     public void ToHex_WithWhiteOpaque_ReturnsFFFFFFFF() {
         var color = new Color32(255, 255, 255, 255);
 
-        color.ToHex().Should().Be("#FFFFFFFF");
+        Assert.Equal("#FFFFFFFF", color.ToHex());
     }
 
     [Fact]
     public void ToHex_WithBlackOpaque_Returns000000FF() {
         var color = new Color32(0, 0, 0, 255);
 
-        color.ToHex().Should().Be("#000000FF");
+        Assert.Equal("#000000FF", color.ToHex());
     }
 
     [Fact]
     public void ToHex_WithAllZero_Returns00000000() {
         var color = new Color32(0, 0, 0, 0);
 
-        color.ToHex().Should().Be("#00000000");
+        Assert.Equal("#00000000", color.ToHex());
     }
 
     [Fact]
     public void ToString_ReturnsSameAsToHex() {
         var color = new Color32(0x12, 0x34, 0x56, 0x78);
 
-        color.ToString().Should().Be(color.ToHex());
+        Assert.Equal(color.ToHex(), color.ToString());
     }
 
     [Fact]
@@ -176,7 +175,7 @@ public class Color32Tests {
         var original = 0x12_34_56_78;
         var color = new Color32(original);
 
-        color.ToRgba.Should().Be(original);
+        Assert.Equal(original, color.ToRgba);
     }
 
     [Fact]
@@ -185,10 +184,10 @@ public class Color32Tests {
 
         var reconstructed = new Color32(color.ToRgba);
 
-        reconstructed.R.Should().Be(color.R);
-        reconstructed.G.Should().Be(color.G);
-        reconstructed.B.Should().Be(color.B);
-        reconstructed.A.Should().Be(color.A);
+        Assert.Equal(color.R, reconstructed.R);
+        Assert.Equal(color.G, reconstructed.G);
+        Assert.Equal(color.B, reconstructed.B);
+        Assert.Equal(color.A, reconstructed.A);
     }
 
     [Theory]
@@ -201,9 +200,9 @@ public class Color32Tests {
 
         var fromInt = new Color32(color.ToRgba);
 
-        fromInt.R.Should().Be(r);
-        fromInt.G.Should().Be(g);
-        fromInt.B.Should().Be(b);
-        fromInt.A.Should().Be(a);
+        Assert.Equal(r, fromInt.R);
+        Assert.Equal(g, fromInt.G);
+        Assert.Equal(b, fromInt.B);
+        Assert.Equal(a, fromInt.A);
     }
 }

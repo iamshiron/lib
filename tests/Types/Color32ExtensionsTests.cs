@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Shiron.Lib.Types;
 using Shiron.Lib.Types.Ext.Conversion;
 using Xunit;
@@ -12,9 +11,9 @@ public class Color32ExtensionsTests {
 
         var lab = color.ToLabColor();
 
-        lab.L.Should().BeApproximately(0.0, 0.01);
-        lab.A.Should().BeApproximately(0.0, 0.01);
-        lab.B.Should().BeApproximately(0.0, 0.01);
+        Assert.Equal(0.0, lab.L, 2);
+        Assert.Equal(0.0, lab.A, 2);
+        Assert.Equal(0.0, lab.B, 2);
     }
 
     [Fact]
@@ -23,9 +22,9 @@ public class Color32ExtensionsTests {
 
         var lab = color.ToLabColor();
 
-        lab.L.Should().BeApproximately(100.0, 0.01);
-        lab.A.Should().BeApproximately(0.0, 0.01);
-        lab.B.Should().BeApproximately(0.0, 0.01);
+        Assert.Equal(100.0, lab.L, 2);
+        Assert.Equal(0.0, lab.A, 2);
+        Assert.Equal(0.0, lab.B, 2);
     }
 
     [Fact]
@@ -34,8 +33,8 @@ public class Color32ExtensionsTests {
 
         var lab = color.ToLabColor();
 
-        lab.L.Should().BeGreaterThan(0);
-        lab.A.Should().BePositive();
+        Assert.True(lab.L > 0);
+        Assert.True(lab.A > 0);
     }
 
     [Fact]
@@ -44,8 +43,8 @@ public class Color32ExtensionsTests {
 
         var lab = color.ToLabColor();
 
-        lab.L.Should().BeGreaterThan(0);
-        lab.A.Should().BeNegative();
+        Assert.True(lab.L > 0);
+        Assert.True(lab.A < 0);
     }
 
     [Fact]
@@ -54,8 +53,8 @@ public class Color32ExtensionsTests {
 
         var lab = color.ToLabColor();
 
-        lab.L.Should().BeGreaterThan(0);
-        lab.B.Should().BeNegative();
+        Assert.True(lab.L > 0);
+        Assert.True(lab.B < 0);
     }
 
     [Fact]
@@ -64,10 +63,10 @@ public class Color32ExtensionsTests {
 
         var lab = color.ToLabColor();
 
-        lab.A.Should().BeApproximately(0.0, 0.5);
-        lab.B.Should().BeApproximately(0.0, 0.5);
-        lab.L.Should().BeGreaterThan(0);
-        lab.L.Should().BeLessThan(100);
+        Assert.InRange(lab.A, -0.5, 0.5);
+        Assert.InRange(lab.B, -0.5, 0.5);
+        Assert.True(lab.L > 0);
+        Assert.True(lab.L < 100);
     }
 
     [Fact]
@@ -78,9 +77,9 @@ public class Color32ExtensionsTests {
         var labOpaque = opaque.ToLabColor();
         var labTransparent = transparent.ToLabColor();
 
-        labOpaque.L.Should().BeApproximately(labTransparent.L, 1e-10);
-        labOpaque.A.Should().BeApproximately(labTransparent.A, 1e-10);
-        labOpaque.B.Should().BeApproximately(labTransparent.B, 1e-10);
+        Assert.Equal(labTransparent.L, labOpaque.L, 10);
+        Assert.Equal(labTransparent.A, labOpaque.A, 10);
+        Assert.Equal(labTransparent.B, labOpaque.B, 10);
     }
 
     [Theory]
@@ -96,6 +95,6 @@ public class Color32ExtensionsTests {
 
         var lab = color.ToLabColor();
 
-        lab.L.Should().BeInRange(0, 100);
+        Assert.InRange(lab.L, 0, 100);
     }
 }

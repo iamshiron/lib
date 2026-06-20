@@ -46,7 +46,7 @@ public abstract class NetworkPeer : INetEventListener {
 
     public void Poll() => netManager.PollEvents();
 
-    protected void SerializeAndSend<T>(NetPeer peer, T packet, DeliveryMethod method)
+    protected void SerializeAndSend<T>(LiteNetPeer peer, T packet, DeliveryMethod method)
             where T : class, INetworkCommand {
         if (peer == null) return;
 
