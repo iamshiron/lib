@@ -49,4 +49,5 @@
   <Project Path="src/Types.Ext.EFCore/Shiron.Lib.Types.Ext.EFCore.csproj" />
   <Project Path="src/Utils/Shiron.Lib.Utils.csproj" />
   <Project Path="src/Vulkan/Shiron.Lib.Vulkan.csproj" />
+  <Project Path="src/DockerUtils/Shiron.Lib.DockerUtils.csproj" />
 </Solution>
