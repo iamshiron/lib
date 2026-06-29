@@ -4,10 +4,7 @@ namespace Shiron.Lib.Collections.Bucket;
 /// A generic interface for storing key-value pairs in buckets.
 /// </summary>
 /// <typeparam name="TK">The type of keys used in the bucket store.</typeparam>
-public interface IBucketStore<TK> where TK : IEquatable<TK> {
-    ICollection<TK> Keys { get; }
-    IReadOnlyDictionary<Type, IBucket<TK>> ValueTypes { get; }
-
+public interface IBucketStore<in TK> where TK : IEquatable<TK> {
     /// <summary>
     /// Sets the value for <paramref name="key"/> to <paramref name="value"/>.
     /// </summary>

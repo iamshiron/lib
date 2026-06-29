@@ -4,9 +4,7 @@ namespace Shiron.Lib.Collections.Bucket;
 /// Type-erased read/remove interface for a key-addressed bucket store.
 /// </summary>
 /// <typeparam name="TK">Key type.</typeparam>
-public interface IBucket<TK> where TK : IEquatable<TK> {
-    ICollection<TK> Keys { get; }
-
+public interface IBucket<in TK> where TK : IEquatable<TK> {
     /// <summary>
     /// Attempts to retrieve the value for <paramref name="key"/> without knowing its compile-time type.
     /// </summary>
