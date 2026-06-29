@@ -5,7 +5,7 @@
 [![License](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](LICENSE)
 
 
-A .NET 10 library providing collections, flow control, pipeline processing, profiling, logging, networking, and utility functions.
+A .NET 10 library providing collections, flow control, pipeline processing, profiling, logging, networking, Docker Compose parsing, and utility functions.
 
 ## Components
 
@@ -291,6 +291,30 @@ var stats = executor.Execute(ctx);
 
 See [`samples/Pipeline/`](samples/Pipeline/) for comprehensive examples including generic nodes, implicit casting, array ports, custom types, and serialization.
 
+### DockerUtils
+
+> **Work in progress.** This module is tailored for the smaller [ComposeToNginx](https://github.com/iamshiron/ComposeToNginx) project — a CLI that reads a `docker-compose` file and pushes selected hosts to an NGINX Proxy Manager instance. The parsed shape may evolve as those needs do.
+
+Reads Docker Compose files and extracts service definitions into uniform DTOs. Uses YamlDotNet to parse `services`, `image`, `container_name`, `restart`, `ports`, `volumes`, `environment`, and `networks`, including both short and long-form port definitions.
+
+```csharp
+using Shiron.Lib.DockerUtils;
+using Shiron.Lib.DockerUtils.Model;
+
+var reader = new ComposeReader();
+IReadOnlyList<Service> services = reader.Read(File.ReadAllText("docker-compose.yml"));
+
+foreach (var service in services) {
+    Console.WriteLine($"{service.Name} -> {service.Image}");
+    Console.WriteLine($"  Restart: {service.Restart}");
+    foreach (var port in service.Ports) {
+        Console.WriteLine($"  {port.HostPort}:{port.ContainerPort}");
+    }
+}
+```
+
+Malformed YAML or unsupported field shapes throw `ComposeReadException`.
+
 ### Utilities
 
 **HashUtils** - SHA256 hashing for files, strings, and objects:
@@ -380,6 +404,7 @@ Then reference the projects you need in your `.csproj`:
   <ProjectReference Include="..\lib\Shiron.Lib\src\Pipeline\Shiron.Lib.Pipeline.csproj" />
   <ProjectReference Include="..\lib\Shiron.Lib\src\Networking\Shiron.Lib.Networking.csproj" />
   <ProjectReference Include="..\lib\Shiron.Lib\src\Profiling\Shiron.Lib.Profiling.csproj" />
+  <ProjectReference Include="..\lib\Shiron.Lib\src\DockerUtils\Shiron.Lib.DockerUtils.csproj" />
   <ProjectReference Include="..\lib\Shiron.Lib\src\Utils\Shiron.Lib.Utils.csproj" />
 </ItemGroup>
 ```
