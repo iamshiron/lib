@@ -88,6 +88,11 @@ public class ExecuteDefaultCommand : AsyncCommand<ExecuteDefaultSettings> {
             var intAverageInstance = builder.AddNode(registry.IntAverage, new Dictionary<string, int> { ["Values"] = 5 });
             var printIntAverageInstance = builder.AddNode(registry.Print);
 
+            // Per-instance array count demo: same shared IntAverage node, different count (3 vs 5).
+            // Supplied partially by index — slot 0 and 2 are connected, slot 1 is left as default.
+            var intAveragePartialInstance = builder.AddNode(registry.IntAverage, new Dictionary<string, int> { ["Values"] = 3 });
+            var printIntAveragePartialInstance = builder.AddNode(registry.Print);
+
             // Implicit Cast Demo: int → double (lossless)
             var doubleMultiplierInstance = builder.AddNode(registry.DoubleMultiplier);
             var printDoubleResultInstance = builder.AddNode(registry.Print);
@@ -307,6 +312,23 @@ public class ExecuteDefaultCommand : AsyncCommand<ExecuteDefaultSettings> {
                 printIntAverageInstance, registry.Print.Message
             );
 
+            // Per-instance partial supply demo: connect AddNode.Sum to index 0
+            // and SubtractNode.Diff to index 2 — slot 1 stays at the default (0).
+            //   slot 0 = 114, slot 1 = 0 (unconnected), slot 2 = -14
+            //   average = (114 + 0 + (-14)) / 3 ≈ 33.33
+            builder.AddConnection(
+                addInstance, registry.Add.Sum,
+                intAveragePartialInstance, (IPort) registry.IntAverage.Values, 0
+            );
+            builder.AddConnection(
+                subtractInstance, registry.Subtract.Diff,
+                intAveragePartialInstance, (IPort) registry.IntAverage.Values, 2
+            );
+            builder.AddConnection(
+                intAveragePartialInstance, registry.IntAverage.Average,
+                printIntAveragePartialInstance, registry.Print.Message
+            );
+
             // Implicit Cast Demo
             // Lossless: AddNode.Sum (int) → DoubleMultiplierNode.Value (double)
             builder.AddConnection(
@@ -407,6 +429,9 @@ public class ExecuteDefaultCommand : AsyncCommand<ExecuteDefaultSettings> {
             context.Write<int[]>(intAverageInstance, (IPort) registry.IntAverage.Values, [10, 20, 30, 40, 50]);
             context.Write<string>(printIntAverageInstance, registry.Print.Prefix, "Average: ");
 
+            // No context.Write needed for the partial instance — it's fed entirely by connections.
+            context.Write<string>(printIntAveragePartialInstance, registry.Print.Prefix, "Average (partial supply, count 3): ");
+
             // Implicit Cast Demo inputs
             context.Write<double>(doubleMultiplierInstance, registry.DoubleMultiplier.Factor, 1.5);
             context.Write<string>(printDoubleResultInstance, registry.Print.Prefix, "Double Multiplier (int→double, lossless): ");
@@ -441,7 +466,7 @@ public class ExecuteDefaultCommand : AsyncCommand<ExecuteDefaultSettings> {
             };
 
             await File.WriteAllTextAsync(".output/graph.json", pipeline.SerializeDefinition(jsonOptions), cancellationToken);
-            // await File.WriteAllTextAsync(".output/inputs.json", pipeline.SerializeInputs(context, jsonOptions), cancellationToken);
+            await File.WriteAllTextAsync(".output/inputs.json", pipeline.SerializeInputs(context, jsonOptions), cancellationToken);
             var stats = await executor.ExecuteAsync(context);
             if (cache is not null) await cache.FlushAsync();
             Console.WriteLine(stats);

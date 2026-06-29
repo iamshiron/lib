@@ -122,8 +122,8 @@ public sealed class ArrayPipelineContext(
 
         if (existing is not null) {
             array = existing;
-        } else if (port.Count.HasValue) {
-            array = new T[port.Count.Value];
+        } else if (node.ArrayCounts?.TryGetValue((IPort) port, out var count) == true) {
+            array = new T[count];
         } else {
             array = new T[index + 1];
         }

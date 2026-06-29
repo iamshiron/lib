@@ -1,3 +1,4 @@
+using System.Collections;
 using Shiron.Lib.Pipeline.Context;
 using Shiron.Lib.Pipeline.Exceptions;
 
@@ -22,32 +23,19 @@ public class ArrayInputPort<T>(
 
     internal T? ElementDefault => elementDefault;
 
-    private int? _count;
-    public int? Count => _count;
-    public bool IsFrozen => _count.HasValue;
-
-    public void SetCount(int count) {
-        if (IsFrozen)
-            throw new InvalidOperationException(
-                $"Count for port '{Name}' is already frozen at {_count}.");
-
+    /// <inheritdoc/>
+    public void ValidateCount(int count) {
         if (count < MinCount)
             throw new ArgumentException(
-                $"Count {count} is less than minimum {MinCount}.", nameof(count));
+                $"Array port '{Name}' requires at least {MinCount} elements, got {count}.", nameof(count));
 
         if (MaxCount.HasValue && count > MaxCount.Value)
             throw new ArgumentException(
-                $"Count {count} exceeds maximum {MaxCount.Value}.", nameof(count));
-
-        _count = count;
+                $"Array port '{Name}' supports at most {MaxCount.Value} elements, got {count}.", nameof(count));
     }
 
     public T[]? Read(INodeContext context) {
-        var value = context.Has<T[]>(this)
-            ? context.Read<T[]>(this)
-            : IsFrozen
-                ? CreateDefaultArray()
-                : null;
+        var value = context.Has<T[]>(this) ? context.Read<T[]>(this) : null;
         FailFast(value);
         return value;
     }
@@ -58,9 +46,8 @@ public class ArrayInputPort<T>(
     }
 
     public bool TryRead(INodeContext context, out T[]? value) {
-        var has = context.Has<T[]>(this);
-        if (!has) {
-            value = IsFrozen ? CreateDefaultArray() : null;
+        if (!context.Has<T[]>(this)) {
+            value = null;
             return false;
         }
 
@@ -86,22 +73,28 @@ public class ArrayInputPort<T>(
     }
 
     public int GetCount(INodeContext context) {
-        if (IsFrozen) return _count!.Value;
         var array = Read(context);
         return array?.Length ?? 0;
     }
 
-    void IArrayPortAssembly.Assemble(IPipelineContext context, int targetChannel, IReadOnlyList<(int Index, int SourceChannel)> sources) {
-        if (!IsFrozen)
-            throw new InvalidOperationException($"Cannot assemble array port '{Name}' without a frozen count.");
+    /// <inheritdoc/>
+    public bool IsSuppliedAt(INodeContext context, int index) {
+        return context.IsSlotSupplied(this, index);
+    }
 
-        var count = _count!.Value;
+    /// <summary>
+    /// Assemble the array from indexed connections, filling unconnected slots with the element default.
+    /// Returns a <see cref="BitArray"/> marking which indices were supplied.
+    /// </summary>
+    BitArray IArrayPortAssembly.Assemble(IPipelineContext context, int targetChannel, IReadOnlyList<(int Index, int SourceChannel)> sources, int count) {
         var array = new T[count];
+        var supplied = new BitArray(count);
         if (elementDefault is T def) Array.Fill(array, def);
 
         foreach (var (index, sourceChannel) in sources) {
             if (index >= 0 && index < count) {
                 array[index] = context.Read<T>(sourceChannel) ?? (elementDefault is T d ? d : default!);
+                supplied[index] = true;
             }
         }
 
@@ -112,18 +105,7 @@ public class ArrayInputPort<T>(
         }
 
         context.Write(targetChannel, array);
-    }
-
-    void IArrayPortAssembly.AssembleWithCount(IPipelineContext context, int targetChannel, IReadOnlyList<(int Index, int SourceChannel)> sources, int count) {
-        SetCount(count);
-        ((IArrayPortAssembly) this).Assemble(context, targetChannel, sources);
-    }
-
-    private T[] CreateDefaultArray() {
-        var count = _count!.Value;
-        var array = new T[count];
-        if (elementDefault is T def) Array.Fill(array, def);
-        return array;
+        return supplied;
     }
 
     private void FailFast(T[]? value) {

@@ -104,28 +104,18 @@ public static class PipelineSerialization {
 
             var nodeArrayCounts = arrayCounts.GetValueOrDefault(nodeDto.Id, new Dictionary<string, int>());
 
+            var mappings = new Dictionary<IPort, int>();
+            Dictionary<IPort, int>? instanceArrayCounts = null;
             foreach (var port in node.Ports) {
-                if (port is IArrayInputPortMarker arrayPort) {
-                    if (nodeArrayCounts.TryGetValue(port.Name, out var count)) {
-                        if (count < arrayPort.MinCount) {
-                            throw new ArgumentException(
-                                $"Array port '{port.Name}' requires at least {arrayPort.MinCount} elements, got {count}.");
-                        }
-                        if (arrayPort.MaxCount.HasValue && count > arrayPort.MaxCount.Value) {
-                            throw new ArgumentException(
-                                $"Array port '{port.Name}' supports at most {arrayPort.MaxCount.Value} elements, got {count}.");
-                        }
-                        arrayPort.SetCount(count);
-                    }
+                mappings[port] = nextChannel++;
+
+                if (port is IArrayInputPortMarker arrayPort && nodeArrayCounts.TryGetValue(port.Name, out var count)) {
+                    arrayPort.ValidateCount(count);
+                    (instanceArrayCounts ??= new Dictionary<IPort, int>())[port] = count;
                 }
             }
 
-            var mappings = new Dictionary<IPort, int>();
-            foreach (var port in node.Ports) {
-                mappings[port] = nextChannel++;
-            }
-
-            var instance = new PipelineBuilder.NodeInstance(nodeDto.Id, node, mappings);
+            var instance = new PipelineBuilder.NodeInstance(nodeDto.Id, node, mappings, instanceArrayCounts);
             nodeInstances[nodeDto.Id] = instance;
         }
 
