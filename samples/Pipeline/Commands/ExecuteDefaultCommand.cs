@@ -429,7 +429,10 @@ public class ExecuteDefaultCommand : AsyncCommand<ExecuteDefaultSettings> {
             context.Write<int[]>(intAverageInstance, (IPort) registry.IntAverage.Values, [10, 20, 30, 40, 50]);
             context.Write<string>(printIntAverageInstance, registry.Print.Prefix, "Average: ");
 
-            // No context.Write needed for the partial instance — it's fed entirely by connections.
+            // Direct write to slot 1 (the unconnected slot) — slots 0 and 2 are fed by connections.
+            //   slot 0 = 114 (connection), slot 1 = 42 (direct write), slot 2 = -14 (connection)
+            //   average = (114 + 42 + (-14)) / 3 = 47.333…
+            context.WriteAt(intAveragePartialInstance, registry.IntAverage.Values, 1, 42);
             context.Write<string>(printIntAveragePartialInstance, registry.Print.Prefix, "Average (partial supply, count 3): ");
 
             // Implicit Cast Demo inputs

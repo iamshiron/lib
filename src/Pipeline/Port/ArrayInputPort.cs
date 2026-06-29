@@ -83,14 +83,21 @@ public class ArrayInputPort<T>(
     }
 
     /// <summary>
-    /// Assemble the array from indexed connections, filling unconnected slots with the element default.
-    /// Returns a <see cref="BitArray"/> marking which indices were supplied.
+    /// Assemble the array from indexed connections. Pre-written values (from direct <c>WriteAt</c> calls)
+    /// are preserved; only connected slots are overwritten. Unconnected slots retain their existing or
+    /// default values. Returns a <see cref="BitArray"/> marking which indices were supplied by connections.
     /// </summary>
     BitArray IArrayPortAssembly.Assemble(IPipelineContext context, int targetChannel, IReadOnlyList<(int Index, int SourceChannel)> sources, int count) {
-        var array = new T[count];
-        var supplied = new BitArray(count);
-        if (elementDefault is T def) Array.Fill(array, def);
+        var existing = context.Read<T[]>(targetChannel);
+        T[] array;
+        if (existing is not null && existing.Length >= count) {
+            array = existing;
+        } else {
+            array = new T[count];
+            if (elementDefault is T def) Array.Fill(array, def);
+        }
 
+        var supplied = new BitArray(count);
         foreach (var (index, sourceChannel) in sources) {
             if (index >= 0 && index < count) {
                 array[index] = context.Read<T>(sourceChannel) ?? (elementDefault is T d ? d : default!);
@@ -98,7 +105,7 @@ public class ArrayInputPort<T>(
             }
         }
 
-        for (var i = 0; i < array.Length; i++) {
+        for (var i = 0; i < count; i++) {
             var error = elementValidator.Validate(array[i]);
             if (error is not null)
                 throw new PortValidationException($"{Name}[{i}]", array[i], error);
