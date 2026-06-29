@@ -1,0 +1,208 @@
+using Shiron.Lib.Types;
+using Xunit;
+
+namespace Shiron.Lib.Tests.Types;
+
+public class Color32Tests {
+    [Fact]
+    public void Constructor_WithRgbaBytes_SetsProperties() {
+        var color = new Color32(10, 20, 30, 40);
+
+        Assert.Equal(10, color.R);
+        Assert.Equal(20, color.G);
+        Assert.Equal(30, color.B);
+        Assert.Equal(40, color.A);
+    }
+
+    [Fact]
+    public void Constructor_WithMaxValues_SetsProperties() {
+        var color = new Color32(255, 255, 255, 255);
+
+        Assert.Equal(255, color.R);
+        Assert.Equal(255, color.G);
+        Assert.Equal(255, color.B);
+        Assert.Equal(255, color.A);
+    }
+
+    [Fact]
+    public void Constructor_WithZeroValues_SetsProperties() {
+        var color = new Color32(0, 0, 0, 0);
+
+        Assert.Equal(0, color.R);
+        Assert.Equal(0, color.G);
+        Assert.Equal(0, color.B);
+        Assert.Equal(0, color.A);
+    }
+
+    [Fact]
+    public void Constructor_WithRgbaInt_ExtractsBytesCorrectly() {
+        var color = new Color32(0x0A14_1E28);
+
+        Assert.Equal(0x0A, color.R);
+        Assert.Equal(0x14, color.G);
+        Assert.Equal(0x1E, color.B);
+        Assert.Equal(0x28, color.A);
+    }
+
+    [Fact]
+    public void Constructor_WithRgbaInt_AllOnes_IsWhite() {
+        var color = new Color32(unchecked((int) 0xFFFF_FFFF));
+
+        Assert.Equal(255, color.R);
+        Assert.Equal(255, color.G);
+        Assert.Equal(255, color.B);
+        Assert.Equal(255, color.A);
+    }
+
+    [Fact]
+    public void Constructor_WithRgbaInt_AllZeros_IsBlackTransparent() {
+        var color = new Color32(0x0000_0000);
+
+        Assert.Equal(0, color.R);
+        Assert.Equal(0, color.G);
+        Assert.Equal(0, color.B);
+        Assert.Equal(0, color.A);
+    }
+
+    [Fact]
+    public void Constructor_WithRgbIntAndAlpha_ExtractsBytesCorrectly() {
+        var color = new Color32(0xFF_80_00, 0xCC);
+
+        Assert.Equal(0xFF, color.R);
+        Assert.Equal(0x80, color.G);
+        Assert.Equal(0x00, color.B);
+        Assert.Equal(0xCC, color.A);
+    }
+
+    [Fact]
+    public void Constructor_WithRgbIntAndAlpha_RgbZeroAlphaNonZero() {
+        var color = new Color32(0x000000, 128);
+
+        Assert.Equal(0, color.R);
+        Assert.Equal(0, color.G);
+        Assert.Equal(0, color.B);
+        Assert.Equal(128, color.A);
+    }
+
+    [Fact]
+    public void Properties_AreMutable() {
+        var color = new Color32(0, 0, 0, 0);
+
+        color.R = 100;
+        color.G = 150;
+        color.B = 200;
+        color.A = 250;
+
+        Assert.Equal(100, color.R);
+        Assert.Equal(150, color.G);
+        Assert.Equal(200, color.B);
+        Assert.Equal(250, color.A);
+    }
+
+    [Fact]
+    public void ToRgba_PacksComponentsCorrectly() {
+        var color = new Color32(0x12, 0x34, 0x56, 0x78);
+
+        Assert.Equal(0x1234_5678, color.ToRgba);
+    }
+
+    [Fact]
+    public void ToRgba_WithBlackOpaque_IsCorrect() {
+        var color = new Color32(0, 0, 0, 255);
+
+        Assert.Equal(0x0000_00FF, color.ToRgba);
+    }
+
+    [Fact]
+    public void ToRgba_WithWhiteOpaque_IsCorrect() {
+        var color = new Color32(255, 255, 255, 255);
+
+        Assert.Equal(-1, color.ToRgba);
+    }
+
+    [Fact]
+    public void ToRgb_PacksComponentsCorrectly() {
+        var color = new Color32(0xAB, 0xCD, 0xEF, 0x12);
+
+        Assert.Equal(0xAB_CD_EF, color.ToRgb);
+    }
+
+    [Fact]
+    public void ToRgb_IgnoresAlpha() {
+        var color1 = new Color32(10, 20, 30, 0);
+        var color2 = new Color32(10, 20, 30, 255);
+
+        Assert.Equal(color2.ToRgb, color1.ToRgb);
+    }
+
+    [Fact]
+    public void ToHex_ReturnsFormattedHexString() {
+        var color = new Color32(0x0A, 0x1B, 0x2C, 0x3D);
+
+        Assert.Equal("#0A1B2C3D", color.ToHex());
+    }
+
+    [Fact]
+    public void ToHex_WithWhiteOpaque_ReturnsFFFFFFFF() {
+        var color = new Color32(255, 255, 255, 255);
+
+        Assert.Equal("#FFFFFFFF", color.ToHex());
+    }
+
+    [Fact]
+    public void ToHex_WithBlackOpaque_Returns000000FF() {
+        var color = new Color32(0, 0, 0, 255);
+
+        Assert.Equal("#000000FF", color.ToHex());
+    }
+
+    [Fact]
+    public void ToHex_WithAllZero_Returns00000000() {
+        var color = new Color32(0, 0, 0, 0);
+
+        Assert.Equal("#00000000", color.ToHex());
+    }
+
+    [Fact]
+    public void ToString_ReturnsSameAsToHex() {
+        var color = new Color32(0x12, 0x34, 0x56, 0x78);
+
+        Assert.Equal(color.ToHex(), color.ToString());
+    }
+
+    [Fact]
+    public void RoundTrip_RgbaIntConstructor_ToRgba_IsIdentity() {
+        var original = 0x12_34_56_78;
+        var color = new Color32(original);
+
+        Assert.Equal(original, color.ToRgba);
+    }
+
+    [Fact]
+    public void RoundTrip_ByteConstructor_ToRgba_IsIdentity() {
+        var color = new Color32(100, 150, 200, 250);
+
+        var reconstructed = new Color32(color.ToRgba);
+
+        Assert.Equal(color.R, reconstructed.R);
+        Assert.Equal(color.G, reconstructed.G);
+        Assert.Equal(color.B, reconstructed.B);
+        Assert.Equal(color.A, reconstructed.A);
+    }
+
+    [Theory]
+    [InlineData(0xFF, 0x00, 0x00, 0xFF)]
+    [InlineData(0x00, 0xFF, 0x00, 0xFF)]
+    [InlineData(0x00, 0x00, 0xFF, 0xFF)]
+    [InlineData(0x80, 0x80, 0x80, 0x80)]
+    public void Constructor_WithBytes_MatchesRgbaRoundTrip(byte r, byte g, byte b, byte a) {
+        var color = new Color32(r, g, b, a);
+
+        var fromInt = new Color32(color.ToRgba);
+
+        Assert.Equal(r, fromInt.R);
+        Assert.Equal(g, fromInt.G);
+        Assert.Equal(b, fromInt.B);
+        Assert.Equal(a, fromInt.A);
+    }
+}
