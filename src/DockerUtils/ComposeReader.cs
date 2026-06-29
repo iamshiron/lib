@@ -32,7 +32,7 @@ public sealed class ComposeReader : IComposeReader {
                 if (keyNode is not YamlScalarNode keyScalar) continue;
                 if (valueNode is not YamlMappingNode serviceMapping)
                     throw new ComposeReadException($"Service '{keyScalar.Value}': expected a mapping, got {valueNode.GetType().Name}.");
-                result.Add(MapService(keyScalar.Value, serviceMapping));
+                result.Add(MapService(keyScalar.Value ?? throw new ComposeReadException("Top-level service keys must have a non-empty name."), serviceMapping));
             }
         }
 
@@ -84,7 +84,7 @@ public sealed class ComposeReader : IComposeReader {
 
     private static PortForward ParsePort(string serviceName, int index, YamlNode item) {
         return item switch {
-            YamlScalarNode scalar => ParseShortPort(serviceName, index, scalar.Value),
+            YamlScalarNode scalar => ParseShortPort(serviceName, index, scalar.Value ?? throw new ComposeReadException($"Service '{serviceName}': port #{index} has an empty value.")),
             YamlMappingNode map => ParseLongPort(serviceName, index, map),
             _ => throw new ComposeReadException($"Service '{serviceName}': port #{index} has unsupported shape ({item.GetType().Name})."),
         };
@@ -157,7 +157,7 @@ public sealed class ComposeReader : IComposeReader {
         var volumes = new string[sequence.Children.Count];
         for (var i = 0; i < sequence.Children.Count; i++)
             volumes[i] = sequence.Children[i] switch {
-                YamlScalarNode scalar => scalar.Value,
+                YamlScalarNode scalar => scalar.Value ?? throw new ComposeReadException($"Service '{serviceName}': volume #{i} has an empty value."),
                 var other => throw new ComposeReadException($"Service '{serviceName}': volume #{i} has unsupported shape ({other.GetType().Name}); long-form volume objects are not yet supported."),
             };
         return volumes;
@@ -173,7 +173,7 @@ public sealed class ComposeReader : IComposeReader {
                     foreach (var item in sequence.Children) {
                         if (item is not YamlScalarNode scalar)
                             throw new ComposeReadException($"Service '{serviceName}': environment #{i} must be a scalar string ({item.GetType().Name}).");
-                        var (key, value) = ParseEnvEntry(serviceName, i, scalar.Value);
+                        var (key, value) = ParseEnvEntry(serviceName, i, scalar.Value ?? throw new ComposeReadException($"Service '{serviceName}': environment #{i} has an empty value."));
                         env[key] = value;
                         i++;
                     }
@@ -184,7 +184,7 @@ public sealed class ComposeReader : IComposeReader {
                     foreach (var (key, val) in map.Children) {
                         if (key is not YamlScalarNode keyScalar)
                             throw new ComposeReadException($"Service '{serviceName}': environment keys must be scalar.");
-                        env[keyScalar.Value] = val switch {
+                        env[keyScalar.Value ?? throw new ComposeReadException($"Service '{serviceName}': environment keys must have a non-empty value.")] = val switch {
                             null => null,
                             YamlScalarNode valueScalar => valueScalar.Value,
                             _ => throw new ComposeReadException($"Service '{serviceName}': environment value for '{keyScalar.Value}' must be a scalar."),
@@ -215,7 +215,7 @@ public sealed class ComposeReader : IComposeReader {
                     var networks = new string[sequence.Children.Count];
                     for (var i = 0; i < sequence.Children.Count; i++)
                         networks[i] = sequence.Children[i] switch {
-                            YamlScalarNode scalar => scalar.Value,
+                            YamlScalarNode scalar => scalar.Value ?? throw new ComposeReadException($"Service '{serviceName}': network #{i} has an empty value."),
                             var other => throw new ComposeReadException($"Service '{serviceName}': network #{i} has unsupported shape ({other.GetType().Name})."),
                         };
                     return networks;
@@ -226,7 +226,7 @@ public sealed class ComposeReader : IComposeReader {
                     foreach (var (key, _) in map.Children) {
                         if (key is not YamlScalarNode keyScalar)
                             throw new ComposeReadException($"Service '{serviceName}': network #{i} must be a scalar.");
-                        networks[i++] = keyScalar.Value;
+                        networks[i++] = keyScalar.Value ?? throw new ComposeReadException($"Service '{serviceName}': network keys must have a non-empty value.");
                     }
                     return networks;
                 }
