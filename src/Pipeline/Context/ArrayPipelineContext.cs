@@ -1,4 +1,3 @@
-using System.Collections;
 using Shiron.Lib.Collections.Bucket;
 using Shiron.Lib.Pipeline.Casting;
 using Shiron.Lib.Pipeline.Port;
@@ -18,7 +17,7 @@ public sealed class ArrayPipelineContext(
     private readonly CastRegistry _castRegistry = castRegistry;
     private readonly ArrayBucketStore _store = store;
     private readonly Type[] _channelTypes = channelTypes;
-    private readonly Dictionary<int, BitArray> _writeAtMasks = [];
+    private readonly Dictionary<int, int[]> _writeAtMasks = [];
 
     /// <summary>Create a context for a built pipeline, computing the channel layout from its topology.</summary>
     public static ArrayPipelineContext ForPipeline(Pipeline pipeline, CastRegistry? castRegistry = null) {
@@ -139,30 +138,28 @@ public sealed class ArrayPipelineContext(
         array[index] = value!;
         _store.Set(channel, array);
 
-        if (!_writeAtMasks.TryGetValue(channel, out var mask) || mask.Length < array.Length) {
-            var grown = new BitArray(array.Length);
+        var requiredWords = (array.Length + 31) >> 5;
+        if (!_writeAtMasks.TryGetValue(channel, out var mask) || mask.Length < requiredWords) {
+            var grown = new int[requiredWords];
             if (mask is not null)
-                for (var i = 0; i < mask.Length; i++) grown[i] = mask[i];
+                Array.Copy(mask, grown, Math.Min(mask.Length, requiredWords));
             _writeAtMasks[channel] = grown;
             mask = grown;
         }
-        mask[index] = true;
+        mask[index >> 5] |= 1 << (index & 31);
     }
 
     /// <inheritdoc/>
-    public bool[]? GetSuppliedMask(int channel) {
-        if (!_writeAtMasks.TryGetValue(channel, out var mask)) return null;
-        var result = new bool[mask.Length];
-        for (var i = 0; i < mask.Length; i++) result[i] = mask[i];
-        return result;
+    public int[]? GetSuppliedMask(int channel) {
+        return _writeAtMasks.TryGetValue(channel, out var mask) ? mask : null;
     }
 
     /// <inheritdoc/>
-    public void SetSuppliedMask(int channel, bool[]? mask) {
+    public void SetSuppliedMask(int channel, int[]? mask) {
         if (mask is null) {
             _writeAtMasks.Remove(channel);
             return;
         }
-        _writeAtMasks[channel] = new BitArray(mask);
+        _writeAtMasks[channel] = mask;
     }
 }

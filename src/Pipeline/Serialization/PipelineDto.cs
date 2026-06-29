@@ -12,11 +12,11 @@ public record PipelineInputsDto(
 );
 
 /// <summary>Serializable representation of an input port value with its runtime type.</summary>
-/// <param name="SuppliedMask">For array inputs, marks which indices were directly written. <c>null</c> for non-array ports.</param>
+/// <param name="SuppliedMask">For array inputs, packed bitmask of directly written indices (32 bits per int). <c>null</c> for non-array ports.</param>
 public record InputDto(
     object? Value,
     string Type,
-    bool[]? SuppliedMask = null
+    int[]? SuppliedMask = null
 );
 
 /// <summary>Serializable representation of a <see cref="PipelineBuilder.NodeInstance"/>.</summary>

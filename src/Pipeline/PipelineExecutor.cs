@@ -147,8 +147,10 @@ public class PipelineExecutor(Pipeline pipeline, ICache? cache = null, ICacheKey
             var mask = ((IArrayPortAssembly) port).Assemble(global, targetChannel, sources, count);
 
             if (writeAtMask is not null) {
-                for (var i = 0; i < Math.Min(mask.Length, writeAtMask.Length); i++) {
-                    if (writeAtMask[i]) mask[i] = true;
+                for (var i = 0; i < mask.Length; i++) {
+                    var word = i >> 5;
+                    if (word >= writeAtMask.Length) break;
+                    if ((writeAtMask[word] & (1 << (i & 31))) != 0) mask[i] = true;
                 }
             }
 

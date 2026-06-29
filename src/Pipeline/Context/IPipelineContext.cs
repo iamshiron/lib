@@ -47,13 +47,13 @@ public interface IPipelineContext {
     void WriteAt<T>(PipelineBuilder.NodeInstance node, IArrayInputPortMarker port, int index, T? value);
 
     /// <summary>
-    /// Returns a mask indicating which array indices were directly written via <see cref="WriteAt{T}"/>,
-    /// or <c>null</c> if the channel received no indexed writes.
+    /// Returns a bitmask indicating which array indices were directly written via <see cref="WriteAt{T}"/>,
+    /// packed as <c>int[]</c> (32 bits per element), or <c>null</c> if the channel received no indexed writes.
     /// </summary>
-    bool[]? GetSuppliedMask(int channel);
+    int[]? GetSuppliedMask(int channel);
 
     /// <summary>
-    /// Restore a supplied mask for a channel (used during deserialization).
+    /// Restore a supplied bitmask for a channel (used during deserialization).
     /// </summary>
-    void SetSuppliedMask(int channel, bool[]? mask);
+    void SetSuppliedMask(int channel, int[]? mask);
 }
