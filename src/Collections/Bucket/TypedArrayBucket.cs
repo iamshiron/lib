@@ -21,10 +21,6 @@ public class TypedArrayBucket<T>(int size) : IArrayBucket {
     public object? GetAny(int index) {
         return Get(index);
     }
-    public bool TryGetValue(int index, out object? value) {
-        value = Get(index);
-        return value != null;
-    }
     public void Clear(int index) {
         if (index < 0 || index >= size) throw new ArgumentOutOfRangeException(nameof(index));
         _data[index] = default;

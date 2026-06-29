@@ -15,14 +15,6 @@ public interface IArrayBucket {
     object? GetAny(int index);
 
     /// <summary>
-    /// Attempts to retrieve the value for <paramref name="index"/> without knowing its compile-time type.
-    /// </summary>
-    /// <remarks>
-    /// Keep in mind that this will box your value.
-    /// </remarks>
-    bool TryGetValue(int index, out object? value);
-
-    /// <summary>
     /// Clears the value at <paramref name="index"/>, resetting it to the default for the bucket's type.
     /// </summary>
     void Clear(int index);

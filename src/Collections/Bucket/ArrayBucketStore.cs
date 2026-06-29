@@ -2,150 +2,164 @@ using System.Collections.Concurrent;
 
 namespace Shiron.Lib.Collections.Bucket;
 
-public class ArrayBucketStore : IBucketStore<int> {
-    private readonly ConcurrentDictionary<Type, IArrayBucket> _valueTypes = [];
+/// <summary>
+/// A typed, pre-allocated key-value store backed by one array per registered value type plus a
+/// shared array for all reference types. Keys are integers in <c>[0, size)</c> per type.
+/// </summary>
+/// <remarks>
+/// Not interchangeable with <see cref="BucketStore{TK}"/>: the type set and key space are fixed at
+/// construction, entries cannot be removed, and value types that were not registered have no storage.
+/// </remarks>
+public sealed class ArrayBucketStore {
+    private readonly Dictionary<Type, IArrayBucket> _valueTypes = [];
     private readonly ConcurrentDictionary<int, Type> _keyRegistry = [];
     private readonly TypedArrayBucket<object?> _referenceTypes;
-
     private readonly Lock[] _locks;
     private readonly int _maxSize;
 
+    /// <summary>
+    /// Creates a store with one typed array per value type and a single shared array for reference types.
+    /// </summary>
+    /// <param name="bucketSizes">
+    /// Maps each value type to its array capacity. Any reference type entry contributes to the capacity
+    /// of the shared reference array (the maximum across all reference entries).
+    /// </param>
     public ArrayBucketStore(Dictionary<Type, int> bucketSizes) {
-        foreach (var (type, size) in bucketSizes) {
-            if (type == typeof(object)) {
-                _referenceTypes = new TypedArrayBucket<object?>(size);
-                continue;
-            }
-            _valueTypes[type] = Activator.CreateInstance(typeof(TypedArrayBucket<>).MakeGenericType(type), size) as IArrayBucket ??
-                throw new InvalidOperationException("Failed to create bucket for type " + type);
-        }
-        _referenceTypes ??= new TypedArrayBucket<object?>(0);
+        var referenceSize = 0;
 
-        _maxSize = bucketSizes.Values.Max();
+        foreach (var (type, size) in bucketSizes) {
+            if (size < 0)
+                throw new ArgumentOutOfRangeException(nameof(bucketSizes), size, "Bucket size cannot be negative.");
+
+            if (type.IsValueType) {
+                _valueTypes[type] = Activator.CreateInstance(typeof(TypedArrayBucket<>).MakeGenericType(type), size) as IArrayBucket
+                    ?? throw new InvalidOperationException("Failed to create bucket for type " + type + ".");
+            } else {
+                referenceSize = Math.Max(referenceSize, size);
+            }
+        }
+
+        _referenceTypes = new TypedArrayBucket<object?>(referenceSize);
+        _maxSize = bucketSizes.Count > 0 ? bucketSizes.Values.Max() : 0;
         _locks = new Lock[_maxSize];
         for (var i = 0; i < _maxSize; i++) {
             _locks[i] = new Lock();
         }
     }
 
+    private int SizeOf<T>() {
+        return typeof(T).IsValueType ? GetBucket<T>().Size : _referenceTypes.Size;
+    }
+
     private TypedArrayBucket<T> GetBucket<T>() {
-        var bucket = _valueTypes.GetValueOrDefault(typeof(T));
-        return bucket as TypedArrayBucket<T> ?? throw new InvalidOperationException("No bucket for type " + typeof(T));
+        return _valueTypes.GetValueOrDefault(typeof(T)) as TypedArrayBucket<T>
+            ?? throw new InvalidOperationException("No bucket registered for type " + typeof(T) + ".");
     }
 
-    private void EvictPrevious(int key, Type newType) {
-        if (_keyRegistry.TryGetValue(key, out var oldType) && oldType != newType) {
-            if (!oldType.IsValueType) {
-                _referenceTypes.Set(key, null);
-                return;
-            }
-            throw new InvalidOperationException($"Evict previous should only be called for reference types but the type was {oldType}.");
-        }
-
-        _keyRegistry[key] = newType;
-    }
-
-    public void Set<T>(int key, T value) {
-        if (key < 0 || key >= _maxSize) {
-            throw new ArgumentOutOfRangeException(nameof(key));
-        }
-
-        lock (_locks[key]) {
-            var newType = typeof(T);
-
-            if (!newType.IsValueType) {
-                EvictPrevious(key, newType);
-                _referenceTypes.Set(key, value);
-                return;
-            }
-
-            GetBucket<T>().Set(key, value);
-        }
-    }
-    public void Set(int key, object? value, Type type) {
-        if (key < 0 || key >= _maxSize) {
-            throw new ArgumentOutOfRangeException(nameof(key));
-        }
-
-        lock (_locks[key]) {
-            var method = typeof(ArrayBucketStore)
-                .GetMethods()
-                .First(m => m.Name == nameof(Set)
-                    && m.IsGenericMethodDefinition
-                    && m.GetParameters().Length == 2)
-                .MakeGenericMethod(type);
-
-            method.Invoke(this, [key, value]);
-        }
-    }
-    public T? Get<T>(int key) {
-        if (key < 0 || key >= _maxSize) {
-            throw new ArgumentOutOfRangeException(nameof(key));
-        }
-
-        lock (_locks[key]) {
-            var type = typeof(T);
-            if (!type.IsValueType) {
-                if (_referenceTypes.TryGetValue(key, out var value) && value is T typed) {
-                    return typed;
+    private void Register(int key, Type type) {
+        if (_keyRegistry.TryGetValue(key, out var oldType) && oldType != type) {
+            if (oldType.IsValueType) {
+                if (_valueTypes.TryGetValue(oldType, out var oldBucket)) {
+                    oldBucket.Clear(key);
                 }
-                return default;
+            } else {
+                _referenceTypes.Set(key, null);
             }
+        }
+        _keyRegistry[key] = type;
+    }
 
+    /// <summary>Stores <paramref name="value"/> at <paramref name="key"/> in the bucket for <typeparamref name="T"/>.</summary>
+    public void Set<T>(int key, T value) {
+        var size = SizeOf<T>();
+        if (key < 0 || key >= size) {
+            throw new ArgumentOutOfRangeException(nameof(key), key,
+                $"Key must be within [0, {size}) for type {typeof(T)}.");
+        }
+
+        lock (_locks[key]) {
+            Register(key, typeof(T));
+
+            if (typeof(T).IsValueType) {
+                GetBucket<T>().Set(key, value);
+            } else {
+                _referenceTypes.Set(key, value);
+            }
+        }
+    }
+
+    /// <summary>Stores <paramref name="value"/> at <paramref name="key"/> using <paramref name="type"/> as the compile-time type.</summary>
+    public void Set(int key, object? value, Type type) {
+        var method = typeof(ArrayBucketStore)
+            .GetMethods()
+            .First(m => m.Name == nameof(Set)
+                && m.IsGenericMethodDefinition
+                && m.GetParameters().Length == 2)
+            .MakeGenericMethod(type);
+
+        method.Invoke(this, [key, value]);
+    }
+
+    /// <summary>Returns the value for <paramref name="key"/> from the bucket for <typeparamref name="T"/>, or <c>default</c>.</summary>
+    public T? Get<T>(int key) {
+        var size = SizeOf<T>();
+        if (key < 0 || key >= size) {
+            throw new ArgumentOutOfRangeException(nameof(key), key,
+                $"Key must be within [0, {size}) for type {typeof(T)}.");
+        }
+
+        lock (_locks[key]) {
+            if (!typeof(T).IsValueType) {
+                return _referenceTypes.Get(key) is T typed ? typed : default;
+            }
             return GetBucket<T>().Get(key);
         }
     }
-    public T? GetAs<T>(int key) {
-        if (key < 0 || key >= _maxSize) {
-            throw new ArgumentOutOfRangeException(nameof(key));
+
+    /// <summary>Attempts to retrieve the typed value for <paramref name="key"/>.</summary>
+    public bool TryGet<T>(int key, out T? value) {
+        if (typeof(T).IsValueType && !_valueTypes.ContainsKey(typeof(T))) {
+            value = default;
+            return false;
         }
 
-        lock (_locks[key]) {
-            var bucket = GetBucket<T>();
-            return bucket.Get(key);
-        }
-    }
-    public bool TryGet<T>(int key, out T? value) {
-        if (key < 0 || key >= _maxSize) {
+        var size = SizeOf<T>();
+        if (key < 0 || key >= size) {
             value = default;
             return false;
         }
 
         lock (_locks[key]) {
-            var type = typeof(T);
+            if (!_keyRegistry.TryGetValue(key, out var registered) || registered != typeof(T)) {
+                value = default;
+                return false;
+            }
 
-            if (!type.IsValueType) {
-                if (_referenceTypes.TryGetValue(key, out var obj) && obj is T typed) {
+            if (!typeof(T).IsValueType) {
+                if (_referenceTypes.Get(key) is T typed) {
                     value = typed;
                     return true;
                 }
                 value = default;
                 return false;
             }
-
-            var bucket = GetBucket<T>();
-            value = bucket.Get(key);
-            return value is not null;
+            value = GetBucket<T>().Get(key);
+            return true;
         }
     }
+
+    /// <summary>Returns the value for <paramref name="key"/> boxed, or <c>null</c> if not present.</summary>
     public object? GetAny(int key) {
-        if (key < 0 || key >= _maxSize) {
-            throw new ArgumentOutOfRangeException(nameof(key));
-        }
+        if (key < 0 || key >= _maxSize) return null;
 
         lock (_locks[key]) {
-            if (_keyRegistry.TryGetValue(key, out var type)) {
-                if (!type.IsValueType) {
-                    return _referenceTypes.Get(key);
-                }
-                if (_valueTypes.TryGetValue(type, out var bucket)) {
-                    return bucket.GetAny(key);
-                }
-            }
-
-            return null;
+            if (!_keyRegistry.TryGetValue(key, out var type)) return null;
+            if (!type.IsValueType) return _referenceTypes.Get(key);
+            return _valueTypes.TryGetValue(type, out var bucket) ? bucket.GetAny(key) : null;
         }
     }
+
+    /// <summary>Attempts to retrieve the value for <paramref name="key"/> without knowing its compile-time type.</summary>
     public bool TryGetAny(int key, out object? value) {
         if (key < 0 || key >= _maxSize) {
             value = null;
@@ -153,62 +167,55 @@ public class ArrayBucketStore : IBucketStore<int> {
         }
 
         lock (_locks[key]) {
-            if (_keyRegistry.TryGetValue(key, out var type)) {
-                if (!type.IsValueType) {
-                    return _referenceTypes.TryGetValue(key, out value);
-                }
-                if (_valueTypes.TryGetValue(type, out var bucket)) {
-                    return bucket.TryGetAny(key, out value);
-                }
+            if (!_keyRegistry.TryGetValue(key, out var type)) {
+                value = null;
+                return false;
+            }
+            if (!type.IsValueType) {
+                value = _referenceTypes.Get(key);
+                return true;
+            }
+            if (_valueTypes.TryGetValue(type, out var bucket)) {
+                return bucket.TryGetAny(key, out value);
             }
             value = null;
             return false;
         }
     }
 
-    /// <summary>
-    /// Not supported.
-    /// </summary>
-    public bool Remove<T>(int key) {
-        throw new NotImplementedException();
-    }
-    /// <summary>
-    /// Not supported.
-    /// </summary>
-    public bool RemoveAny(int key) {
-        throw new NotImplementedException();
-    }
-
-    /// <summary>
-    /// Returns true if the key is within the bounds of the bucket.
-    /// </summary>
+    /// <summary>Returns <c>true</c> if a value of exactly type <typeparamref name="T"/> was written at <paramref name="key"/>.</summary>
     public bool Has<T>(int key) {
-        if (!typeof(T).IsValueType) {
-            return key >= 0 && key < _referenceTypes.Size;
-        }
+        if (typeof(T).IsValueType && !_valueTypes.ContainsKey(typeof(T))) return false;
 
-        var size = GetBucket<T>().Size;
-        return key >= 0 && key < size;
-    }
-    public bool CanCast<T>(int key) {
-        if (key < 0 || key >= _maxSize) {
-            return false;
+        var size = SizeOf<T>();
+        if (key < 0 || key >= size) return false;
+
+        lock (_locks[key]) {
+            return _keyRegistry.TryGetValue(key, out var type) && type == typeof(T);
         }
+    }
+
+    /// <summary>Returns <c>true</c> if any value was written at <paramref name="key"/>.</summary>
+    public bool HasAny(int key) {
+        if (key < 0 || key >= _maxSize) return false;
+
+        lock (_locks[key]) {
+            return _keyRegistry.ContainsKey(key);
+        }
+    }
+
+    /// <summary>Returns <c>true</c> if the value at <paramref name="key"/> is assignable to <typeparamref name="T"/>.</summary>
+    public bool CanCast<T>(int key) {
+        if (key < 0 || key >= _maxSize) return false;
 
         lock (_locks[key]) {
             return _keyRegistry.TryGetValue(key, out var type) && type.IsAssignableTo(typeof(T));
         }
     }
-    /// <summary>
-    /// Always returns true, array buckets are always populated.
-    /// </summary>
-    public bool HasAny(int key) {
-        return true;
-    }
+
+    /// <summary>Returns the type written at <paramref name="key"/>, or <c>null</c> if none.</summary>
     public Type? TypeOf(int key) {
-        if (key < 0 || key >= _maxSize) {
-            return null;
-        }
+        if (key < 0 || key >= _maxSize) return null;
 
         lock (_locks[key]) {
             return _keyRegistry.GetValueOrDefault(key);
