@@ -45,4 +45,15 @@ public interface IPipelineContext {
     /// sets the element at <paramref name="index"/> to <paramref name="value"/>, and writes it back.
     /// </summary>
     void WriteAt<T>(PipelineBuilder.NodeInstance node, IArrayInputPortMarker port, int index, T? value);
+
+    /// <summary>
+    /// Returns a mask indicating which array indices were directly written via <see cref="WriteAt{T}"/>,
+    /// or <c>null</c> if the channel received no indexed writes.
+    /// </summary>
+    bool[]? GetSuppliedMask(int channel);
+
+    /// <summary>
+    /// Restore a supplied mask for a channel (used during deserialization).
+    /// </summary>
+    void SetSuppliedMask(int channel, bool[]? mask);
 }

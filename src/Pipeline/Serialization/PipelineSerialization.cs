@@ -60,7 +60,8 @@ public static class PipelineSerialization {
 
                 nodeInputs[port.Name] = new InputDto(
                     context.ReadAny(channel),
-                    type.FullName ?? type.Name
+                    type.FullName ?? type.Name,
+                    context.GetSuppliedMask(channel)
                 );
             }
 
@@ -168,6 +169,10 @@ public static class PipelineSerialization {
                     ?? throw new InvalidOperationException($"Port '{portKey}' not found on node '{nodeId}'.");
                 var channel = node.Mappings[port];
                 context.Write(channel, value, type);
+
+                if (inputDto.SuppliedMask is not null) {
+                    context.SetSuppliedMask(channel, inputDto.SuppliedMask);
+                }
             }
         }
         return context;

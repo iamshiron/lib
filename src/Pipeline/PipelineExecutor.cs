@@ -120,25 +120,38 @@ public class PipelineExecutor(Pipeline pipeline, ICache? cache = null, ICacheKey
     private Dictionary<IPort, BitArray> AssembleFrozenArrayInputs(PipelineBuilder.NodeInstance node, IPipelineContext global) {
         var masks = new Dictionary<IPort, BitArray>();
         if (node.ArrayCounts is null) return masks;
-        if (!_incomingEdges.TryGetValue(node.ID, out var edges)) return masks;
 
         var indexedByPort = new Dictionary<IPort, List<(int Index, int SourceChannel)>>();
 
-        foreach (var edge in edges) {
-            if (!edge.DestIndex.HasValue) continue;
+        if (_incomingEdges.TryGetValue(node.ID, out var edges)) {
+            foreach (var edge in edges) {
+                if (!edge.DestIndex.HasValue) continue;
 
-            if (!indexedByPort.TryGetValue(edge.DestinationPort, out var list)) {
-                list = [];
-                indexedByPort[edge.DestinationPort] = list;
+                if (!indexedByPort.TryGetValue(edge.DestinationPort, out var list)) {
+                    list = [];
+                    indexedByPort[edge.DestinationPort] = list;
+                }
+                list.Add((edge.DestIndex.Value, edge.SourceNode.Mappings[edge.SourcePort]));
             }
-            list.Add((edge.DestIndex.Value, edge.SourceNode.Mappings[edge.SourcePort]));
         }
 
-        foreach (var (port, sources) in indexedByPort) {
-            if (!node.ArrayCounts.TryGetValue(port, out var count)) continue;
-
+        foreach (var (port, count) in node.ArrayCounts) {
             var targetChannel = node.Mappings[port];
+            var sources = indexedByPort.TryGetValue(port, out var s)
+                ? (IReadOnlyList<(int Index, int SourceChannel)>) s
+                : [];
+            var writeAtMask = global.GetSuppliedMask(targetChannel);
+
+            if (sources.Count == 0 && writeAtMask is null) continue;
+
             var mask = ((IArrayPortAssembly) port).Assemble(global, targetChannel, sources, count);
+
+            if (writeAtMask is not null) {
+                for (var i = 0; i < Math.Min(mask.Length, writeAtMask.Length); i++) {
+                    if (writeAtMask[i]) mask[i] = true;
+                }
+            }
+
             masks[port] = mask;
         }
 
