@@ -27,8 +27,7 @@ public class ArrayBucketStoreTests {
         public void EmptySizes_ProducesZeroCapacityStore() {
             var store = new ArrayBucketStore([]);
             Assert.False(store.HasAny(0));
-            Assert.Null(store.GetAny(0));
-            Assert.Throws<InvalidOperationException>(() => store.Set(0, 1));
+            Assert.Null(store.GetAny(0, typeof(object)));
         }
 
         [Fact]
@@ -74,12 +73,13 @@ public class ArrayBucketStoreTests {
         }
 
         [Fact]
-        public void MultipleTypes_StoredIndependently() {
+        public void MultipleTypes_SameKey_StoredIndependently() {
             var store = CreateStore();
             store.Set(0, 42);
-            store.Set(1, 3.14);
+            store.Set(0, 3.14);
+
             Assert.Equal(42, store.Get<int>(0));
-            Assert.Equal(3.14, store.Get<double>(1));
+            Assert.Equal(3.14, store.Get<double>(0));
         }
 
         [Fact]
@@ -140,7 +140,6 @@ public class ArrayBucketStoreTests {
             var store = CreateStore();
             store.Set(0, 42, typeof(int));
             Assert.Equal(42, store.Get<int>(0));
-            Assert.Equal(typeof(int), store.TypeOf(0));
         }
 
         [Fact]
@@ -148,269 +147,100 @@ public class ArrayBucketStoreTests {
             var store = CreateStore();
             store.Set(1, "hello", typeof(string));
             Assert.Equal("hello", store.Get<string>(1));
-            Assert.Equal(typeof(string), store.TypeOf(1));
-        }
-    }
-
-    public class ReTyping {
-        [Fact]
-        public void ValueToValue_EvictsOldData() {
-            var store = CreateStore();
-            store.Set(0, 42);
-            store.Set(0, 3.14);
-
-            Assert.Equal(typeof(double), store.TypeOf(0));
-            Assert.Equal(3.14, store.Get<double>(0));
-            Assert.Equal(3.14, store.GetAny(0));
-            Assert.Equal(0, store.Get<int>(0));
-            Assert.False(store.Has<int>(0));
-            Assert.True(store.Has<double>(0));
         }
 
         [Fact]
-        public void ValueToReference_EvictsOldData() {
+        public void StoresNullReference() {
             var store = CreateStore();
-            store.Set(0, 42);
-            store.Set(0, "hello");
-
-            Assert.Equal("hello", store.Get<string>(0));
-            Assert.Equal("hello", store.GetAny(0));
-            Assert.Equal(0, store.Get<int>(0));
-            Assert.False(store.Has<int>(0));
-            Assert.True(store.Has<string>(0));
-        }
-
-        [Fact]
-        public void ReferenceToValue_EvictsOldData() {
-            var store = CreateStore();
-            store.Set(0, "hello");
-            store.Set(0, 42);
-
-            Assert.Equal(42, store.Get<int>(0));
-            Assert.Equal(42, store.GetAny(0));
-            Assert.Null(store.Get<string>(0));
-            Assert.False(store.Has<string>(0));
-            Assert.True(store.Has<int>(0));
-        }
-
-        [Fact]
-        public void SameType_Overwrite_KeepsRegistryConsistent() {
-            var store = CreateStore();
-            store.Set(0, 42);
-            store.Set(0, 99);
-
-            Assert.Equal(typeof(int), store.TypeOf(0));
-            Assert.Equal(99, store.Get<int>(0));
-            Assert.True(store.Has<int>(0));
-        }
-    }
-
-    public class TryGet {
-        [Fact]
-        public void ValueType_Present_ReturnsTrueAndValue() {
-            var store = CreateStore();
-            store.Set(0, 42);
-            Assert.True(store.TryGet(0, out int value));
-            Assert.Equal(42, value);
-        }
-
-        [Fact]
-        public void ValueType_Absent_ReturnsFalse() {
-            var store = CreateStore();
-            Assert.False(store.TryGet(5, out int value));
-            Assert.Equal(0, value);
-        }
-
-        [Fact]
-        public void ValueType_WrongType_ReturnsFalse() {
-            var store = CreateStore();
-            store.Set(0, 42);
-            Assert.False(store.TryGet(0, out double value));
-            Assert.Equal(0, value);
-        }
-
-        [Fact]
-        public void ValueType_OutOfRange_ReturnsFalse() {
-            var store = CreateStore();
-            Assert.False(store.TryGet(BucketSize, out int value));
-            Assert.Equal(0, value);
-        }
-
-        [Fact]
-        public void ValueType_UnregisteredType_ReturnsFalse() {
-            var store = CreateStore();
-            Assert.False(store.TryGet(0, out float value));
-            Assert.Equal(0, value);
-        }
-
-        [Fact]
-        public void ReferenceType_Present_ReturnsTrueAndValue() {
-            var store = CreateStore();
-            store.Set(0, "hello");
-            Assert.True(store.TryGet(0, out string? value));
-            Assert.Equal("hello", value);
-        }
-
-        [Fact]
-        public void ReferenceType_Absent_ReturnsFalse() {
-            var store = CreateStore();
-            Assert.False(store.TryGet(0, out string? value));
-            Assert.Null(value);
+            store.Set(2, null, typeof(string));
+            Assert.True(store.HasAny(2));
+            Assert.Null(store.GetAny(2, typeof(string)));
         }
     }
 
     public class GetAny {
         [Fact]
-        public void ValueType_Present_ReturnsValue() {
+        public void ValueType_Present_ReturnsBoxedValue() {
             var store = CreateStore();
             store.Set(0, 42);
-            Assert.Equal(42, store.GetAny(0));
+            Assert.Equal(42, store.GetAny(0, typeof(int)));
         }
 
         [Fact]
         public void ReferenceType_Present_ReturnsValue() {
             var store = CreateStore();
             store.Set(0, "hello");
-            Assert.Equal("hello", store.GetAny(0));
+            Assert.Equal("hello", store.GetAny(0, typeof(string)));
         }
 
         [Fact]
         public void Absent_ReturnsNull() {
             var store = CreateStore();
-            Assert.Null(store.GetAny(5));
+            Assert.Null(store.GetAny(5, typeof(int)));
         }
 
         [Fact]
         public void OutOfRange_ReturnsNull() {
             var store = CreateStore();
-            Assert.Null(store.GetAny(BucketSize));
-            Assert.Null(store.GetAny(-1));
+            Assert.Null(store.GetAny(BucketSize, typeof(int)));
+            Assert.Null(store.GetAny(-1, typeof(int)));
         }
 
         [Fact]
-        public void TryGetAny_Absent_ReturnsFalse() {
-            var store = CreateStore();
-            Assert.False(store.TryGetAny(5, out var value));
-            Assert.Null(value);
-        }
-
-        [Fact]
-        public void TryGetAny_Present_ReturnsTrueAndValue() {
+        public void WrongType_ReturnsNullForUnregisteredType() {
             var store = CreateStore();
             store.Set(0, 42);
-            Assert.True(store.TryGetAny(0, out var value));
-            Assert.Equal(42, value);
+            Assert.Null(store.GetAny(0, typeof(float)));
         }
     }
 
-    public class Has {
+    public class HasAny {
         [Fact]
-        public void ExactType_Present_ReturnsTrue() {
-            var store = CreateStore();
-            store.Set(0, 42);
-            Assert.True(store.Has<int>(0));
-        }
-
-        [Fact]
-        public void DifferentType_ReturnsFalse() {
-            var store = CreateStore();
-            store.Set(0, 42);
-            Assert.False(store.Has<double>(0));
-        }
-
-        [Fact]
-        public void Absent_ReturnsFalse() {
-            var store = CreateStore();
-            Assert.False(store.Has<int>(5));
-        }
-
-        [Fact]
-        public void OutOfRange_ReturnsFalse() {
-            var store = CreateStore();
-            Assert.False(store.Has<int>(BucketSize));
-            Assert.False(store.Has<int>(-1));
-        }
-
-        [Fact]
-        public void UnregisteredValueType_ReturnsFalse() {
-            var store = CreateStore();
-            Assert.False(store.Has<float>(0));
-        }
-
-        [Fact]
-        public void HasAny_Written_ReturnsTrue() {
+        public void Written_ReturnsTrue() {
             var store = CreateStore();
             store.Set(0, 42);
             Assert.True(store.HasAny(0));
         }
 
         [Fact]
-        public void HasAny_Absent_ReturnsFalse() {
+        public void Absent_ReturnsFalse() {
             var store = CreateStore();
             Assert.False(store.HasAny(5));
         }
 
         [Fact]
-        public void HasAny_OutOfRange_ReturnsFalse() {
+        public void OutOfRange_ReturnsFalse() {
             var store = CreateStore();
             Assert.False(store.HasAny(BucketSize));
             Assert.False(store.HasAny(-1));
         }
+
+        [Fact]
+        public void NullReference_StillPresent() {
+            var store = CreateStore();
+            store.Set(0, null, typeof(string));
+            Assert.True(store.HasAny(0));
+        }
     }
 
-    public class TypeOfAndCanCast {
+    public class Clear {
         [Fact]
-        public void TypeOf_ReturnsRegisteredType() {
+        public void ClearsPresenceAndData() {
             var store = CreateStore();
             store.Set(0, 42);
-            Assert.Equal(typeof(int), store.TypeOf(0));
+            Assert.True(store.HasAny(0));
+
+            store.Clear(0);
+
+            Assert.False(store.HasAny(0));
+            Assert.Equal(0, store.Get<int>(0));
         }
 
         [Fact]
-        public void TypeOf_ReferenceType_ReturnsRegisteredType() {
+        public void OutOfRange_DoesNotThrow() {
             var store = CreateStore();
-            store.Set(0, "hello");
-            Assert.Equal(typeof(string), store.TypeOf(0));
-        }
-
-        [Fact]
-        public void TypeOf_AbsentOrOutOfRange_ReturnsNull() {
-            var store = CreateStore();
-            Assert.Null(store.TypeOf(5));
-            Assert.Null(store.TypeOf(BucketSize));
-            Assert.Null(store.TypeOf(-1));
-        }
-
-        [Fact]
-        public void CanCast_AssignableType_ReturnsTrue() {
-            var store = CreateStore();
-            store.Set(0, 42);
-            Assert.True(store.CanCast<int>(0));
-            Assert.True(store.CanCast<object>(0));
-        }
-
-        [Fact]
-        public void CanCast_ReferenceType_ReturnsTrue() {
-            var store = CreateStore();
-            store.Set(0, "hello");
-            Assert.True(store.CanCast<string>(0));
-            Assert.True(store.CanCast<object>(0));
-        }
-
-        [Fact]
-        public void CanCast_NonAssignableType_ReturnsFalse() {
-            var store = CreateStore();
-            store.Set(0, 42);
-            Assert.False(store.CanCast<double>(0));
-            Assert.False(store.CanCast<string>(0));
-        }
-
-        [Fact]
-        public void CanCast_AbsentOrOutOfRange_ReturnsFalse() {
-            var store = CreateStore();
-            Assert.False(store.CanCast<int>(5));
-            Assert.False(store.CanCast<int>(BucketSize));
-            Assert.False(store.CanCast<int>(-1));
+            store.Clear(-1);
+            store.Clear(BucketSize);
         }
     }
 
@@ -434,38 +264,14 @@ public class ArrayBucketStoreTests {
                     var key = i % BucketSize;
                     store.Set(key, i);
                     store.Get<int>(key);
-                    store.GetAny(key);
-                    store.Has<int>(key);
+                    store.GetAny(key, typeof(int));
                     store.HasAny(key);
-                    store.TryGet<int>(key, out _);
-                    store.TryGetAny(key, out _);
-                    store.TypeOf(key);
-                    store.CanCast<int>(key);
                 } catch (Exception ex) {
                     exceptions.Enqueue(ex);
                 }
             });
 
             Assert.Empty(exceptions);
-        }
-
-        [Fact]
-        public void SameKeyRetyping_DoesNotCorruptOrThrow() {
-            var store = CreateStore();
-            var exceptions = new ConcurrentQueue<Exception>();
-
-            Parallel.For(0, 500, i => {
-                try {
-                    if (i % 2 == 0) store.Set(0, i);
-                    else store.Set(0, (double) i);
-                } catch (Exception ex) {
-                    exceptions.Enqueue(ex);
-                }
-            });
-
-            Assert.Empty(exceptions);
-            Assert.True(store.HasAny(0));
-            Assert.True(store.TypeOf(0) == typeof(int) || store.TypeOf(0) == typeof(double));
         }
     }
 }
