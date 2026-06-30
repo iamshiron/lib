@@ -9,14 +9,12 @@
     <Project Path="benchmarks/Collections/Shiron.Lib.Benchmarks.Collections.csproj" />
     <Project Path="benchmarks/Flow/Shiron.Lib.Benchmarks.Flow.csproj" />
     <Project Path="benchmarks/Logging/Shiron.Lib.Benchmarks.Logging.csproj" />
-    <Project Path="benchmarks/Pipeline/Shiron.Lib.Benchmarks.Pipeline.csproj" />
     <Project Path="benchmarks/Utils/Shiron.Lib.Benchmarks.Utils.csproj" />
   </Folder>
   <Folder Name="/Samples/">
     <Project Path="samples/Collections/Shiron.Lib.Samples.Collections.csproj" />
     <Project Path="samples/Flow/Shiron.Lib.Samples.Flow.csproj" />
     <Project Path="samples/Misc/Shiron.Samples.Misc.csproj" />
-    <Project Path="samples/Pipeline/Shiron.Lib.Samples.Pipeline.csproj" />
   </Folder>
   <Folder Name="/Samples/Networking/">
     <Project Path="samples/Networking/Client/Shiron.Samples.Networking.Client.csproj" />
@@ -31,16 +29,12 @@
     <Project Path="tests/Collections/Shiron.Lib.Tests.Collections.csproj" />
     <Project Path="tests/DockerUtils/Shiron.Lib.Tests.DockerUtils.csproj" />
     <Project Path="tests/Logging/Shiron.Lib.Tests.Logging.csproj" />
-    <Project Path="tests/Pipeline.Ext.DI/Shiron.Lib.Tests.Pipeline.Ext.DI.csproj" />
-    <Project Path="tests/Pipeline/Shiron.Lib.Tests.Pipeline.csproj" />
     <Project Path="tests/Types/Shiron.Lib.Tests.Types.csproj" />
   </Folder>
   <Project Path="src/Collections/Shiron.Lib.Collections.csproj" />
   <Project Path="src/Flow/Shiron.Lib.Flow.csproj" />
   <Project Path="src/Logging/Shiron.Lib.Logging.csproj" />
   <Project Path="src/Networking/Shiron.Lib.Networking.csproj" />
-  <Project Path="src/Pipeline.Ext.DI/Shiron.Lib.Pipeline.Ext.DI.csproj" />
-  <Project Path="src/Pipeline/Shiron.Lib.Pipeline.csproj" />
   <Project Path="src/Profiling/Shiron.Lib.Profiling.csproj" />
   <Project Path="src/Types/Shiron.Lib.Types.csproj" />
   <Project Path="src/Types.Ext.Conversion/Shiron.Lib.Types.Ext.Conversion.csproj" />

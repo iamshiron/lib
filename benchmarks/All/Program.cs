@@ -2,7 +2,6 @@ using BenchmarkDotNet.Running;
 using Shiron.Lib.Benchmarks.Collections;
 using Shiron.Lib.Benchmarks.Flow;
 using Shiron.Lib.Benchmarks.Logging;
-using Shiron.Lib.Benchmarks.Pipeline;
 using Shiron.Lib.Benchmarks.Utils;
 
 Console.WriteLine("Hello, World!");
@@ -21,11 +20,6 @@ BenchmarkSwitcher.FromTypes([
     typeof(ContextualLoggingBenchmarks),
     typeof(LoggingBenchmarks),
     typeof(RendererBenchmarks),
-
-    // Pipeline
-    typeof(PipelineExecutionBenchmarks),
-    typeof(PipelineBuilderBenchmarks),
-    typeof(PipelineContextBenchmarks),
 
     // Utils
     typeof(FunctionUtilsBenchmarks),
