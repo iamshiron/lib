@@ -8,5 +8,6 @@ public class Service {
     public required PortForward[] Ports { get; init; } = [];
     public required string[] Volumes { get; init; } = [];
     public required Dictionary<string, string?> Environment { get; init; } = [];
+    public required IReadOnlyDictionary<string, string> Labels { get; init; } = new Dictionary<string, string>();
     public required string[] Networks { get; init; } = [];
 }

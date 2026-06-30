@@ -311,4 +311,97 @@ public class ComposeReaderTests {
                                                                                    target: /data
                                                                            """));
     }
+
+    [Fact]
+    public void Read_Labels_AsList_FlattensToDictionary() {
+        var service = ReadSingle("""
+                                 services:
+                                   web:
+                                     image: nginx
+                                     labels:
+                                       - npm.host=api.example.com
+                                       - npm.ssl=true
+                                 """);
+        Assert.Equal(2, service.Labels.Count);
+        Assert.Equal("api.example.com", service.Labels["npm.host"]);
+        Assert.Equal("true", service.Labels["npm.ssl"]);
+    }
+
+    [Fact]
+    public void Read_Labels_AsMap_FlattensToDictionary() {
+        var service = ReadSingle("""
+                                 services:
+                                   web:
+                                     image: nginx
+                                     labels:
+                                       npm.host: api.example.com
+                                       npm.ssl: "true"
+                                 """);
+        Assert.Equal("api.example.com", service.Labels["npm.host"]);
+        Assert.Equal("true", service.Labels["npm.ssl"]);
+    }
+
+    [Fact]
+    public void Read_Labels_ListWithoutValue_DefaultsToEmpty() {
+        var service = ReadSingle("""
+                                 services:
+                                   web:
+                                     image: nginx
+                                     labels:
+                                       - npm.host=api.example.com
+                                       - just-a-flag
+                                 """);
+        Assert.Equal(2, service.Labels.Count);
+        Assert.Equal("", service.Labels["just-a-flag"]);
+    }
+
+    [Fact]
+    public void Read_Labels_MapWithEmptyValue() {
+        var service = ReadSingle("""
+                                 services:
+                                   web:
+                                     image: nginx
+                                     labels:
+                                       npm.host: api.example.com
+                                       empty-label: ""
+                                 """);
+        Assert.Equal("", service.Labels["empty-label"]);
+    }
+
+    [Fact]
+    public void Read_Labels_NoLabels_DefaultsToEmpty() {
+        var service = ReadSingle("""
+                                 services:
+                                   web:
+                                     image: nginx
+                                 """);
+        Assert.Empty(service.Labels);
+    }
+
+    [Fact]
+    public void Read_Labels_MixedWithEnvironment() {
+        var service = ReadSingle("""
+                                 services:
+                                   web:
+                                     image: nginx
+                                     environment:
+                                       FOO: bar
+                                     labels:
+                                       npm.host: api.example.com
+                                 """);
+        Assert.Equal("bar", service.Environment["FOO"]);
+        Assert.Equal("api.example.com", service.Labels["npm.host"]);
+    }
+
+    [Fact]
+    public void Read_Labels_ListValueKeepsEquals() {
+        var service = ReadSingle("""
+                                 services:
+                                   web:
+                                     image: nginx
+                                     labels:
+                                       - traefik.http.routers.rule=Host(`api.example.com`)
+                                 """);
+        Assert.Equal("Host(`api.example.com`)", service.Labels["traefik.http.routers.rule"]);
+    }
 }

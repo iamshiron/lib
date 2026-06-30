@@ -52,6 +52,7 @@ public sealed class ComposeReader : IComposeReader {
             Ports = ParsePorts(name, mapping),
             Volumes = ParseVolumes(name, mapping),
             Environment = ParseEnvironment(name, mapping),
+            Labels = ParseLabels(name, mapping),
             Networks = ParseNetworks(name, mapping),
         };
     }
@@ -204,6 +205,50 @@ public sealed class ComposeReader : IComposeReader {
         if (eq < 0) return (entry, null);
         if (eq == 0)
             throw new ComposeReadException($"Service '{serviceName}': environment #{index} '{entry}' is missing a key.");
+        return (entry[..eq], entry[(eq + 1)..]);
+    }
+
+    private static IReadOnlyDictionary<string, string> ParseLabels(string serviceName, YamlMappingNode mapping) {
+        if (!mapping.TryGetChild("labels", out var node)) return new Dictionary<string, string>();
+
+        switch (node) {
+            case YamlSequenceNode sequence: {
+                    var labels = new Dictionary<string, string>(sequence.Children.Count);
+                    var i = 0;
+                    foreach (var item in sequence.Children) {
+                        if (item is not YamlScalarNode scalar || scalar.Value is null)
+                            throw new ComposeReadException($"Service '{serviceName}': label #{i} must be a scalar string ({item.GetType().Name}).");
+                        var (key, value) = ParseLabelEntry(serviceName, i, scalar.Value);
+                        labels[key] = value;
+                        i++;
+                    }
+                    return labels;
+                }
+            case YamlMappingNode map: {
+                    var labels = new Dictionary<string, string>(map.Children.Count);
+                    foreach (var (key, val) in map.Children) {
+                        if (key is not YamlScalarNode keyScalar || keyScalar.Value is null)
+                            throw new ComposeReadException($"Service '{serviceName}': label keys must be scalar.");
+                        labels[keyScalar.Value] = val switch {
+                            null => "",
+                            YamlScalarNode valueScalar => valueScalar.Value ?? "",
+                            _ => throw new ComposeReadException($"Service '{serviceName}': label value for '{keyScalar.Value}' must be a scalar."),
+                        };
+                    }
+                    return labels;
+                }
+            default:
+                throw new ComposeReadException($"Service '{serviceName}': 'labels' must be a sequence or a mapping.");
+        }
+    }
+
+    private static (string Key, string Value) ParseLabelEntry(string serviceName, int index, string entry) {
+        if (entry.Length == 0)
+            throw new ComposeReadException($"Service '{serviceName}': label #{index} is empty.");
+        var eq = entry.IndexOf('=');
+        if (eq < 0) return (entry, "");
+        if (eq == 0)
+            throw new ComposeReadException($"Service '{serviceName}': label #{index} '{entry}' is missing a key.");
         return (entry[..eq], entry[(eq + 1)..]);
     }
 
