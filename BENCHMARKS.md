@@ -1,12 +1,4 @@
 # Benchmarks
-## Shiron.Lib.Concurrency
-### JobScheduler
-| Method                        | Mean        | Error     | StdDev    | Ratio | RatioSD | Gen0     | Gen1   | Allocated | Alloc Ratio |
-|------------------------------ |------------:|----------:|----------:|------:|--------:|---------:|-------:|----------:|------------:|
-| Schedule_Struct_FireAndForget | 1,238.22 μs | 261.18 μs | 14.316 μs |  1.00 |    0.01 |  19.5313 | 1.9531 | 313.25 KB |        1.00 |
-| Schedule_Lambda_FireAndForget | 4,101.05 μs | 123.17 μs |  6.752 μs |  3.31 |    0.03 | 140.6250 |      - | 2187.5 KB |        6.98 |
-| Schedule_Parallel_Batch       |    20.73 μs |  87.11 μs |  4.775 μs |  0.02 |    0.00 |   0.3052 | 0.2899 |   4.91 KB |        0.02 |
-
 ## Shiron.Lib.Flow
 ### Latched Throttler
 | Method                        | IntervalMS | Mean          | Error     | StdDev    | Median        | Allocated |

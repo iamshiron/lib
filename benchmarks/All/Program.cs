@@ -1,6 +1,5 @@
 using BenchmarkDotNet.Running;
 using Shiron.Lib.Benchmarks.Collections;
-using Shiron.Lib.Benchmarks.Concurrency;
 using Shiron.Lib.Benchmarks.Flow;
 using Shiron.Lib.Benchmarks.Logging;
 using Shiron.Lib.Benchmarks.Pipeline;
@@ -11,18 +10,17 @@ Console.WriteLine("Hello, World!");
 BenchmarkSwitcher.FromTypes([
     // Collections
     typeof(RingBufferBenchmark),
+
+    // Flow
     typeof(LatchedThrottlerBenchmarks),
     typeof(LeadingDebouncerBenchmarks),
     typeof(ThrottlerBenchmarks),
     typeof(TrailingDebouncerBenchmarks),
 
-    // Concurrency
+    // Logging
     typeof(ContextualLoggingBenchmarks),
     typeof(LoggingBenchmarks),
     typeof(RendererBenchmarks),
-
-    // Flow
-    typeof(JobSchedulerBenchmarks),
 
     // Pipeline
     typeof(PipelineExecutionBenchmarks),
