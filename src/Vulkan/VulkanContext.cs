@@ -186,6 +186,10 @@ public class VulkanContext : IDisposable {
     /// </summary>
     public unsafe void Dispose() {
         Vk.DeviceWaitIdle(Device);
+        // Destroy the debug messenger before the device: the validation layer unregisters the
+        // messenger from per-device state, which requires the device dispatch table to still exist.
+        // Destroying it after vkDestroyDevice makes the layer fail the dispatch lookup and abort.
+        Instance.DestroyDebugMessenger();
         Swapchain.Dispose();
         Vk.DestroyDevice(Device, null);
         _khrSurface.DestroySurface(Instance.Instance, Surface, null);

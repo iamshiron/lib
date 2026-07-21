@@ -25,6 +25,12 @@ public sealed unsafe class VulkanInstanceBuilder {
     private readonly List<string> _extensions = new();
     private readonly List<string> _layers = new();
 
+    // The native debug messenger stores only a raw function pointer to this callback. The managed
+    // delegate backing that pointer must stay alive for as long as any messenger can invoke it,
+    // otherwise the GC may reclaim the reverse-P/Invoke thunk and the layer calls into freed memory.
+    // A static field roots it for the process lifetime.
+    private static readonly PfnDebugUtilsMessengerCallbackEXT DebugCallbackPfn = new(DebugCallback);
+
     public VulkanInstanceBuilder(Vk vk) {
         _vk = vk ?? throw new ArgumentNullException(nameof(vk));
     }
@@ -136,7 +142,14 @@ public sealed unsafe class VulkanInstanceBuilder {
                 throw new Exception("Unable to create Vulkan instance. Error callback handle is invalid.");
             }
 
-            debugUtils = new ExtDebugUtils(_vk.Context);
+            // Retrieve the extension bound to this instance so its entry points resolve via
+            // vkGetInstanceProcAddr. Constructing it straight from the context lets Silk fall back to
+            // vkGetDeviceProcAddr for these instance-level functions once a device exists, which the
+            // validation layer warns about at teardown.
+            if (!_vk.TryGetInstanceExtension(instance, out debugUtils)) {
+                throw new VulkanException("VK_EXT_debug_utils was enabled but could not be loaded.", Result.ErrorExtensionNotPresent);
+            }
+
             var messengerCi = new DebugUtilsMessengerCreateInfoEXT {
                 SType = StructureType.DebugUtilsMessengerCreateInfoExt,
                 MessageSeverity =
@@ -147,7 +160,7 @@ public sealed unsafe class VulkanInstanceBuilder {
                     DebugUtilsMessageTypeFlagsEXT.GeneralBitExt |
                     DebugUtilsMessageTypeFlagsEXT.ValidationBitExt |
                     DebugUtilsMessageTypeFlagsEXT.PerformanceBitExt,
-                PfnUserCallback = (PfnDebugUtilsMessengerCallbackEXT) DebugCallback,
+                PfnUserCallback = DebugCallbackPfn,
                 PUserData = (void*) GCHandle.ToIntPtr(_errorCallbackHandle.Value)
             };
 
