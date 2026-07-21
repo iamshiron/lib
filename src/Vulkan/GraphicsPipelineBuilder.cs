@@ -23,7 +23,7 @@ public unsafe class GraphicsPipelineBuilder(Vk vk, Device device) {
         SampleShadingEnable = false,
         RasterizationSamples = SampleCountFlags.Count1Bit
     };
-    private readonly PipelineColorBlendAttachmentState _colorBlendAttachment = new() {
+    private PipelineColorBlendAttachmentState _colorBlendAttachment = new() {
         ColorWriteMask = ColorComponentFlags.RBit | ColorComponentFlags.GBit | ColorComponentFlags.BBit | ColorComponentFlags.ABit,
         BlendEnable = false
     };
@@ -56,6 +56,7 @@ public unsafe class GraphicsPipelineBuilder(Vk vk, Device device) {
     private PushConstantRange _pushConstantRange;
     private VertexInputBindingDescription _bindingDescription;
     private VertexInputAttributeDescription[] _attributeDescriptions = [];
+    private bool _noVertexInput;
 
     public GraphicsPipelineBuilder SetShader(Shader shader) {
         _shader = shader;
@@ -65,6 +66,38 @@ public unsafe class GraphicsPipelineBuilder(Vk vk, Device device) {
     public GraphicsPipelineBuilder SetVertexInput(VertexInputBindingDescription binding, VertexInputAttributeDescription[] attributes) {
         _bindingDescription = binding;
         _attributeDescriptions = attributes;
+        _noVertexInput = false;
+        return this;
+    }
+
+    /// <summary>
+    /// Configures the pipeline with no vertex input (no bindings, no attributes) — for passes that
+    /// generate geometry from <c>gl_VertexIndex</c> (e.g. a fullscreen triangle).
+    /// </summary>
+    public GraphicsPipelineBuilder SetNoVertexInput() {
+        _noVertexInput = true;
+        _attributeDescriptions = [];
+        return this;
+    }
+
+    /// <summary>
+    /// Enables standard alpha blending on the single color attachment (for UI/overlay passes).
+    /// </summary>
+    /// <param name="premultiplied">
+    /// When true, expects premultiplied-alpha source (src factor <c>One</c>); when false, straight
+    /// alpha (src factor <c>SrcAlpha</c>). Destination factor is always <c>OneMinusSrcAlpha</c>.
+    /// </param>
+    public GraphicsPipelineBuilder EnableAlphaBlend(bool premultiplied = false) {
+        _colorBlendAttachment = new PipelineColorBlendAttachmentState {
+            ColorWriteMask = ColorComponentFlags.RBit | ColorComponentFlags.GBit | ColorComponentFlags.BBit | ColorComponentFlags.ABit,
+            BlendEnable = true,
+            SrcColorBlendFactor = premultiplied ? BlendFactor.One : BlendFactor.SrcAlpha,
+            DstColorBlendFactor = BlendFactor.OneMinusSrcAlpha,
+            ColorBlendOp = BlendOp.Add,
+            SrcAlphaBlendFactor = BlendFactor.One,
+            DstAlphaBlendFactor = BlendFactor.OneMinusSrcAlpha,
+            AlphaBlendOp = BlendOp.Add
+        };
         return this;
     }
 
@@ -128,10 +161,10 @@ public unsafe class GraphicsPipelineBuilder(Vk vk, Device device) {
         fixed (PipelineShaderStageCreateInfo* stagesPtr = stages) {
             var vertexInput = new PipelineVertexInputStateCreateInfo {
                 SType = StructureType.PipelineVertexInputStateCreateInfo,
-                VertexBindingDescriptionCount = 1,
-                PVertexBindingDescriptions = &bindingDesc,
+                VertexBindingDescriptionCount = _noVertexInput ? 0u : 1u,
+                PVertexBindingDescriptions = _noVertexInput ? null : &bindingDesc,
                 VertexAttributeDescriptionCount = (uint) _attributeDescriptions.Length,
-                PVertexAttributeDescriptions = attrsPtr
+                PVertexAttributeDescriptions = _noVertexInput ? null : attrsPtr
             };
 
             var blendAttachment = _colorBlendAttachment;

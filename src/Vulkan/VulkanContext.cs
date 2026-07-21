@@ -56,6 +56,12 @@ public class VulkanContext : IDisposable {
 
     public PhysicalDeviceProperties PhysicalDeviceProperties { get; }
 
+    /// <summary>The instance extension names enabled on this context (for interop layers like Skia's Ganesh backend).</summary>
+    public IReadOnlyList<string> EnabledInstanceExtensions { get; }
+
+    /// <summary>The device extension names enabled on this context (for interop layers like Skia's Ganesh backend).</summary>
+    public IReadOnlyList<string> EnabledDeviceExtensions { get; }
+
     private readonly VulkanContextOptions _options;
 
     public unsafe VulkanContext(Vk vk, IWindow window, VulkanContextOptions options) {
@@ -63,16 +69,21 @@ public class VulkanContext : IDisposable {
         Vk = vk;
 
         // Build the vulkan instance
+        var instanceExtensions = new List<string>(GetRequiredWindowExtensions(window));
         var instanceBuilder = new VulkanInstanceBuilder(vk)
             .WithApp(_options.AppName, _options.AppVersion)
             .WithEngine(_options.EngineName, _options.EngineVersion)
             .WithApiVersion(Vk.Version13)
-            .AddExtensions(GetRequiredWindowExtensions(window));
+            .AddExtensions([.. instanceExtensions]);
 
         if (_options.ErrorCallback != null) {
+            instanceExtensions.Add(ExtDebugUtils.ExtensionName);
             instanceBuilder.AddExtensions(ExtDebugUtils.ExtensionName)
                 .EnableValidationLayers(_options.ErrorCallback);
         }
+
+        EnabledInstanceExtensions = instanceExtensions;
+        EnabledDeviceExtensions = [KhrSwapchain.ExtensionName];
 
         Instance = instanceBuilder.Build();
         Surface = window.VkSurface!.Create<AllocationCallbacks>(Instance.Instance.ToHandle(), null).ToSurface();
