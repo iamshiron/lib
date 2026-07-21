@@ -19,13 +19,19 @@ public class VulkanContextOptions {
     public required bool ComputeFamilyRequired { get; init; }
     public required bool TransferFamilyRequired { get; init; }
 
+    /// <summary>
+    /// Preferred swapchain present mode. Defaults to <see cref="PresentModeKHR.FifoKhr"/> (VSync).
+    /// The swapchain builder falls back to a supported mode if the requested one is unavailable.
+    /// </summary>
+    public PresentModeKHR PresentMode { get; init; } = PresentModeKHR.FifoKhr;
+
     public Action<VulkanSwapchainBuilder>? SwapchainBuilder { get; init; } = null;
     public Action<PhysicalDeviceSelector>? DeviceSelector { get; init; } = null;
     public Action<LogicalDeviceBuilder>? LogicalDeviceBuilder { get; init; } = null;
     public required Action OnSwapchainRecreated { get; init; }
 }
 
-public class VulkanContext {
+public class VulkanContext : IDisposable {
     private KhrSurface _khrSurface;
 
     public Vk Vk { get; }
@@ -153,18 +159,36 @@ public class VulkanContext {
         var builder = new VulkanSwapchainBuilder(Vk, Device, PhysicalDevice, Surface, KhrSurface, GraphicsQueueFamilyIndex, PresentQueueFamilyIndex)
             .WithExtent(size)
             .WithFormat(Format.B8G8R8A8Srgb)
-            .WithPresentMode(PresentModeKHR.FifoKhr)
+            .WithPresentMode(_options.PresentMode)
             .WithImageCount(_options.FramesInFlight);
 
         if (oldSwapchain != null) {
             builder.WithOldSwapchain(oldSwapchain.Swapchain);
         }
 
+        _options.SwapchainBuilder?.Invoke(builder);
+
         return builder.Build();
     }
 
     public void RecreateSwapchain(Vector2D<int> size) {
-        Swapchain = CreateSwapchain(size, Swapchain);
+        var retired = Swapchain;
+        Swapchain = CreateSwapchain(size, retired);
+        // The callback (frame scheduler) waits for the device to go idle before we destroy the
+        // retired swapchain, so this is safe.
         _options.OnSwapchainRecreated.Invoke();
+        retired.Dispose();
+    }
+
+    /// <summary>
+    /// Tears down the whole context: waits for the device to idle, then destroys the swapchain,
+    /// logical device, surface, and instance in dependency order.
+    /// </summary>
+    public unsafe void Dispose() {
+        Vk.DeviceWaitIdle(Device);
+        Swapchain.Dispose();
+        Vk.DestroyDevice(Device, null);
+        _khrSurface.DestroySurface(Instance.Instance, Surface, null);
+        Instance.Dispose();
     }
 }
