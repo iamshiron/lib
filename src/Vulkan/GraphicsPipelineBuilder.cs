@@ -23,14 +23,11 @@ public unsafe class GraphicsPipelineBuilder(Vk vk, Device device) {
         SampleShadingEnable = false,
         RasterizationSamples = SampleCountFlags.Count1Bit
     };
-    private PipelineColorBlendAttachmentState _colorBlendAttachment = new() {
-        ColorWriteMask = ColorComponentFlags.RBit | ColorComponentFlags.GBit | ColorComponentFlags.BBit | ColorComponentFlags.ABit,
-        BlendEnable = false
-    };
+    // One blend state per color attachment; sized to the color-format count in Build.
+    private PipelineColorBlendAttachmentState[] _colorBlendAttachments = [DefaultBlendAttachment()];
     private readonly PipelineColorBlendStateCreateInfo _colorBlend = new() {
         SType = StructureType.PipelineColorBlendStateCreateInfo,
-        LogicOpEnable = false,
-        AttachmentCount = 1
+        LogicOpEnable = false
     };
     private PipelineDepthStencilStateCreateInfo _depthStencil = new() {
         SType = StructureType.PipelineDepthStencilStateCreateInfo,
@@ -50,13 +47,18 @@ public unsafe class GraphicsPipelineBuilder(Vk vk, Device device) {
     };
 
     private Shader? _shader;
-    private Format _colorAttachmentFormat;
+    private Format[] _colorAttachmentFormats = [];
     private Format _depthAttachmentFormat = Format.Undefined;
     private DescriptorSetLayout _descriptorSetLayout;
     private PushConstantRange _pushConstantRange;
     private VertexInputBindingDescription _bindingDescription;
     private VertexInputAttributeDescription[] _attributeDescriptions = [];
     private bool _noVertexInput;
+
+    private static PipelineColorBlendAttachmentState DefaultBlendAttachment() => new() {
+        ColorWriteMask = ColorComponentFlags.RBit | ColorComponentFlags.GBit | ColorComponentFlags.BBit | ColorComponentFlags.ABit,
+        BlendEnable = false
+    };
 
     public GraphicsPipelineBuilder SetShader(Shader shader) {
         _shader = shader;
@@ -81,28 +83,41 @@ public unsafe class GraphicsPipelineBuilder(Vk vk, Device device) {
     }
 
     /// <summary>
-    /// Enables standard alpha blending on the single color attachment (for UI/overlay passes).
+    /// Enables standard alpha blending on the first color attachment (for UI/overlay passes).
     /// </summary>
     /// <param name="premultiplied">
     /// When true, expects premultiplied-alpha source (src factor <c>One</c>); when false, straight
     /// alpha (src factor <c>SrcAlpha</c>). Destination factor is always <c>OneMinusSrcAlpha</c>.
     /// </param>
     public GraphicsPipelineBuilder EnableAlphaBlend(bool premultiplied = false) {
-        _colorBlendAttachment = new PipelineColorBlendAttachmentState {
-            ColorWriteMask = ColorComponentFlags.RBit | ColorComponentFlags.GBit | ColorComponentFlags.BBit | ColorComponentFlags.ABit,
-            BlendEnable = true,
-            SrcColorBlendFactor = premultiplied ? BlendFactor.One : BlendFactor.SrcAlpha,
-            DstColorBlendFactor = BlendFactor.OneMinusSrcAlpha,
-            ColorBlendOp = BlendOp.Add,
-            SrcAlphaBlendFactor = BlendFactor.One,
-            DstAlphaBlendFactor = BlendFactor.OneMinusSrcAlpha,
-            AlphaBlendOp = BlendOp.Add
-        };
+        _colorBlendAttachments = [
+            new PipelineColorBlendAttachmentState {
+                ColorWriteMask = ColorComponentFlags.RBit | ColorComponentFlags.GBit | ColorComponentFlags.BBit | ColorComponentFlags.ABit,
+                BlendEnable = true,
+                SrcColorBlendFactor = premultiplied ? BlendFactor.One : BlendFactor.SrcAlpha,
+                DstColorBlendFactor = BlendFactor.OneMinusSrcAlpha,
+                ColorBlendOp = BlendOp.Add,
+                SrcAlphaBlendFactor = BlendFactor.One,
+                DstAlphaBlendFactor = BlendFactor.OneMinusSrcAlpha,
+                AlphaBlendOp = BlendOp.Add
+            }
+        ];
         return this;
     }
 
+    /// <summary>Configures dynamic rendering with a single color attachment.</summary>
     public GraphicsPipelineBuilder SetDynamicRendering(Format colorFormat, Format depthFormat = Format.Undefined) {
-        _colorAttachmentFormat = colorFormat;
+        _colorAttachmentFormats = [colorFormat];
+        _depthAttachmentFormat = depthFormat;
+        return this;
+    }
+
+    /// <summary>
+    /// Configures dynamic rendering with multiple color attachments (MRT) — e.g. a deferred G-buffer.
+    /// Pass an empty array for a depth-only pass (a shadow map).
+    /// </summary>
+    public GraphicsPipelineBuilder SetDynamicRendering(Format[] colorFormats, Format depthFormat = Format.Undefined) {
+        _colorAttachmentFormats = colorFormats;
         _depthAttachmentFormat = depthFormat;
         return this;
     }
@@ -116,6 +131,21 @@ public unsafe class GraphicsPipelineBuilder(Vk vk, Device device) {
     public GraphicsPipelineBuilder SetRasterizer(PolygonMode mode, CullModeFlags cullMode) {
         _rasterizer.PolygonMode = mode;
         _rasterizer.CullMode = cullMode;
+        return this;
+    }
+
+    /// <summary>Enables a constant + slope-scaled depth bias (for shadow-map rendering to reduce acne).</summary>
+    public GraphicsPipelineBuilder SetDepthBias(float constantFactor, float slopeFactor) {
+        _rasterizer.DepthBiasEnable = true;
+        _rasterizer.DepthBiasConstantFactor = constantFactor;
+        _rasterizer.DepthBiasSlopeFactor = slopeFactor;
+        return this;
+    }
+
+    public GraphicsPipelineBuilder SetDepthStencil(bool depthTestEnable, bool depthWriteEnable, CompareOp compareOp = CompareOp.Less) {
+        _depthStencil.DepthTestEnable = depthTestEnable;
+        _depthStencil.DepthWriteEnable = depthWriteEnable;
+        _depthStencil.DepthCompareOp = compareOp;
         return this;
     }
 
@@ -136,14 +166,22 @@ public unsafe class GraphicsPipelineBuilder(Vk vk, Device device) {
         var dynamicState = _dynamicState;
 
         var stages = _shader.GetPipelineStages();
-        var colorFormats = stackalloc[] { _colorAttachmentFormat };
+
+        var colorCount = _colorAttachmentFormats.Length;
+        var colorFormats = stackalloc Format[colorCount == 0 ? 1 : colorCount];
+        for (var i = 0; i < colorCount; i++) colorFormats[i] = _colorAttachmentFormats[i];
 
         var pipelineRenderingInfo = new PipelineRenderingCreateInfo {
             SType = StructureType.PipelineRenderingCreateInfo,
-            ColorAttachmentCount = 1,
-            PColorAttachmentFormats = colorFormats,
+            ColorAttachmentCount = (uint) colorCount,
+            PColorAttachmentFormats = colorCount == 0 ? null : colorFormats,
             DepthAttachmentFormat = _depthAttachmentFormat
         };
+
+        // Vulkan requires one blend state per color attachment (attachmentCount == colorAttachmentCount).
+        var blendStates = new PipelineColorBlendAttachmentState[colorCount];
+        for (var i = 0; i < colorCount; i++)
+            blendStates[i] = i < _colorBlendAttachments.Length ? _colorBlendAttachments[i] : DefaultBlendAttachment();
 
         var layoutInfo = new PipelineLayoutCreateInfo {
             SType = StructureType.PipelineLayoutCreateInfo,
@@ -158,7 +196,8 @@ public unsafe class GraphicsPipelineBuilder(Vk vk, Device device) {
         }
 
         fixed (VertexInputAttributeDescription* attrsPtr = _attributeDescriptions)
-        fixed (PipelineShaderStageCreateInfo* stagesPtr = stages) {
+        fixed (PipelineShaderStageCreateInfo* stagesPtr = stages)
+        fixed (PipelineColorBlendAttachmentState* blendPtr = blendStates) {
             var vertexInput = new PipelineVertexInputStateCreateInfo {
                 SType = StructureType.PipelineVertexInputStateCreateInfo,
                 VertexBindingDescriptionCount = _noVertexInput ? 0u : 1u,
@@ -167,8 +206,8 @@ public unsafe class GraphicsPipelineBuilder(Vk vk, Device device) {
                 PVertexAttributeDescriptions = _noVertexInput ? null : attrsPtr
             };
 
-            var blendAttachment = _colorBlendAttachment;
-            colorBlend.PAttachments = &blendAttachment;
+            colorBlend.AttachmentCount = (uint) colorCount;
+            colorBlend.PAttachments = colorCount == 0 ? null : blendPtr;
 
             var dynamicStates = stackalloc[] { DynamicState.Viewport, DynamicState.Scissor };
             dynamicState.SType = StructureType.PipelineDynamicStateCreateInfo;
@@ -197,12 +236,5 @@ public unsafe class GraphicsPipelineBuilder(Vk vk, Device device) {
                 ? throw new Exception("Failed to create graphics pipeline!")
                 : pipeline;
         }
-    }
-
-    public GraphicsPipelineBuilder SetDepthStencil(bool depthTestEnable, bool depthWriteEnable, CompareOp compareOp = CompareOp.Less) {
-        _depthStencil.DepthTestEnable = depthTestEnable;
-        _depthStencil.DepthWriteEnable = depthWriteEnable;
-        _depthStencil.DepthCompareOp = compareOp;
-        return this;
     }
 }
