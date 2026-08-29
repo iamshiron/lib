@@ -3,7 +3,7 @@ using System.Text;
 using Shiron.Lib.Collections.Bucket;
 using Xunit;
 
-namespace Shiron.Lib.Tests.Collections;
+namespace Shiron.Lib.Collections.Tests;
 
 public class ArrayBucketStoreTests {
     private const int BucketSize = 16;

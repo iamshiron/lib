@@ -2,7 +2,7 @@ using System.Diagnostics.Contracts;
 using MemoryPack;
 using Shiron.Lib.Networking;
 
-namespace Shiron.Samples.Networking.Common;
+namespace Shiron.Lib.Networking.Common.Samples;
 
 [MemoryPackable]
 public partial class CommandPing : INetworkCommand {

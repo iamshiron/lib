@@ -3,7 +3,7 @@ using Shiron.Lib.Logging;
 using Shiron.Lib.Logging.Renderer;
 using Shiron.Lib.Utils;
 
-namespace Shiron.Lib.Benchmarks.Logging;
+namespace Shiron.Lib.Logging.Benchmarks;
 
 [MemoryDiagnoser]
 public class RendererBenchmarks {

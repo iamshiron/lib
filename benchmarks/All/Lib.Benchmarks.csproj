@@ -1,0 +1,10 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Collections\Lib.Collections.Benchmarks.csproj" />
+    <ProjectReference Include="..\Flow\Lib.Flow.Benchmarks.csproj" />
+    <ProjectReference Include="..\Logging\Lib.Logging.Benchmarks.csproj" />
+    <ProjectReference Include="..\Utils\Lib.Utils.Benchmarks.csproj" />
+  </ItemGroup>
+
+</Project>

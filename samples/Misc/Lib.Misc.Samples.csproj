@@ -1,0 +1,8 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Logging\Lib.Logging.csproj" />
+    <ProjectReference Include="..\..\src\Profiling\Lib.Profiling.csproj" />
+  </ItemGroup>
+
+</Project>

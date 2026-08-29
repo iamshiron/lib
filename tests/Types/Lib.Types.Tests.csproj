@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <PackageReference Include="Testcontainers.PostgreSql" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Types\Lib.Types.csproj" />
+    <ProjectReference Include="..\..\src\Types.Ext.Conversion\Lib.Types.Ext.Conversion.csproj" />
+    <ProjectReference Include="..\..\src\Types.Ext.EFCore\Lib.Types.Ext.EFCore.csproj" />
+  </ItemGroup>
+
+</Project>

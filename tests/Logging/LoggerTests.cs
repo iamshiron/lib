@@ -4,7 +4,7 @@ using Shiron.Lib.Logging.Renderer;
 using Shiron.Lib.Utils;
 using Xunit;
 
-namespace Shiron.Lib.Tests.Logging;
+namespace Shiron.Lib.Logging.Tests;
 
 public class LoggerTests {
     private class TestRenderer : ILogRenderer {

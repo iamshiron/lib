@@ -2,7 +2,7 @@ using Shiron.Lib.Types;
 using Shiron.Lib.Types.Ext.Conversion;
 using Xunit;
 
-namespace Shiron.Lib.Tests.Types;
+namespace Shiron.Lib.Types.Tests;
 
 public class LabColorExtensionsTests {
     [Fact]

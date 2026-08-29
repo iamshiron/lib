@@ -1,7 +1,7 @@
 using Shiron.Lib.Types;
 using Xunit;
 
-namespace Shiron.Lib.Tests.Types;
+namespace Shiron.Lib.Types.Tests;
 
 public class LabColorTests {
     [Fact]
