@@ -1,0 +1,20 @@
+workflow: GitFlow/v1
+commit-message-incrementing: Enabled
+
+major-version-bump-message: '^[a-z][a-z0-9-]*(\([^)]+\))?!:'
+minor-version-bump-message: '^feat(\([^)]+\))?:'
+patch-version-bump-message: '^(fix|perf)(\([^)]+\))?:'
+
+branches:
+  develop:
+    regex: '^dev$'
+    label: alpha
+    increment: Patch
+
+  feature:
+    regex: '^(features?|feat|fix|refactor|chore|perf|docs|test|build|style|revert)[/_-](?<BranchName>.+)'
+    label: '{BranchName}'
+    increment: Inherit
+    source-branches:
+      - develop
+      - main

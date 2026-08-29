@@ -1,7 +1,7 @@
 
 using System;
 
-namespace Shiron.Samples.Misc;
+namespace Shiron.Lib.Misc.Samples;
 
 public class GCTracker {
     private long _start = 0;

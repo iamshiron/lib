@@ -146,7 +146,7 @@ public sealed unsafe class VulkanInstanceBuilder {
             // vkGetInstanceProcAddr. Constructing it straight from the context lets Silk fall back to
             // vkGetDeviceProcAddr for these instance-level functions once a device exists, which the
             // validation layer warns about at teardown.
-            if (!_vk.TryGetInstanceExtension(instance, out debugUtils)) {
+            if (!_vk.TryGetInstanceExtension(instance, out debugUtils) || debugUtils is null) {
                 throw new VulkanException("VK_EXT_debug_utils was enabled but could not be loaded.", Result.ErrorExtensionNotPresent);
             }
 

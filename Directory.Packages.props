@@ -4,6 +4,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageVersion Include="BenchmarkDotNet" Version="0.15.8" />
+    <PackageVersion Include="GitVersion.MsBuild" Version="6.8.2" />
     <PackageVersion Include="LiteNetLib" Version="2.1.4" />
     <PackageVersion Include="MemoryPack" Version="1.21.4" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.11" />

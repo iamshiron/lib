@@ -5,7 +5,7 @@ using System.Security.Cryptography;
 using Shiron.Lib.Logging;
 using Shiron.Lib.Logging.Renderer;
 using Shiron.Lib.Profiling;
-using Shiron.Samples.Misc;
+using Shiron.Lib.Misc.Samples;
 
 var jsonLogging = args.Contains("--json");
 var logger = new Logger(jsonLogging);
