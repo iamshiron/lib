@@ -19,10 +19,10 @@
   <Folder Name="/Samples/Networking/">
     <Project Path="samples/Networking/Client/Lib.Networking.Client.Samples.csproj" />
   </Folder>
-  <Folder Name="/samples/Networking/Common/">
+  <Folder Name="/Samples/Networking/Common/">
     <Project Path="samples/Networking/Common/Lib.Networking.Common.Samples.csproj" />
   </Folder>
-  <Folder Name="/samples/Networking/Server/">
+  <Folder Name="/Samples/Networking/Server/">
     <Project Path="samples/Networking/Server/Lib.Networking.Server.Samples.csproj" />
   </Folder>
   <Folder Name="/Tests/">

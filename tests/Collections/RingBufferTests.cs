@@ -1,7 +1,7 @@
 using Shiron.Lib.Collections;
 using Xunit;
 
-namespace Shiron.Lib.Tests.Collections;
+namespace Shiron.Lib.Collections.Tests;
 
 public class RingBufferTests {
     [Fact]

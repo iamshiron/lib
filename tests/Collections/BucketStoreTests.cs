@@ -2,7 +2,7 @@ using System.Collections.Concurrent;
 using Shiron.Lib.Collections.Bucket;
 using Xunit;
 
-namespace Shiron.Lib.Tests.Collections;
+namespace Shiron.Lib.Collections.Tests;
 
 public class BucketStoreTests : BucketStoreContractTests<string> {
     protected override IBucketStore<string> CreateStore() {

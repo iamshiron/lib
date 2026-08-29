@@ -1,8 +1,8 @@
 using BenchmarkDotNet.Running;
-using Shiron.Lib.Benchmarks.Collections;
-using Shiron.Lib.Benchmarks.Flow;
-using Shiron.Lib.Benchmarks.Logging;
-using Shiron.Lib.Benchmarks.Utils;
+using Shiron.Lib.Collections.Benchmarks;
+using Shiron.Lib.Flow.Benchmarks;
+using Shiron.Lib.Logging.Benchmarks;
+using Shiron.Lib.Utils.Benchmarks;
 
 Console.WriteLine("Hello, World!");
 
