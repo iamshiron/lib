@@ -1,2 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
+    <ItemGroup>
+        <ProjectReference Include="..\..\src\Tess.ThreeMF\Lib.Tess.ThreeMF.csproj"/>
+    </ItemGroup>
 </Project>
