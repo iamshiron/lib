@@ -26,11 +26,13 @@
     <Project Path="samples/Networking/Server/Lib.Networking.Server.Samples.csproj" />
   </Folder>
   <Folder Name="/Tests/">
+    <Project Path="../../../../../home/shiron/dev/lib/main/tests/Tess.ThreeMF/Lib.Tess.ThreeMF.Tests.csproj" />
     <Project Path="tests/Collections/Lib.Collections.Tests.csproj" />
     <Project Path="tests/DockerUtils/Lib.DockerUtils.Tests.csproj" />
     <Project Path="tests/Logging/Lib.Logging.Tests.csproj" />
     <Project Path="tests/Types/Lib.Types.Tests.csproj" />
   </Folder>
+  <Project Path="../../../../../home/shiron/dev/lib/main/src/Tess.ThreeMF/Lib.Tess.ThreeMF.csproj" />
   <Project Path="src/Collections/Lib.Collections.csproj" />
   <Project Path="src/Flow/Lib.Flow.csproj" />
   <Project Path="src/Logging/Lib.Logging.csproj" />
