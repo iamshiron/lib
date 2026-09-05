@@ -1,5 +1,4 @@
 using System.IO.Compression;
-using System.Text.Json;
 using Shiron.Lib.Tess.ThreeMF.Internal;
 
 namespace Shiron.Lib.Tess.ThreeMF;
@@ -57,6 +56,68 @@ public static class ThreeMFSerializer {
                 ? OpcParser.ParseRelationships(relationshipsXml)
                 : [],
         };
+    }
+
+    /// <summary>
+    /// Reads a 3MF document from a ZIP archive on the given stream. The runtime
+    /// document type is detected from the package contents via the registered document
+    /// handlers; with only the built-in standard handler, a valid 3MF yields exactly
+    /// <see cref="ThreeMFDocument"/>.
+    /// </summary>
+    /// <param name="stream">The stream to read from; it is left open.</param>
+    /// <param name="options">The deserialization options; <see langword="null"/> uses <see cref="ThreeMFSerializerOptions.Default"/>.</param>
+    /// <returns>The deserialized document, whose runtime type is the detected document type.</returns>
+    /// <exception cref="ThreeMFPackageException">
+    /// Thrown when the stream is not a valid ZIP archive, contains duplicate file paths,
+    /// or contains malformed OPC metadata.
+    /// </exception>
+    /// <exception cref="ThreeMFDocumentDetectionException">
+    /// Thrown when no registered handler recognizes the package as a 3MF document, or
+    /// when unrelated handlers claim it with equal authority
+    /// (<see cref="ThreeMFAmbiguousDocumentTypeException"/>).
+    /// </exception>
+    /// <exception cref="ThreeMFCoreException">
+    /// Thrown when the 3D model part is malformed or violates validation rules.
+    /// </exception>
+    public static ThreeMFDocument Deserialize(Stream stream, ThreeMFSerializerOptions? options = null) {
+        ArgumentNullException.ThrowIfNull(stream);
+
+        var effectiveOptions = options ?? ThreeMFSerializerOptions.Default;
+
+        var context = new ThreeMFParseContext {
+            Files = ReadFiles(stream),
+            Options = effectiveOptions,
+        };
+
+        return DocumentDetector.Select(BuildHandlers(effectiveOptions), context).Parse(context);
+    }
+
+    /// <summary>
+    /// Reads a 3MF document from a ZIP archive on the given stream and requires the
+    /// detected runtime document type to be assignable to <typeparamref name="TDocument"/>.
+    /// Requesting a base type preserves the detected runtime type.
+    /// </summary>
+    /// <typeparam name="TDocument">The document type to require of the result.</typeparam>
+    /// <param name="stream">The stream to read from; it is left open.</param>
+    /// <param name="options">The deserialization options; <see langword="null"/> uses <see cref="ThreeMFSerializerOptions.Default"/>.</param>
+    /// <returns>The deserialized document.</returns>
+    /// <exception cref="ThreeMFDocumentTypeMismatchException">
+    /// Thrown when the detected document type is not assignable to
+    /// <typeparamref name="TDocument"/>.
+    /// </exception>
+    /// <inheritdoc cref="Deserialize(Stream, ThreeMFSerializerOptions?)"/>
+    public static TDocument Deserialize<TDocument>(Stream stream, ThreeMFSerializerOptions? options = null)
+        where TDocument : ThreeMFDocument {
+        var document = Deserialize(stream, options);
+
+        if (document is not TDocument matched)
+            throw new ThreeMFDocumentTypeMismatchException(typeof(TDocument), document.GetType());
+
+        return matched;
+    }
+
+    static IReadOnlyList<IThreeMFDocumentHandler> BuildHandlers(ThreeMFSerializerOptions options) {
+        return [new StandardDocumentHandler(), .. options.Extensions.Handlers];
     }
 
     static Dictionary<string, ReadOnlyMemory<byte>> ReadFiles(Stream stream) {
