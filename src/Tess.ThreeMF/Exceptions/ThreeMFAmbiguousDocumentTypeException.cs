@@ -1,4 +1,4 @@
-namespace Shiron.Lib.Tess.ThreeMF;
+namespace Shiron.Lib.Tess.ThreeMF.Exceptions;
 
 /// <summary>
 /// Thrown when multiple unrelated document handlers claim a package with equal

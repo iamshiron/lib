@@ -1,4 +1,4 @@
-namespace Shiron.Lib.Tess.ThreeMF;
+namespace Shiron.Lib.Tess.ThreeMF.Exceptions;
 
 /// <summary>
 /// Thrown when the 3D model part of a 3MF package cannot be read because it is

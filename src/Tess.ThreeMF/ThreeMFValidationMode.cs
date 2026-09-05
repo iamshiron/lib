@@ -1,3 +1,5 @@
+using Shiron.Lib.Tess.ThreeMF.Exceptions;
+
 namespace Shiron.Lib.Tess.ThreeMF;
 
 /// <summary>

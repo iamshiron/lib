@@ -1,4 +1,4 @@
-namespace Shiron.Lib.Tess.ThreeMF;
+namespace Shiron.Lib.Tess.ThreeMF.Exceptions;
 
 /// <summary>
 /// Thrown when no registered document handler recognizes a package as a 3MF document,

@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using Shiron.Lib.Tess.ThreeMF.Exceptions;
 using Shiron.Lib.Tess.ThreeMF.Internal;
 
 namespace Shiron.Lib.Tess.ThreeMF;

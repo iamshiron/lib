@@ -1,4 +1,4 @@
-namespace Shiron.Lib.Tess.ThreeMF;
+namespace Shiron.Lib.Tess.ThreeMF.Exceptions;
 
 /// <summary>
 /// The base of all exceptions thrown when 3MF or OPC data is malformed and cannot be

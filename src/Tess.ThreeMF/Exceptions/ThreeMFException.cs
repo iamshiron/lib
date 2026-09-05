@@ -1,4 +1,4 @@
-namespace Shiron.Lib.Tess.ThreeMF;
+namespace Shiron.Lib.Tess.ThreeMF.Exceptions;
 
 /// <summary>
 /// The root of all exceptions thrown by the 3MF serializer.
