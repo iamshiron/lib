@@ -7,7 +7,7 @@ public class ThreeMFSerializerTests {
 
     [Fact]
     public void Serialize_WritesAllFilesToZipArchive() {
-        var document = new ThreeMFDocument {
+        var document = new ThreeMFPackage {
             Files = new Dictionary<string, ReadOnlyMemory<byte>> {
                 ["[Content_Types].xml"] = "<Types />"u8.ToArray(),
                 ["3D/3dmodel.model"] = "<model />"u8.ToArray(),
@@ -17,7 +17,7 @@ public class ThreeMFSerializerTests {
 
         using var stream = new MemoryStream();
 
-        ThreeMFSerializer.Serialize(stream, document, _options);
+        ThreeMFSerializer.SerializePackage(stream, document, _options);
 
         stream.Position = 0;
 
@@ -32,13 +32,13 @@ public class ThreeMFSerializerTests {
 
     [Fact]
     public void Serialize_LeavesStreamOpen() {
-        var document = new ThreeMFDocument {
+        var document = new ThreeMFPackage {
             Files = new Dictionary<string, ReadOnlyMemory<byte>>()
         };
 
         using var stream = new MemoryStream();
 
-        ThreeMFSerializer.Serialize(stream, document, _options);
+        ThreeMFSerializer.SerializePackage(stream, document, _options);
 
         Assert.True(stream.CanRead);
         Assert.True(stream.CanWrite);
@@ -52,7 +52,7 @@ public class ThreeMFSerializerTests {
             ["Metadata/thumbnail.png"] = [0x89, 0x50, 0x4E, 0x47]
         });
 
-        var document = ThreeMFSerializer.Deserialize(stream);
+        var document = ThreeMFSerializer.DeserializePackage(stream);
 
         Assert.Equal(3, document.Files.Count);
 
@@ -87,7 +87,7 @@ public class ThreeMFSerializerTests {
 
         stream.Position = 0;
 
-        var document = ThreeMFSerializer.Deserialize(stream);
+        var document = ThreeMFSerializer.DeserializePackage(stream);
 
         Assert.Single(document.Files);
         Assert.True(document.Files.ContainsKey("3D/3dmodel.model"));
@@ -98,7 +98,7 @@ public class ThreeMFSerializerTests {
     public void Deserialize_LeavesStreamOpen() {
         using var stream = CreateArchive(new Dictionary<string, byte[]>());
 
-        ThreeMFSerializer.Deserialize(stream);
+        ThreeMFSerializer.DeserializePackage(stream);
 
         Assert.True(stream.CanRead);
     }
@@ -114,17 +114,17 @@ public class ThreeMFSerializerTests {
                 .ToArray()
         };
 
-        var original = new ThreeMFDocument {
+        var original = new ThreeMFPackage {
             Files = expected
         };
 
         using var stream = new MemoryStream();
 
-        ThreeMFSerializer.Serialize(stream, original, _options);
+        ThreeMFSerializer.SerializePackage(stream, original, _options);
 
         stream.Position = 0;
 
-        var result = ThreeMFSerializer.Deserialize(stream);
+        var result = ThreeMFSerializer.DeserializePackage(stream);
 
         Assert.Equal(expected.Count, result.Files.Count);
 
@@ -136,7 +136,7 @@ public class ThreeMFSerializerTests {
 
     [Fact]
     public void RoundTrip_PreservesEmptyFiles() {
-        var document = new ThreeMFDocument {
+        var document = new ThreeMFPackage {
             Files = new Dictionary<string, ReadOnlyMemory<byte>> {
                 ["Metadata/empty.txt"] = ReadOnlyMemory<byte>.Empty
             }
@@ -144,11 +144,11 @@ public class ThreeMFSerializerTests {
 
         using var stream = new MemoryStream();
 
-        ThreeMFSerializer.Serialize(stream, document, _options);
+        ThreeMFSerializer.SerializePackage(stream, document, _options);
 
         stream.Position = 0;
 
-        var result = ThreeMFSerializer.Deserialize(stream);
+        var result = ThreeMFSerializer.DeserializePackage(stream);
 
         Assert.True(result.Files.ContainsKey("Metadata/empty.txt"));
         Assert.Empty(result.Files["Metadata/empty.txt"].ToArray());
