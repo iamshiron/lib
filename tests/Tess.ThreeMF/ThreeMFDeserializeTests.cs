@@ -1,7 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.IO.Compression;
 using System.Text;
-using Shiron.Lib.Tess.ThreeMF.Internal;
 
 namespace Shiron.Lib.Tess.ThreeMF.Tests;
 
@@ -107,7 +106,7 @@ public class ThreeMFDeserializeTests {
     [Fact]
     public void Deserialize_BaseTypeRequest_PreservesRuntimeType() {
         var options = CreateOptions(
-            new StubHandler(typeof(VendorXDocument), ThreeMFConfidence.Authoritative, new VendorXDocument())
+            new StubExtension(typeof(VendorXDocument), ThreeMFProbeConfidence.Certain, new VendorXDocument())
         );
 
         using var stream = CreateValidArchive();
@@ -135,8 +134,8 @@ public class ThreeMFDeserializeTests {
     [Fact]
     public void Deserialize_EqualAuthorityUnrelatedHandlers_ThrowAmbiguityException() {
         var options = CreateOptions(
-            new StubHandler(typeof(VendorXDocument), ThreeMFConfidence.Authoritative, new VendorXDocument()),
-            new StubHandler(typeof(VendorYDocument), ThreeMFConfidence.Authoritative, new VendorYDocument())
+            new StubExtension(typeof(VendorXDocument), ThreeMFProbeConfidence.Certain, new VendorXDocument()),
+            new StubExtension(typeof(VendorYDocument), ThreeMFProbeConfidence.Certain, new VendorYDocument())
         );
 
         using var stream = CreateValidArchive();
@@ -152,8 +151,8 @@ public class ThreeMFDeserializeTests {
     [Fact]
     public void Deserialize_DuplicateHandlersForSameDocumentType_ThrowAmbiguityException() {
         var options = CreateOptions(
-            new StubHandler(typeof(VendorXDocument), ThreeMFConfidence.Authoritative, new VendorXDocument()),
-            new StubHandler(typeof(VendorXDocument), ThreeMFConfidence.Authoritative, new VendorXDocument())
+            new StubExtension(typeof(VendorXDocument), ThreeMFProbeConfidence.Certain, new VendorXDocument()),
+            new StubExtension(typeof(VendorXDocument), ThreeMFProbeConfidence.Certain, new VendorXDocument())
         );
 
         using var stream = CreateValidArchive();
@@ -166,7 +165,7 @@ public class ThreeMFDeserializeTests {
     [Fact]
     public void Deserialize_LowerConfidenceHandler_LosesAgainstAuthoritativeStandard() {
         var options = CreateOptions(
-            new StubHandler(typeof(VendorXDocument), ThreeMFConfidence.Likely, new VendorXDocument())
+            new StubExtension(typeof(VendorXDocument), ThreeMFProbeConfidence.Probable, new VendorXDocument())
         );
 
         using var stream = CreateValidArchive();
@@ -230,13 +229,13 @@ public class ThreeMFDeserializeTests {
         );
     }
 
-    static ThreeMFSerializerOptions CreateOptions(params IThreeMFDocumentHandler[] handlers) {
-        var extensions = new ThreeMFExtensions();
+    static ThreeMFSerializerOptions CreateOptions(params IThreeMFExtension[] extensions) {
+        var container = new ThreeMFExtensions();
 
-        foreach (var handler in handlers)
-            extensions.Add(handler);
+        foreach (var extension in extensions)
+            container.Add(extension);
 
-        return ThreeMFSerializerOptions.Default with { Extensions = extensions };
+        return ThreeMFSerializerOptions.Default with { Extensions = container };
     }
 
     static MemoryStream CreateValidArchive() {
@@ -272,11 +271,11 @@ public class ThreeMFDeserializeTests {
         return stream;
     }
 
-    sealed class StubHandler(Type documentType, ThreeMFConfidence confidence, ThreeMFDocument document)
-        : IThreeMFDocumentHandler {
+    sealed class StubExtension(Type documentType, ThreeMFProbeConfidence confidence, ThreeMFDocument document)
+        : IThreeMFExtension {
         public Type DocumentType => documentType;
 
-        public ThreeMFProbeResult Probe(ThreeMFParseContext context) => new(confidence);
+        public ThreeMFProbeResult Probe(ThreeMFProbeContext context) => new(confidence);
 
         public ThreeMFDocument Parse(ThreeMFParseContext context) => document;
     }

@@ -6,7 +6,7 @@ namespace Shiron.Lib.Tess.ThreeMF.Internal;
 /// specificity of the handlers' document types.
 /// </summary>
 internal static class DocumentDetector {
-    public static IThreeMFDocumentHandler Select(IReadOnlyList<IThreeMFDocumentHandler> handlers, ThreeMFParseContext context) {
+    public static IThreeMFDocumentHandler Select(IReadOnlyList<IThreeMFDocumentHandler> handlers, ThreeMFProbeContext context) {
         ArgumentNullException.ThrowIfNull(handlers);
         ArgumentNullException.ThrowIfNull(context);
 
@@ -24,7 +24,7 @@ internal static class DocumentDetector {
         var survivors = matches
             .Where(match => !matches.Any(other =>
                 !ReferenceEquals(other.Handler, match.Handler)
-                && other.Result.Outranks(match.Result, other.Handler.DocumentType, match.Handler.DocumentType)))
+                && Outranks(other.Result, other.Handler.DocumentType, match.Result, match.Handler.DocumentType)))
             .ToArray();
 
         if (survivors.Length > 1)
@@ -35,6 +35,24 @@ internal static class DocumentDetector {
             );
 
         return survivors[0].Handler;
+    }
+
+    /// <summary>
+    /// Determines whether one match strictly outranks another: by confidence first, and
+    /// by document-type specificity second, where a strictly more derived document type
+    /// outranks its own base types. Matches that neither outrank each other are tied.
+    /// </summary>
+    /// <param name="winner">The probe result of the potentially outranking handler.</param>
+    /// <param name="winnerDocumentType">The document type of the potentially outranking handler.</param>
+    /// <param name="loser">The probe result of the competing handler.</param>
+    /// <param name="loserDocumentType">The document type of the competing handler.</param>
+    /// <returns><see langword="true"/> when the first match strictly outranks the second.</returns>
+    static bool Outranks(in ThreeMFProbeResult winner, Type winnerDocumentType, in ThreeMFProbeResult loser, Type loserDocumentType) {
+        if (winner.Confidence != loser.Confidence)
+            return winner.Confidence > loser.Confidence;
+
+        return winnerDocumentType != loserDocumentType
+            && loserDocumentType.IsAssignableFrom(winnerDocumentType);
     }
 
     static string Describe(Type type) => type.FullName ?? type.ToString();

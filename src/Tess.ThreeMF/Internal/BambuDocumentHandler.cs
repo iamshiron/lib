@@ -10,12 +10,12 @@ namespace Shiron.Lib.Tess.ThreeMF.Internal;
 internal sealed class BambuDocumentHandler : IThreeMFDocumentHandler {
     public Type DocumentType => typeof(BambuThreeMFDocument);
 
-    public ThreeMFProbeResult Probe(ThreeMFParseContext context) {
+    public ThreeMFProbeResult Probe(ThreeMFProbeContext context) {
         ArgumentNullException.ThrowIfNull(context);
 
         return StandardDocumentHandler.DeclaresModelPart(context.Files)
             && BambuSignatures.HasProducerSignature(context.Files)
-            ? ThreeMFProbeResult.Authoritative
+            ? ThreeMFProbeResult.Certain
             : ThreeMFProbeResult.NoMatch;
     }
 

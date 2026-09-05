@@ -242,15 +242,15 @@ public class ThreeMFSerializeTests {
     public void Select_PrefersMostSpecificWriterForRuntimeType() {
         Assert.Equal(
             typeof(BambuGCodeThreeMFDocument),
-            DocumentWriterRegistry.Select(typeof(BambuGCodeThreeMFDocument)).DocumentType
+            DocumentWriterRegistry.Select(typeof(BambuGCodeThreeMFDocument), []).DocumentType
         );
         Assert.Equal(
             typeof(BambuThreeMFDocument),
-            DocumentWriterRegistry.Select(typeof(BambuThreeMFDocument)).DocumentType
+            DocumentWriterRegistry.Select(typeof(BambuThreeMFDocument), []).DocumentType
         );
         Assert.Equal(
             typeof(ThreeMFDocument),
-            DocumentWriterRegistry.Select(typeof(ThreeMFDocument)).DocumentType
+            DocumentWriterRegistry.Select(typeof(ThreeMFDocument), []).DocumentType
         );
     }
 
@@ -258,11 +258,11 @@ public class ThreeMFSerializeTests {
     public void Select_UnregisteredDerivedTypes_FallBackToNearestWriter() {
         Assert.Equal(
             typeof(BambuThreeMFDocument),
-            DocumentWriterRegistry.Select(typeof(VendorBambuDocument)).DocumentType
+            DocumentWriterRegistry.Select(typeof(VendorBambuDocument), []).DocumentType
         );
         Assert.Equal(
             typeof(ThreeMFDocument),
-            DocumentWriterRegistry.Select(typeof(VendorCoreDocument)).DocumentType
+            DocumentWriterRegistry.Select(typeof(VendorCoreDocument), []).DocumentType
         );
     }
 

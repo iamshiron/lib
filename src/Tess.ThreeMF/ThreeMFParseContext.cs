@@ -1,10 +1,10 @@
-namespace Shiron.Lib.Tess.ThreeMF.Internal;
+namespace Shiron.Lib.Tess.ThreeMF;
 
 /// <summary>
-/// The immutable input shared by all document handlers during probing and parsing:
-/// the raw package files keyed by part path, plus the serializer options in effect.
+/// The immutable input passed to the winning document parse: the raw package files
+/// keyed by part path, plus the serializer options in effect.
 /// </summary>
-internal sealed class ThreeMFParseContext {
+public sealed class ThreeMFParseContext {
     /// <summary>
     /// Gets the immutable raw package files, keyed by part path.
     /// </summary>

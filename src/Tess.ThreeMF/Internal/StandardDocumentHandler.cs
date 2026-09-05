@@ -8,11 +8,11 @@ namespace Shiron.Lib.Tess.ThreeMF.Internal;
 internal sealed class StandardDocumentHandler : IThreeMFDocumentHandler {
     public Type DocumentType => typeof(ThreeMFDocument);
 
-    public ThreeMFProbeResult Probe(ThreeMFParseContext context) {
+    public ThreeMFProbeResult Probe(ThreeMFProbeContext context) {
         ArgumentNullException.ThrowIfNull(context);
 
         return DeclaresModelPart(context.Files)
-            ? ThreeMFProbeResult.Authoritative
+            ? ThreeMFProbeResult.Certain
             : ThreeMFProbeResult.NoMatch;
     }
 

@@ -15,9 +15,9 @@ internal interface IThreeMFDocumentHandler {
     /// Estimates how confidently the raw files represent a document of this handler's kind.
     /// Must not throw on malformed input.
     /// </summary>
-    /// <param name="context">The immutable parse context.</param>
+    /// <param name="context">The immutable probe context.</param>
     /// <returns>The probe result.</returns>
-    ThreeMFProbeResult Probe(ThreeMFParseContext context);
+    ThreeMFProbeResult Probe(ThreeMFProbeContext context);
 
     /// <summary>
     /// Parses the raw files into a document of exactly <see cref="DocumentType"/>.
