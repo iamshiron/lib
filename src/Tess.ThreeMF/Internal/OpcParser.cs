@@ -11,13 +11,13 @@ internal static class OpcParser {
         CloseInput = true,
     };
 
-    public static IReadOnlyList<ThreeMFContentType> ParseContentTypes(ReadOnlyMemory<byte> xml) {
+    public static IReadOnlyList<ContentType> ParseContentTypes(ReadOnlyMemory<byte> xml) {
         try {
             using var reader = CreateReader(xml);
 
             MoveToRoot(reader, "Types", ThreeMFSerializer.ContentTypesPath);
 
-            var contentTypes = new List<ThreeMFContentType>();
+            var contentTypes = new List<ContentType>();
 
             while (reader.Read()) {
                 if (reader.NodeType is not XmlNodeType.Element || reader.Depth != 1)
@@ -25,15 +25,15 @@ internal static class OpcParser {
 
                 switch (reader.LocalName) {
                     case "Default":
-                        contentTypes.Add(new ThreeMFContentType {
+                        contentTypes.Add(new ContentType {
                             Extension = RequireAttribute(reader, "Extension", "Default"),
-                            ContentType = RequireAttribute(reader, "ContentType", "Default"),
+                            MediaType = RequireAttribute(reader, "ContentType", "Default"),
                         });
                         break;
                     case "Override":
-                        contentTypes.Add(new ThreeMFContentType {
+                        contentTypes.Add(new ContentType {
                             PartName = RequireAttribute(reader, "PartName", "Override"),
-                            ContentType = RequireAttribute(reader, "ContentType", "Override"),
+                            MediaType = RequireAttribute(reader, "ContentType", "Override"),
                         });
                         break;
                 }
@@ -47,13 +47,13 @@ internal static class OpcParser {
         }
     }
 
-    public static IReadOnlyList<ThreeMFRelationship> ParseRelationships(ReadOnlyMemory<byte> xml) {
+    public static IReadOnlyList<Relationship> ParseRelationships(ReadOnlyMemory<byte> xml) {
         try {
             using var reader = CreateReader(xml);
 
             MoveToRoot(reader, "Relationships", ThreeMFSerializer.RelationshipsPath);
 
-            var relationships = new List<ThreeMFRelationship>();
+            var relationships = new List<Relationship>();
 
             while (reader.Read()) {
                 if (reader.NodeType is not XmlNodeType.Element || reader.Depth != 1)
@@ -62,7 +62,7 @@ internal static class OpcParser {
                 if (reader.LocalName != "Relationship")
                     continue;
 
-                relationships.Add(new ThreeMFRelationship {
+                relationships.Add(new Relationship {
                     Id = RequireAttribute(reader, "Id", "Relationship"),
                     Type = RequireAttribute(reader, "Type", "Relationship"),
                     Target = RequireAttribute(reader, "Target", "Relationship"),

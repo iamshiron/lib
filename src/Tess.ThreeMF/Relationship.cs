@@ -3,7 +3,7 @@ namespace Shiron.Lib.Tess.ThreeMF;
 /// <summary>
 /// Represents a package-level relationship declared in the <c>_rels/.rels</c> part of a 3MF package.
 /// </summary>
-public sealed record ThreeMFRelationship {
+public sealed record Relationship {
     /// <summary>
     /// Gets the unique identifier of the relationship within its source part.
     /// </summary>

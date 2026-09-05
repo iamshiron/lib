@@ -23,17 +23,17 @@ public class ThreeMFPackageTests {
         Assert.Equal(3, package.ContentTypes.Count);
 
         Assert.Equal(
-            new ThreeMFContentType {
+            new ContentType {
                 Extension = "rels",
-                ContentType = "application/vnd.openxmlformats-package.relationships+xml",
+                MediaType = "application/vnd.openxmlformats-package.relationships+xml",
             },
             package.ContentTypes[0]
         );
 
         Assert.Equal(
-            new ThreeMFContentType {
+            new ContentType {
                 Extension = "model",
-                ContentType = "application/vnd.ms-package.3dmanufacturing-3dmodel+xml",
+                MediaType = "application/vnd.ms-package.3dmanufacturing-3dmodel+xml",
             },
             package.ContentTypes[1]
         );
@@ -41,9 +41,9 @@ public class ThreeMFPackageTests {
         var overrideType = package.ContentTypes[2];
 
         Assert.Equal(
-            new ThreeMFContentType {
+            new ContentType {
                 PartName = "/3D/3dmodel.model",
-                ContentType = "application/vnd.ms-package.3dmanufacturing-3dmodel+xml",
+                MediaType = "application/vnd.ms-package.3dmanufacturing-3dmodel+xml",
             },
             overrideType
         );
@@ -70,7 +70,7 @@ public class ThreeMFPackageTests {
         Assert.Equal(2, package.Relationships.Count);
 
         Assert.Equal(
-            new ThreeMFRelationship {
+            new Relationship {
                 Id = "rel0",
                 Type = "http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel",
                 Target = "/3D/3dmodel.model",
@@ -79,7 +79,7 @@ public class ThreeMFPackageTests {
         );
 
         Assert.Equal(
-            new ThreeMFRelationship {
+            new Relationship {
                 Id = "rel1",
                 Type = "http://schemas.openxmlformats.org/package/2006/relationships/metadata/thumbnail",
                 Target = "/Metadata/thumbnail.png",
@@ -140,21 +140,21 @@ public class ThreeMFPackageTests {
         var result = ThreeMFSerializer.DeserializePackage(stream);
 
         Assert.Equal(
-            new ThreeMFContentType[] {
+            new ContentType[] {
                 new() {
                     Extension = "rels",
-                    ContentType = "application/vnd.openxmlformats-package.relationships+xml",
+                    MediaType = "application/vnd.openxmlformats-package.relationships+xml",
                 },
                 new() {
                     PartName = "/3D/3dmodel.model",
-                    ContentType = "application/vnd.ms-package.3dmanufacturing-3dmodel+xml",
+                    MediaType = "application/vnd.ms-package.3dmanufacturing-3dmodel+xml",
                 },
             },
             result.ContentTypes
         );
 
         Assert.Equal(
-            new ThreeMFRelationship[] {
+            new Relationship[] {
                 new() {
                     Id = "rel0",
                     Type = "http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel",

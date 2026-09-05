@@ -8,11 +8,11 @@ namespace Shiron.Lib.Tess.ThreeMF;
 /// A declaration is either a <c>&lt;Default&gt;</c> rule keyed by file extension or an
 /// <c>&lt;Override&gt;</c> rule keyed by absolute part name.
 /// </remarks>
-public sealed record ThreeMFContentType {
+public sealed record ContentType {
     /// <summary>
-    /// Gets the MIME content type applied by this declaration.
+    /// Gets the MIME media type applied by this declaration.
     /// </summary>
-    public required string ContentType { get; init; }
+    public required string MediaType { get; init; }
 
     /// <summary>
     /// Gets the file extension (without a leading dot) matched by this <c>&lt;Default&gt;</c>

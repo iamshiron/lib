@@ -14,13 +14,13 @@ public sealed class ThreeMFPackage {
     /// Gets the package-level relationships declared in <c>_rels/.rels</c>.
     /// Empty when the package does not contain that part.
     /// </summary>
-    public IReadOnlyList<ThreeMFRelationship> Relationships { get; init; } = [];
+    public IReadOnlyList<Relationship> Relationships { get; init; } = [];
 
     /// <summary>
     /// Gets the content-type declarations from <c>[Content_Types].xml</c>.
     /// Empty when the package does not contain that part.
     /// </summary>
-    public IReadOnlyList<ThreeMFContentType> ContentTypes { get; init; } = [];
+    public IReadOnlyList<ContentType> ContentTypes { get; init; } = [];
 
     /// <summary>
     /// Determines whether the package contains a file with the given path.
