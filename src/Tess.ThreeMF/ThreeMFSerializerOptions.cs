@@ -5,14 +5,15 @@ namespace Shiron.Lib.Tess.ThreeMF;
 public readonly record struct ThreeMFSerializerOptions() {
     /// <summary>
     /// Gets the compression level applied when writing 3MF packages.
+    /// Defaults to <see cref="CompressionLevel.Optimal"/>.
     /// </summary>
-    public required CompressionLevel CompressionLevel { get; init; }
+    public CompressionLevel CompressionLevel { get; init; } = CompressionLevel.Optimal;
 
     /// <summary>
     /// Gets the validation strictness applied while reading documents.
-    /// Defaults to <see cref="ValidationMode.Strict"/>.
+    /// Defaults to <see cref="ThreeMFValidationMode.Standard"/>.
     /// </summary>
-    public ValidationMode ValidationMode { get; init; } = ValidationMode.Strict;
+    public ThreeMFValidationMode ValidationMode { get; init; } = ThreeMFValidationMode.Standard;
 
     /// <summary>
     /// Gets a value indicating whether package files that the parsed document does not
@@ -28,7 +29,5 @@ public readonly record struct ThreeMFSerializerOptions() {
     /// </summary>
     public ThreeMFExtensions Extensions { get; init; } = new();
 
-    public static ThreeMFSerializerOptions Default => new() {
-        CompressionLevel = CompressionLevel.Optimal,
-    };
+    public static ThreeMFSerializerOptions Default => new();
 }

@@ -191,7 +191,7 @@ public class ThreeMFDeserializeTests {
 
     [Fact]
     public void Deserialize_LenientMode_ToleratesInvalidReferences() {
-        var options = ThreeMFSerializerOptions.Default with { ValidationMode = ValidationMode.Lenient };
+        var options = ThreeMFSerializerOptions.Default with { ValidationMode = ThreeMFValidationMode.Lenient };
         using var stream = CreateModelOnlyArchive(InvalidReferencesModel);
 
         var document = ThreeMFSerializer.Deserialize(stream, options);
@@ -202,7 +202,7 @@ public class ThreeMFDeserializeTests {
     }
 
     [Fact]
-    public void Deserialize_StrictMode_ThrowsOnInvalidReferences() {
+    public void Deserialize_StandardMode_ThrowsOnInvalidReferences() {
         using var stream = CreateModelOnlyArchive(InvalidReferencesModel);
 
         Assert.Throws<ThreeMFCoreException>(

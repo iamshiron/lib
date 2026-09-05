@@ -17,7 +17,7 @@ internal static class CoreParser {
         CloseInput = true,
     };
 
-    public static Core Parse(ThreeMFPackage package, ValidationMode validationMode = ValidationMode.Strict) {
+    public static Core Parse(ThreeMFPackage package, ThreeMFValidationMode validationMode = ThreeMFValidationMode.Standard) {
         ArgumentNullException.ThrowIfNull(package);
 
         var (path, xml) = SelectModelPart(package);
@@ -69,7 +69,7 @@ internal static class CoreParser {
         return target.TrimStart('/');
     }
 
-    static Core ParseModel(string path, ReadOnlyMemory<byte> xml, ValidationMode validationMode) {
+    static Core ParseModel(string path, ReadOnlyMemory<byte> xml, ThreeMFValidationMode validationMode) {
         try {
             using var stream = new MemoryStream(xml.ToArray(), writable: false);
             using var reader = XmlReader.Create(stream, Settings);
@@ -86,7 +86,7 @@ internal static class CoreParser {
 
             var model = ReadModel(reader, validationMode);
 
-            if (validationMode is ValidationMode.Strict)
+            if (validationMode is ThreeMFValidationMode.Standard)
                 ValidateReferences(model);
 
             return new Core { PartPath = path, Models = [model], MainModel = model };
@@ -95,7 +95,7 @@ internal static class CoreParser {
         }
     }
 
-    static Model ReadModel(XmlReader reader, ValidationMode validationMode) {
+    static Model ReadModel(XmlReader reader, ThreeMFValidationMode validationMode) {
         var unit = ParseUnit(reader.GetAttribute("unit"));
         var language = reader.GetAttribute("xml:lang");
 
@@ -138,7 +138,7 @@ internal static class CoreParser {
         };
     }
 
-    static Resources ReadResources(XmlReader reader, ValidationMode validationMode) {
+    static Resources ReadResources(XmlReader reader, ThreeMFValidationMode validationMode) {
         var objects = new List<Object>();
 
         ReadChildren(reader, "resources", child => {
@@ -151,7 +151,7 @@ internal static class CoreParser {
         return new Resources { Objects = objects };
     }
 
-    static Object ReadObject(XmlReader reader, ValidationMode validationMode) {
+    static Object ReadObject(XmlReader reader, ThreeMFValidationMode validationMode) {
         var id = ParseResourceID(RequireAttribute(reader, "id", "object"));
         var type = ParseObjectType(reader.GetAttribute("type"));
         var name = reader.GetAttribute("name");
@@ -193,7 +193,7 @@ internal static class CoreParser {
         };
     }
 
-    static Mesh ReadMesh(XmlReader reader, int objectId, ValidationMode validationMode) {
+    static Mesh ReadMesh(XmlReader reader, int objectId, ThreeMFValidationMode validationMode) {
         var vertices = new List<Vertex>();
         var triangles = new List<Triangle>();
 
@@ -210,7 +210,7 @@ internal static class CoreParser {
             }
         });
 
-        if (validationMode is ValidationMode.Strict) {
+        if (validationMode is ThreeMFValidationMode.Standard) {
             for (var i = 0; i < triangles.Count; i++) {
                 ValidateVertexIndex(triangles[i].V1, i, vertices.Count, objectId);
                 ValidateVertexIndex(triangles[i].V2, i, vertices.Count, objectId);
