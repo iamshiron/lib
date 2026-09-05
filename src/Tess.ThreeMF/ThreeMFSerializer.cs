@@ -15,18 +15,39 @@ public static class ThreeMFSerializer {
     public const string RelationshipsPath = "_rels/.rels";
 
     /// <summary>
+    /// Writes a 3MF document to a ZIP archive on the given stream. The writer is
+    /// selected from the document's actual runtime type, preferring the most specific
+    /// writer, e.g. <see cref="BambuGCodeThreeMFDocument"/> over
+    /// <see cref="BambuThreeMFDocument"/> over <see cref="ThreeMFDocument"/>. Writers
+    /// preserve the package's raw files by default.
+    /// </summary>
+    /// <param name="stream">The stream to write to; it is left open.</param>
+    /// <param name="document">The document to write.</param>
+    /// <param name="options">The serialization options; <see langword="null"/> uses <see cref="ThreeMFSerializerOptions.Default"/>.</param>
+    public static void Serialize(Stream stream, ThreeMFDocument document, ThreeMFSerializerOptions? options = null) {
+        ArgumentNullException.ThrowIfNull(stream);
+        ArgumentNullException.ThrowIfNull(document);
+
+        var effectiveOptions = options ?? ThreeMFSerializerOptions.Default;
+
+        DocumentWriterRegistry.Select(document.GetType()).Write(stream, document, effectiveOptions);
+    }
+
+    /// <summary>
     /// Writes every file of the package into a ZIP archive on the given stream.
     /// </summary>
     /// <param name="stream">The stream to write to; it is left open.</param>
     /// <param name="package">The package whose files are written.</param>
-    /// <param name="options">The serialization options.</param>
-    public static void SerializePackage(Stream stream, ThreeMFPackage package, ThreeMFSerializerOptions options) {
+    /// <param name="options">The serialization options; <see langword="null"/> uses <see cref="ThreeMFSerializerOptions.Default"/>.</param>
+    public static void SerializePackage(Stream stream, ThreeMFPackage package, ThreeMFSerializerOptions? options = null) {
         ArgumentNullException.ThrowIfNull(stream);
         ArgumentNullException.ThrowIfNull(package);
 
+        var effectiveOptions = options ?? ThreeMFSerializerOptions.Default;
+
         using var zip = new ZipArchive(stream, ZipArchiveMode.Create, true);
         foreach (var (file, bytes) in package.Files) {
-            var entry = zip.CreateEntry(file, options.CompressionLevel);
+            var entry = zip.CreateEntry(file, effectiveOptions.CompressionLevel);
             using var entryStream = entry.Open();
             entryStream.Write(bytes.Span);
         }
