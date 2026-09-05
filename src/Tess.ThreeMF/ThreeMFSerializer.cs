@@ -61,8 +61,8 @@ public static class ThreeMFSerializer {
     /// <summary>
     /// Reads a 3MF document from a ZIP archive on the given stream. The runtime
     /// document type is detected from the package contents via the registered document
-    /// handlers; with only the built-in standard handler, a valid 3MF yields exactly
-    /// <see cref="ThreeMFDocument"/>.
+    /// handlers; the built-in handlers cover standard and Bambu documents, and a valid
+    /// generic 3MF yields exactly <see cref="ThreeMFDocument"/>.
     /// </summary>
     /// <param name="stream">The stream to read from; it is left open.</param>
     /// <param name="options">The deserialization options; <see langword="null"/> uses <see cref="ThreeMFSerializerOptions.Default"/>.</param>
@@ -117,7 +117,12 @@ public static class ThreeMFSerializer {
     }
 
     static IReadOnlyList<IThreeMFDocumentHandler> BuildHandlers(ThreeMFSerializerOptions options) {
-        return [new StandardDocumentHandler(), .. options.Extensions.Handlers];
+        return [
+            new StandardDocumentHandler(),
+            new BambuDocumentHandler(),
+            new BambuGCodeDocumentHandler(),
+            .. options.Extensions.Handlers,
+        ];
     }
 
     static Dictionary<string, ReadOnlyMemory<byte>> ReadFiles(Stream stream) {

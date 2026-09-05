@@ -32,7 +32,13 @@ internal sealed class StandardDocumentHandler : IThreeMFDocumentHandler {
         };
     }
 
-    static ThreeMFPackage ParsePackage(IReadOnlyDictionary<string, ReadOnlyMemory<byte>> files) {
+    /// <summary>
+    /// Builds the OPC package view from raw files, parsing content types and
+    /// relationships when their parts are present.
+    /// </summary>
+    /// <param name="files">The raw package files, keyed by part path.</param>
+    /// <returns>The parsed package.</returns>
+    internal static ThreeMFPackage ParsePackage(IReadOnlyDictionary<string, ReadOnlyMemory<byte>> files) {
         return new ThreeMFPackage {
             Files = files,
             ContentTypes = files.TryGetValue(ThreeMFSerializer.ContentTypesPath, out var contentTypesXml)
@@ -63,7 +69,13 @@ internal sealed class StandardDocumentHandler : IThreeMFDocumentHandler {
         };
     }
 
-    static bool DeclaresModelPart(IReadOnlyDictionary<string, ReadOnlyMemory<byte>> files) {
+    /// <summary>
+    /// Determines whether the files declare a 3D model part through a package
+    /// relationship or a content type override.
+    /// </summary>
+    /// <param name="files">The raw package files, keyed by part path.</param>
+    /// <returns><see langword="true"/> when a 3D model part is declared.</returns>
+    internal static bool DeclaresModelPart(IReadOnlyDictionary<string, ReadOnlyMemory<byte>> files) {
         return DeclaresModelRelationship(files) || DeclaresModelContentType(files);
     }
 

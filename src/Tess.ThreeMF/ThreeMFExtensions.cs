@@ -5,7 +5,7 @@ namespace Shiron.Lib.Tess.ThreeMF;
 /// <summary>
 /// Holds the document handler extensions registered on <see cref="ThreeMFSerializerOptions"/>.
 /// Extensions add candidate handlers to document detection; they can never replace or
-/// suppress the built-in standard handler.
+/// suppress the built-in handlers.
 /// </summary>
 public sealed class ThreeMFExtensions {
     readonly List<IThreeMFDocumentHandler> _handlers = [];
