@@ -72,6 +72,8 @@ internal static class BambuProjectParser {
 
         var modelSettings = ParseModelSettings(context.Files);
         var slicePlates = ParseSlicePlates(context.Files);
+        var plateDetails = ParsePlateDetails(context.Files, modelSettings.Plates);
+        var filamentSequences = ParseFilamentSequences(context.Files);
         var project = new BambuProject {
             Application = core.MainModel.Metadata.FirstOrDefault(m => m.Name == "Application")?.Value,
             Header = ParseHeader(context.Files),
@@ -82,8 +84,11 @@ internal static class BambuProjectParser {
                 AssemblyItems = modelSettings.AssemblyItems,
             },
             SlicePlates = slicePlates,
+            Cuts = ParseCuts(context.Files),
         };
-        var plates = BuildPlates(context.Files, modelSettings.Plates, modelSettings.Objects, slicePlates);
+        var plates = BuildPlates(
+            context.Files, modelSettings.Plates, modelSettings.Objects, slicePlates, plateDetails, filamentSequences
+        );
 
         if (!context.Options.PreserveUnknownFiles)
             package = RestrictToKnownParts(package, core);
@@ -128,12 +133,132 @@ internal static class BambuProjectParser {
                 } ?? string.Empty;
             }
 
-            return new BambuProjectSettings { Values = values };
+            return new BambuProjectSettings {
+                Values = values,
+                Version = values.GetValueOrDefault("version"),
+                PrintProfileId = values.GetValueOrDefault("print_settings_id"),
+                Printer = new BambuPrinterSettings {
+                    Model = values.GetValueOrDefault("printer_model"),
+                    Variant = values.GetValueOrDefault("printer_variant"),
+                    ProfileId = values.GetValueOrDefault("printer_settings_id"),
+                    Technology = values.GetValueOrDefault("printer_technology"),
+                    BedType = values.GetValueOrDefault("curr_bed_type"),
+                },
+                PrintableArea = ParsePoints(values.GetValueOrDefault("printable_area")),
+                PrintableHeight = ParseOptionalDouble(values.GetValueOrDefault("printable_height")),
+                Filaments = BuildFilamentProfiles(values),
+                PurgeMatrix = ParsePurgeMatrix(values),
+            };
         } catch (JsonException e) {
             throw new BambuFormatException(
                 $"'{BambuParts.ProjectSettingsPart}' is not well-formed JSON.", e
             );
         }
+    }
+
+    static IReadOnlyList<BambuPoint> ParsePoints(string? value) {
+        var points = new List<BambuPoint>();
+
+        foreach (var point in ParseStringArray(value)) {
+            var coordinates = point.Split('x');
+
+            if (coordinates.Length is not 2
+                || !double.TryParse(coordinates[0], NumberStyles.Float, CultureInfo.InvariantCulture, out var x)
+                || !double.TryParse(coordinates[1], NumberStyles.Float, CultureInfo.InvariantCulture, out var y)) {
+                return [];
+            }
+
+            points.Add(new BambuPoint(x, y));
+        }
+
+        return points;
+    }
+
+    static IReadOnlyList<BambuFilamentProfile> BuildFilamentProfiles(IReadOnlyDictionary<string, string> values) {
+        var types = ParseStringArray(values.GetValueOrDefault("filament_type"));
+        var colors = ParseStringArray(values.GetValueOrDefault("filament_colour"));
+        var profileIds = ParseStringArray(values.GetValueOrDefault("filament_settings_id"));
+        var trayIds = ParseStringArray(values.GetValueOrDefault("filament_ids"));
+        var vendors = ParseStringArray(values.GetValueOrDefault("filament_vendor"));
+        var temperatures = ParseStringArray(values.GetValueOrDefault("nozzle_temperature"));
+        var count = new[] {
+            types.Count,
+            colors.Count,
+            profileIds.Count,
+            trayIds.Count,
+            vendors.Count,
+            temperatures.Count,
+        }.Max();
+
+        if (count is 0)
+            return [];
+
+        var profiles = new BambuFilamentProfile[count];
+
+        for (var index = 0; index < profiles.Length; index++) {
+            profiles[index] = new BambuFilamentProfile {
+                Index = index,
+                MaterialType = ValueAt(types, index),
+                Color = ValueAt(colors, index),
+                ProfileId = ValueAt(profileIds, index),
+                TrayId = ValueAt(trayIds, index),
+                Vendor = ValueAt(vendors, index),
+                NozzleTemperature = ParseOptionalDouble(ValueAt(temperatures, index)),
+            };
+        }
+
+        return profiles;
+    }
+
+    static string? ValueAt(IReadOnlyList<string> values, int index) {
+        return (uint) index < (uint) values.Count ? values[index] : null;
+    }
+
+    static BambuPurgeMatrix? ParsePurgeMatrix(IReadOnlyDictionary<string, string> values) {
+        var volumes = ParseStringArray(values.GetValueOrDefault("flush_volumes_matrix"));
+
+        if (volumes.Count is 0)
+            return null;
+
+        var size = (int) Math.Sqrt(volumes.Count);
+
+        if (size * size != volumes.Count)
+            return null;
+
+        var parsed = new double[volumes.Count];
+
+        for (var index = 0; index < parsed.Length; index++) {
+            if (!double.TryParse(volumes[index], NumberStyles.Float, CultureInfo.InvariantCulture, out parsed[index]))
+                return null;
+        }
+
+        return new BambuPurgeMatrix { Size = size, Volumes = parsed };
+    }
+
+    static IReadOnlyList<string> ParseStringArray(string? value) {
+        if (string.IsNullOrWhiteSpace(value))
+            return [];
+
+        try {
+            using var document = JsonDocument.Parse(value);
+
+            if (document.RootElement.ValueKind is not JsonValueKind.Array)
+                return [];
+
+            return document.RootElement
+                .EnumerateArray()
+                .Select(item => item.ValueKind is JsonValueKind.String ? item.GetString() : item.GetRawText())
+                .OfType<string>()
+                .ToArray();
+        } catch (JsonException) {
+            return [];
+        }
+    }
+
+    static double? ParseOptionalDouble(string? value) {
+        return value is not null && double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed)
+            ? parsed
+            : null;
     }
 
     static BambuModelSettingsData ParseModelSettings(IReadOnlyDictionary<string, ReadOnlyMemory<byte>> files) {
@@ -582,6 +707,9 @@ internal static class BambuProjectParser {
         var config = ReadAttributes(reader);
         var objects = new List<BambuSlicedObject>();
         var filaments = new List<BambuFilament>();
+        var nozzles = new List<BambuNozzle>();
+        var amsTimings = new List<BambuAmsTiming>();
+        var layerFilaments = new List<BambuLayerFilaments>();
 
         if (!reader.IsEmptyElement) {
             reader.Read();
@@ -609,6 +737,16 @@ internal static class BambuProjectParser {
                         filaments.Add(ReadFilament(reader));
                         reader.Skip();
                         break;
+                    case "nozzle":
+                        nozzles.Add(ReadNozzle(reader));
+                        reader.Skip();
+                        break;
+                    case "ams_list":
+                        amsTimings.AddRange(ReadAmsTimings(reader));
+                        break;
+                    case "layer_filament_lists":
+                        layerFilaments.AddRange(ReadLayerFilaments(reader));
+                        break;
                     default:
                         reader.Skip();
                         break;
@@ -630,6 +768,19 @@ internal static class BambuProjectParser {
             Config = config,
             Objects = objects,
             Filaments = filaments,
+            PrinterModelId = config.GetValueOrDefault("printer_model_id"),
+            EstimatedPrintTime = ParseOptionalDouble(config.GetValueOrDefault("prediction")) is { } prediction
+                ? TimeSpan.FromSeconds(prediction)
+                : null,
+            WeightGrams = ParseOptionalDouble(config.GetValueOrDefault("weight")),
+            FirstLayerTimeSeconds = ParseOptionalDouble(config.GetValueOrDefault("first_layer_time")),
+            NozzleDiameters = ParseDoubleList(config.GetValueOrDefault("nozzle_diameters")),
+            IsOutside = ParseOptionalBoolean(config.GetValueOrDefault("outside")),
+            IsSupportUsed = ParseOptionalBoolean(config.GetValueOrDefault("support_used")),
+            FilamentMap = ParseIntegerList(config.GetValueOrDefault("filament_maps")),
+            Nozzles = nozzles,
+            AmsTimings = amsTimings,
+            LayerFilaments = layerFilaments,
         };
     }
 
@@ -655,11 +806,380 @@ internal static class BambuProjectParser {
         };
     }
 
+    static BambuNozzle ReadNozzle(XmlReader reader) {
+        return new BambuNozzle(
+            ParseNonNegativeId(reader.GetAttribute("id") ?? string.Empty, "nozzle id"),
+            ParsePositiveId(reader.GetAttribute("extruder_id"), "nozzle extruder id"),
+            ParseRequiredDouble(reader.GetAttribute("nozzle_diameter"), "nozzle diameter"),
+            reader.GetAttribute("volume_type")
+        );
+    }
+
+    static IReadOnlyList<BambuAmsTiming> ReadAmsTimings(XmlReader reader) {
+        var timings = new List<BambuAmsTiming>();
+
+        if (reader.IsEmptyElement) {
+            reader.Skip();
+            return timings;
+        }
+
+        reader.Read();
+
+        while (reader.NodeType is not (XmlNodeType.EndElement or XmlNodeType.None)) {
+            if (reader.NodeType is not XmlNodeType.Element) {
+                reader.Read();
+                continue;
+            }
+
+            if (reader.LocalName == "ams") {
+                timings.Add(new BambuAmsTiming(
+                    reader.GetAttribute("ams_type"),
+                    ParseOptionalDouble(reader.GetAttribute("load_time")),
+                    ParseOptionalDouble(reader.GetAttribute("unload_time"))
+                ));
+            }
+
+            reader.Skip();
+        }
+
+        if (reader.NodeType is XmlNodeType.EndElement)
+            reader.Read();
+
+        return timings;
+    }
+
+    static IReadOnlyList<BambuLayerFilaments> ReadLayerFilaments(XmlReader reader) {
+        var entries = new List<BambuLayerFilaments>();
+
+        if (reader.IsEmptyElement) {
+            reader.Skip();
+            return entries;
+        }
+
+        reader.Read();
+
+        while (reader.NodeType is not (XmlNodeType.EndElement or XmlNodeType.None)) {
+            if (reader.NodeType is not XmlNodeType.Element) {
+                reader.Read();
+                continue;
+            }
+
+            if (reader.LocalName == "layer_filament_list") {
+                entries.Add(new BambuLayerFilaments(
+                    ParseIntegerList(reader.GetAttribute("filament_list")),
+                    reader.GetAttribute("layer_ranges") ?? string.Empty
+                ));
+            }
+
+            reader.Skip();
+        }
+
+        if (reader.NodeType is XmlNodeType.EndElement)
+            reader.Read();
+
+        return entries;
+    }
+
+    static IReadOnlyList<double> ParseDoubleList(string? value) {
+        if (string.IsNullOrWhiteSpace(value))
+            return [];
+
+        var values = new List<double>();
+
+        foreach (var item in value.Split(',', ' ', '\t').Where(item => item.Length > 0)) {
+            if (!double.TryParse(item, NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed))
+                return [];
+
+            values.Add(parsed);
+        }
+
+        return values;
+    }
+
+    static IReadOnlyList<int> ParseIntegerList(string? value) {
+        if (string.IsNullOrWhiteSpace(value))
+            return [];
+
+        var values = new List<int>();
+
+        foreach (var item in value.Split(',', ' ', '\t').Where(item => item.Length > 0)) {
+            if (!int.TryParse(item, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed))
+                return [];
+
+            values.Add(parsed);
+        }
+
+        return values;
+    }
+
+    static bool? ParseOptionalBoolean(string? value) {
+        return value is not null && bool.TryParse(value, out var parsed) ? parsed : null;
+    }
+
+    static double ParseRequiredDouble(string? value, string description) {
+        if (value is null || !double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed))
+            throw new BambuFormatException($"'{value}' is not a valid {description}.");
+
+        return parsed;
+    }
+
+    static IReadOnlyDictionary<int, BambuPlateDetails> ParsePlateDetails(
+        IReadOnlyDictionary<string, ReadOnlyMemory<byte>> files,
+        IReadOnlyList<BambuPlateConfig> configs
+    ) {
+        var paths = new Dictionary<int, string>();
+
+        foreach (var path in files.Keys) {
+            if (BambuParts.TryMatchPlateDetails(path, out var index))
+                paths[index] = path;
+        }
+
+        foreach (var config in configs) {
+            if (config.Raw.GetValueOrDefault("pattern_bbox_file") is not { Length: > 0 } path)
+                continue;
+
+            if (!files.ContainsKey(path)) {
+                throw new BambuFormatException(
+                    $"Plate {config.Index} declares pattern_bbox_file '{path}', which is missing from the package."
+                );
+            }
+
+            paths[config.Index] = path;
+        }
+
+        var details = new Dictionary<int, BambuPlateDetails>();
+
+        foreach (var (index, path) in paths)
+            details[index] = ReadPlateDetails(files[path], index, path);
+
+        return details;
+    }
+
+    static BambuPlateDetails ReadPlateDetails(ReadOnlyMemory<byte> bytes, int index, string path) {
+        try {
+            using var document = JsonDocument.Parse(BambuParts.ReadText(bytes));
+            var root = document.RootElement;
+
+            if (root.ValueKind is not JsonValueKind.Object)
+                throw new BambuFormatException($"'{path}' must contain a JSON object at the root.");
+
+            return new BambuPlateDetails {
+                Index = index,
+                Bounds = ReadBounds(root, "bbox_all"),
+                Objects = ReadPlateObjectBounds(root),
+                BedType = ReadString(root, "bed_type"),
+                FilamentColors = ReadJsonStrings(root, "filament_colors"),
+                FilamentIds = ReadJsonIntegers(root, "filament_ids"),
+                FirstExtruder = ReadInteger(root, "first_extruder"),
+                FirstLayerTimeSeconds = ReadDouble(root, "first_layer_time"),
+                IsSequentialPrint = ReadBoolean(root, "is_seq_print"),
+                NozzleDiameter = ReadDouble(root, "nozzle_diameter"),
+            };
+        } catch (JsonException e) {
+            throw new BambuFormatException($"'{path}' is not well-formed JSON.", e);
+        }
+    }
+
+    static IReadOnlyList<BambuPlateObjectBounds> ReadPlateObjectBounds(JsonElement root) {
+        if (!root.TryGetProperty("bbox_objects", out var elements) || elements.ValueKind is not JsonValueKind.Array)
+            return [];
+
+        var objects = new List<BambuPlateObjectBounds>();
+
+        foreach (var element in elements.EnumerateArray()) {
+            if (element.ValueKind is not JsonValueKind.Object || ReadInteger(element, "id") is not { } id)
+                throw new BambuFormatException("A plate bbox_objects entry is missing a valid id.");
+
+            objects.Add(new BambuPlateObjectBounds {
+                Id = id,
+                Name = ReadString(element, "name"),
+                Bounds = ReadBounds(element, "bbox"),
+                Area = ReadDouble(element, "area"),
+                LayerHeight = ReadDouble(element, "layer_height"),
+            });
+        }
+
+        return objects;
+    }
+
+    static IReadOnlyDictionary<int, BambuFilamentSequence> ParseFilamentSequences(
+        IReadOnlyDictionary<string, ReadOnlyMemory<byte>> files
+    ) {
+        if (!files.TryGetValue(BambuParts.FilamentSequencePart, out var bytes))
+            return new Dictionary<int, BambuFilamentSequence>();
+
+        try {
+            using var document = JsonDocument.Parse(BambuParts.ReadText(bytes));
+
+            if (document.RootElement.ValueKind is JsonValueKind.Array && document.RootElement.GetArrayLength() is 0)
+                return new Dictionary<int, BambuFilamentSequence>();
+
+            if (document.RootElement.ValueKind is not JsonValueKind.Object) {
+                throw new BambuFormatException(
+                    $"'{BambuParts.FilamentSequencePart}' must contain a JSON object at the root."
+                );
+            }
+
+            var sequences = new Dictionary<int, BambuFilamentSequence>();
+
+            foreach (var property in document.RootElement.EnumerateObject()) {
+                const string prefix = "plate_";
+
+                if (!property.Name.StartsWith(prefix, StringComparison.Ordinal)
+                    || !int.TryParse(property.Name[prefix.Length..], NumberStyles.Integer, CultureInfo.InvariantCulture, out var index)
+                    || index < 0
+                    || property.Value.ValueKind is not JsonValueKind.Object) {
+                    continue;
+                }
+
+                sequences[index] = new BambuFilamentSequence {
+                    Index = index,
+                    NozzleSequence = ReadJsonIntegers(property.Value, "nozzle_sequence"),
+                    OptimalAssignment = ReadJsonIntegers(property.Value, "optimal_assignment"),
+                    Sequence = ReadJsonIntegers(property.Value, "sequence"),
+                };
+            }
+
+            return sequences;
+        } catch (JsonException e) {
+            throw new BambuFormatException($"'{BambuParts.FilamentSequencePart}' is not well-formed JSON.", e);
+        }
+    }
+
+    static IReadOnlyList<BambuCut> ParseCuts(IReadOnlyDictionary<string, ReadOnlyMemory<byte>> files) {
+        if (!files.TryGetValue(BambuParts.CutInformationPart, out var bytes))
+            return [];
+
+        try {
+            using var stream = new MemoryStream(bytes.ToArray(), writable: false);
+            using var reader = XmlReader.Create(stream, Settings);
+            reader.MoveToContent();
+
+            if (reader.NodeType is not XmlNodeType.Element || reader.LocalName != "objects")
+                throw new BambuFormatException($"'{BambuParts.CutInformationPart}' must have an <objects> root element.");
+
+            var cuts = new List<BambuCut>();
+
+            if (reader.IsEmptyElement)
+                return cuts;
+
+            reader.Read();
+
+            while (reader.NodeType is not (XmlNodeType.EndElement or XmlNodeType.None)) {
+                if (reader.NodeType is not XmlNodeType.Element) {
+                    reader.Read();
+                    continue;
+                }
+
+                if (reader.LocalName != "object") {
+                    reader.Skip();
+                    continue;
+                }
+
+                var objectId = ParsePositiveId(reader.GetAttribute("id"), "cut object id");
+
+                if (reader.IsEmptyElement) {
+                    reader.Skip();
+                    continue;
+                }
+
+                reader.Read();
+
+                while (reader.NodeType is not (XmlNodeType.EndElement or XmlNodeType.None)) {
+                    if (reader.NodeType is not XmlNodeType.Element) {
+                        reader.Read();
+                        continue;
+                    }
+
+                    if (reader.LocalName == "cut_id") {
+                        cuts.Add(new BambuCut(
+                            objectId,
+                            ParseNonNegativeId(reader.GetAttribute("id") ?? string.Empty, "cut id"),
+                            ParseNonNegativeId(reader.GetAttribute("check_sum") ?? string.Empty, "cut checksum"),
+                            ParseNonNegativeId(reader.GetAttribute("connectors_cnt") ?? string.Empty, "cut connector count")
+                        ));
+                    }
+
+                    reader.Skip();
+                }
+
+                if (reader.NodeType is XmlNodeType.EndElement)
+                    reader.Read();
+            }
+
+            return cuts;
+        } catch (XmlException e) {
+            throw new BambuFormatException($"'{BambuParts.CutInformationPart}' is not well-formed XML.", e);
+        }
+    }
+
+    static BambuBounds? ReadBounds(JsonElement element, string name) {
+        if (!element.TryGetProperty(name, out var values) || values.ValueKind is not JsonValueKind.Array)
+            return null;
+
+        var coordinates = values.EnumerateArray().ToArray();
+
+        if (coordinates.Length is not 4 || coordinates.Any(value => !value.TryGetDouble(out _)))
+            return null;
+
+        return new BambuBounds(
+            coordinates[0].GetDouble(), coordinates[1].GetDouble(), coordinates[2].GetDouble(), coordinates[3].GetDouble()
+        );
+    }
+
+    static IReadOnlyList<string> ReadJsonStrings(JsonElement element, string name) {
+        if (!element.TryGetProperty(name, out var values) || values.ValueKind is not JsonValueKind.Array)
+            return [];
+
+        return values.EnumerateArray()
+            .Where(value => value.ValueKind is JsonValueKind.String)
+            .Select(value => value.GetString() ?? string.Empty)
+            .ToArray();
+    }
+
+    static IReadOnlyList<int> ReadJsonIntegers(JsonElement element, string name) {
+        if (!element.TryGetProperty(name, out var values) || values.ValueKind is not JsonValueKind.Array)
+            return [];
+
+        var integers = new List<int>();
+
+        foreach (var value in values.EnumerateArray()) {
+            if (!value.TryGetInt32(out var integer))
+                return [];
+
+            integers.Add(integer);
+        }
+
+        return integers;
+    }
+
+    static string? ReadString(JsonElement element, string name) {
+        return element.TryGetProperty(name, out var value) && value.ValueKind is JsonValueKind.String
+            ? value.GetString()
+            : null;
+    }
+
+    static int? ReadInteger(JsonElement element, string name) {
+        return element.TryGetProperty(name, out var value) && value.TryGetInt32(out var integer) ? integer : null;
+    }
+
+    static double? ReadDouble(JsonElement element, string name) {
+        return element.TryGetProperty(name, out var value) && value.TryGetDouble(out var number) ? number : null;
+    }
+
+    static bool? ReadBoolean(JsonElement element, string name) {
+        return element.TryGetProperty(name, out var value) && value.ValueKind is JsonValueKind.True or JsonValueKind.False
+            ? value.GetBoolean()
+            : null;
+    }
+
     static IReadOnlyList<BambuPlate> BuildPlates(
         IReadOnlyDictionary<string, ReadOnlyMemory<byte>> files,
         IReadOnlyList<BambuPlateConfig> plateConfigs,
         IReadOnlyDictionary<int, BambuModelObject> modelObjects,
-        IReadOnlyDictionary<int, BambuSlicePlate> slicePlates
+        IReadOnlyDictionary<int, BambuSlicePlate> slicePlates,
+        IReadOnlyDictionary<int, BambuPlateDetails> plateDetails,
+        IReadOnlyDictionary<int, BambuFilamentSequence> filamentSequences
     ) {
         var indices = new SortedSet<int>();
         var configsByIndex = new Dictionary<int, BambuPlateConfig>();
@@ -670,6 +1190,12 @@ internal static class BambuProjectParser {
         }
 
         foreach (var index in slicePlates.Keys)
+            indices.Add(index);
+
+        foreach (var index in plateDetails.Keys)
+            indices.Add(index);
+
+        foreach (var index in filamentSequences.Keys)
             indices.Add(index);
 
         var imagePaths = new Dictionary<int, string>();
@@ -716,6 +1242,8 @@ internal static class BambuProjectParser {
                     Name = obj.Name ?? modelObjects.GetValueOrDefault(obj.ObjectId)?.Name,
                 }).ToArray() ?? [],
                 SliceInfo = slicePlates.GetValueOrDefault(index),
+                Details = plateDetails.GetValueOrDefault(index),
+                FilamentSequence = filamentSequences.GetValueOrDefault(index),
                 Thumbnail = BuildThumbnail(files, index, imagePaths, smallImagePaths),
                 GCodePart = gcodePart,
                 GCode = gcodePart is null ? null : BambuParts.ReadText(files[gcodePart]),

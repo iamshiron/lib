@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace Shiron.Lib.Tess.ThreeMF.Bambu;
 
 /// <summary>
@@ -132,6 +134,12 @@ public sealed class BambuPlate {
     /// </summary>
     public BambuSlicePlate? SliceInfo { get; init; }
 
+    /// <summary>Gets the sliced plate bounds and material summary, or <see langword="null"/> when absent.</summary>
+    public BambuPlateDetails? Details { get; init; }
+
+    /// <summary>Gets the sliced filament transition sequence, or <see langword="null"/> when absent.</summary>
+    public BambuFilamentSequence? FilamentSequence { get; init; }
+
     /// <summary>
     /// Gets the plate thumbnail, or <see langword="null"/> when the package contains
     /// no plate image for this index.
@@ -160,6 +168,75 @@ public sealed class BambuPlate {
     /// files only.
     /// </summary>
     public IReadOnlyDictionary<string, string> Config { get; init; } = new Dictionary<string, string>();
+}
+
+/// <summary>Represents the high-level contents of a Bambu plate bounds part.</summary>
+public sealed class BambuPlateDetails {
+    /// <summary>Gets the plate index.</summary>
+    public required int Index { get; init; }
+
+    /// <summary>Gets the bounds of all printed geometry, or <see langword="null"/> when absent.</summary>
+    public BambuBounds? Bounds { get; init; }
+
+    /// <summary>Gets bounds and print facts for individual objects, including the wipe tower when present.</summary>
+    public IReadOnlyList<BambuPlateObjectBounds> Objects { get; init; } = [];
+
+    /// <summary>Gets the selected bed type, or <see langword="null"/> when absent.</summary>
+    public string? BedType { get; init; }
+
+    /// <summary>Gets the selected filament colors.</summary>
+    public IReadOnlyList<string> FilamentColors { get; init; } = [];
+
+    /// <summary>Gets the selected filament indices.</summary>
+    public IReadOnlyList<int> FilamentIds { get; init; } = [];
+
+    /// <summary>Gets the first extruder index, or <see langword="null"/> when absent.</summary>
+    public int? FirstExtruder { get; init; }
+
+    /// <summary>Gets the first-layer duration in seconds, or <see langword="null"/> when absent.</summary>
+    public double? FirstLayerTimeSeconds { get; init; }
+
+    /// <summary>Gets whether the plate uses sequential printing.</summary>
+    public bool? IsSequentialPrint { get; init; }
+
+    /// <summary>Gets the selected nozzle diameter in millimeters, or <see langword="null"/> when absent.</summary>
+    public double? NozzleDiameter { get; init; }
+}
+
+/// <summary>Represents the bounds and print facts of one object in a Bambu plate details part.</summary>
+public sealed class BambuPlateObjectBounds {
+    /// <summary>Gets the slicer-specific object identifier.</summary>
+    public required int Id { get; init; }
+
+    /// <summary>Gets the object name, or <see langword="null"/> when absent.</summary>
+    public string? Name { get; init; }
+
+    /// <summary>Gets the planar object bounds, or <see langword="null"/> when absent.</summary>
+    public BambuBounds? Bounds { get; init; }
+
+    /// <summary>Gets the object area, or <see langword="null"/> when absent.</summary>
+    public double? Area { get; init; }
+
+    /// <summary>Gets the layer height in millimeters, or <see langword="null"/> when absent.</summary>
+    public double? LayerHeight { get; init; }
+}
+
+/// <summary>Represents planar bounds in millimeters.</summary>
+public readonly record struct BambuBounds(double MinX, double MinY, double MaxX, double MaxY);
+
+/// <summary>Represents the ordered filament choices emitted for a Bambu plate.</summary>
+public sealed class BambuFilamentSequence {
+    /// <summary>Gets the plate index.</summary>
+    public required int Index { get; init; }
+
+    /// <summary>Gets the nozzle selections in print order.</summary>
+    public IReadOnlyList<int> NozzleSequence { get; init; } = [];
+
+    /// <summary>Gets the optimized filament-to-slot assignment.</summary>
+    public IReadOnlyList<int> OptimalAssignment { get; init; } = [];
+
+    /// <summary>Gets the filament selections in print order.</summary>
+    public IReadOnlyList<int> Sequence { get; init; } = [];
 }
 
 /// <summary>
@@ -205,7 +282,49 @@ public sealed class BambuSlicePlate {
 
     /// <summary>Gets filament usage records for this plate.</summary>
     public IReadOnlyList<BambuFilament> Filaments { get; init; } = [];
+
+    /// <summary>Gets the printer model identifier selected by the slicer.</summary>
+    public string? PrinterModelId { get; init; }
+
+    /// <summary>Gets the estimated print duration, or <see langword="null"/> when absent.</summary>
+    public TimeSpan? EstimatedPrintTime { get; init; }
+
+    /// <summary>Gets the estimated material weight in grams, or <see langword="null"/> when absent.</summary>
+    public double? WeightGrams { get; init; }
+
+    /// <summary>Gets the first-layer duration in seconds, or <see langword="null"/> when absent.</summary>
+    public double? FirstLayerTimeSeconds { get; init; }
+
+    /// <summary>Gets the configured nozzle diameters in millimeters.</summary>
+    public IReadOnlyList<double> NozzleDiameters { get; init; } = [];
+
+    /// <summary>Gets whether the sliced model extends outside the printable area.</summary>
+    public bool? IsOutside { get; init; }
+
+    /// <summary>Gets whether the sliced print uses support material.</summary>
+    public bool? IsSupportUsed { get; init; }
+
+    /// <summary>Gets the selected filament mapping for this plate.</summary>
+    public IReadOnlyList<int> FilamentMap { get; init; } = [];
+
+    /// <summary>Gets the nozzles participating in this sliced plate.</summary>
+    public IReadOnlyList<BambuNozzle> Nozzles { get; init; } = [];
+
+    /// <summary>Gets the configured AMS load and unload timings.</summary>
+    public IReadOnlyList<BambuAmsTiming> AmsTimings { get; init; } = [];
+
+    /// <summary>Gets the filament assignments for layer ranges.</summary>
+    public IReadOnlyList<BambuLayerFilaments> LayerFilaments { get; init; } = [];
 }
+
+/// <summary>Represents a nozzle used by a sliced Bambu plate.</summary>
+public sealed record BambuNozzle(int Id, int ExtruderId, double Diameter, string? VolumeType);
+
+/// <summary>Represents a Bambu AMS type and its configured transfer timings.</summary>
+public sealed record BambuAmsTiming(string? Type, double? LoadTimeSeconds, double? UnloadTimeSeconds);
+
+/// <summary>Represents the filaments selected for one or more sliced layer ranges.</summary>
+public sealed record BambuLayerFilaments(IReadOnlyList<int> FilamentIds, string LayerRanges);
 
 /// <summary>
 /// Represents an object in a sliced Bambu plate.
@@ -230,6 +349,40 @@ public sealed class BambuFilament {
 
     /// <summary>Gets all filament attributes keyed by attribute name.</summary>
     public required IReadOnlyDictionary<string, string> Properties { get; init; }
+
+    /// <summary>Gets the AMS tray information identifier, or <see langword="null"/> when absent.</summary>
+    public string? TrayInfoIndex => GetValue("tray_info_idx");
+
+    /// <summary>Gets the material type, e.g. <c>PLA</c>, or <see langword="null"/> when absent.</summary>
+    public string? MaterialType => GetValue("type");
+
+    /// <summary>Gets the material color, e.g. <c>#DE4343</c>, or <see langword="null"/> when absent.</summary>
+    public string? Color => GetValue("color");
+
+    /// <summary>Gets the consumed filament length in meters, or <see langword="null"/> when absent or invalid.</summary>
+    public double? UsedMeters => GetDouble("used_m");
+
+    /// <summary>Gets the consumed filament weight in grams, or <see langword="null"/> when absent or invalid.</summary>
+    public double? UsedGrams => GetDouble("used_g");
+
+    /// <summary>Gets whether this filament was used for model geometry, or <see langword="null"/> when absent or invalid.</summary>
+    public bool? IsUsedForObject => GetBoolean("used_for_object");
+
+    /// <summary>Gets whether this filament was used for supports, or <see langword="null"/> when absent or invalid.</summary>
+    public bool? IsUsedForSupport => GetBoolean("used_for_support");
+
+    string? GetValue(string key) => Properties.TryGetValue(key, out var value) ? value : null;
+
+    double? GetDouble(string key) {
+        return GetValue(key) is { } value
+            && double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed)
+            ? parsed
+            : null;
+    }
+
+    bool? GetBoolean(string key) {
+        return GetValue(key) is { } value && bool.TryParse(value, out var parsed) ? parsed : null;
+    }
 }
 
 /// <summary>
@@ -315,7 +468,13 @@ public sealed class BambuProject {
     /// Empty when the package does not contain sliced plate information.
     /// </summary>
     public IReadOnlyDictionary<int, BambuSlicePlate> SlicePlates { get; init; } = new Dictionary<int, BambuSlicePlate>();
+
+    /// <summary>Gets the cut records declared by the project.</summary>
+    public IReadOnlyList<BambuCut> Cuts { get; init; } = [];
 }
+
+/// <summary>Represents one Bambu cut record for a model object.</summary>
+public sealed record BambuCut(int ObjectId, int CutId, int Checksum, int ConnectorCount);
 
 /// <summary>
 /// Represents the slicer project settings of a Bambu 3MF package, parsed from
@@ -331,4 +490,90 @@ public sealed class BambuProjectSettings {
     /// the package does not contain the part.
     /// </summary>
     public required IReadOnlyDictionary<string, string> Values { get; init; }
+
+    /// <summary>Gets the Bambu Studio settings schema version, or <see langword="null"/> when absent.</summary>
+    public string? Version { get; init; }
+
+    /// <summary>Gets the selected print profile identifier, or <see langword="null"/> when absent.</summary>
+    public string? PrintProfileId { get; init; }
+
+    /// <summary>Gets the printer settings selected for the project.</summary>
+    public BambuPrinterSettings Printer { get; init; } = new();
+
+    /// <summary>Gets the printable bed polygon in millimeters.</summary>
+    public IReadOnlyList<BambuPoint> PrintableArea { get; init; } = [];
+
+    /// <summary>Gets the maximum printable height in millimeters, or <see langword="null"/> when absent.</summary>
+    public double? PrintableHeight { get; init; }
+
+    /// <summary>Gets the configured filament profiles, ordered by slicer filament index.</summary>
+    public IReadOnlyList<BambuFilamentProfile> Filaments { get; init; } = [];
+
+    /// <summary>Gets the purge volume matrix, or <see langword="null"/> when it is absent or malformed.</summary>
+    public BambuPurgeMatrix? PurgeMatrix { get; init; }
+}
+
+/// <summary>Represents the printer configuration selected for a Bambu project.</summary>
+public sealed class BambuPrinterSettings {
+    /// <summary>Gets the printer model, or <see langword="null"/> when absent.</summary>
+    public string? Model { get; init; }
+
+    /// <summary>Gets the printer variant, or <see langword="null"/> when absent.</summary>
+    public string? Variant { get; init; }
+
+    /// <summary>Gets the printer profile identifier, or <see langword="null"/> when absent.</summary>
+    public string? ProfileId { get; init; }
+
+    /// <summary>Gets the printer technology, or <see langword="null"/> when absent.</summary>
+    public string? Technology { get; init; }
+
+    /// <summary>Gets the selected bed type, or <see langword="null"/> when absent.</summary>
+    public string? BedType { get; init; }
+}
+
+/// <summary>Represents one filament profile configured by a Bambu project.</summary>
+public sealed class BambuFilamentProfile {
+    /// <summary>Gets the zero-based slicer filament index.</summary>
+    public required int Index { get; init; }
+
+    /// <summary>Gets the material type, or <see langword="null"/> when absent.</summary>
+    public string? MaterialType { get; init; }
+
+    /// <summary>Gets the filament color, or <see langword="null"/> when absent.</summary>
+    public string? Color { get; init; }
+
+    /// <summary>Gets the material profile identifier, or <see langword="null"/> when absent.</summary>
+    public string? ProfileId { get; init; }
+
+    /// <summary>Gets the AMS tray identifier, or <see langword="null"/> when absent.</summary>
+    public string? TrayId { get; init; }
+
+    /// <summary>Gets the filament vendor, or <see langword="null"/> when absent.</summary>
+    public string? Vendor { get; init; }
+
+    /// <summary>Gets the configured nozzle temperature in Celsius, or <see langword="null"/> when absent.</summary>
+    public double? NozzleTemperature { get; init; }
+}
+
+/// <summary>Represents a two-dimensional point in millimeters.</summary>
+public readonly record struct BambuPoint(double X, double Y);
+
+/// <summary>Represents the dense row-major Bambu purge volume matrix in cubic millimeters.</summary>
+public sealed class BambuPurgeMatrix {
+    /// <summary>Gets the number of source and destination filament profiles.</summary>
+    public required int Size { get; init; }
+
+    /// <summary>Gets the row-major purge volumes.</summary>
+    public required IReadOnlyList<double> Volumes { get; init; }
+
+    /// <summary>Gets the purge volume from one filament index to another.</summary>
+    public double GetVolume(int fromFilament, int toFilament) {
+        if ((uint) fromFilament >= (uint) Size)
+            throw new ArgumentOutOfRangeException(nameof(fromFilament));
+
+        if ((uint) toFilament >= (uint) Size)
+            throw new ArgumentOutOfRangeException(nameof(toFilament));
+
+        return Volumes[(fromFilament * Size) + toFilament];
+    }
 }

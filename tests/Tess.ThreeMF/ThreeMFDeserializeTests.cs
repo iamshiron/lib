@@ -283,29 +283,32 @@ public class ThreeMFDeserializeTests {
         public ThreeMFDocument Parse(ParseContext context) => document;
     }
 
-    abstract class StubDocument : ThreeMFDocument {
-        [SetsRequiredMembers]
-        protected StubDocument() {
-            var model = new Model { Resources = new Resources { Objects = [] } };
+    static ThreeMFCore CreateStubCore() {
+        var model = new Model { Resources = new Resources { Objects = [] } };
 
+        return new ThreeMFCore {
+            PartPath = "stub.model",
+            Models = [model],
+            MainModel = model,
+            Parts = new Dictionary<string, Model> { ["stub.model"] = model },
+        };
+    }
+
+    sealed class VendorXDocument : ThreeMFDocument {
+        [SetsRequiredMembers]
+        public VendorXDocument() {
             Files = new Dictionary<string, ReadOnlyMemory<byte>>();
             Package = new ThreeMFPackage { Files = Files };
-            Core = new ThreeMFCore {
-                PartPath = "stub.model",
-                Models = [model],
-                MainModel = model,
-                Parts = new Dictionary<string, Model> { ["stub.model"] = model },
-            };
+            Core = CreateStubCore();
         }
     }
 
-    sealed class VendorXDocument : StubDocument {
+    sealed class VendorYDocument : ThreeMFDocument {
         [SetsRequiredMembers]
-        public VendorXDocument() { }
-    }
-
-    sealed class VendorYDocument : StubDocument {
-        [SetsRequiredMembers]
-        public VendorYDocument() { }
+        public VendorYDocument() {
+            Files = new Dictionary<string, ReadOnlyMemory<byte>>();
+            Package = new ThreeMFPackage { Files = Files };
+            Core = CreateStubCore();
+        }
     }
 }

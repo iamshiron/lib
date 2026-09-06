@@ -298,6 +298,120 @@ public class BambuDocumentTests {
     }
 
     [Fact]
+    public void Deserialize_ProjectSettings_ExposesPrinterFilamentsAndPurgeMatrix() {
+        const string projectSettings = """
+            {
+              "version": "02.08.02.60",
+              "print_settings_id": "0.12mm High Quality @BBL A2L",
+              "printer_model": "Bambu Lab A2L",
+              "printer_variant": "0.4",
+              "printer_settings_id": "Bambu Lab A2L 0.4 nozzle",
+              "printer_technology": "FFF",
+              "curr_bed_type": "Textured PEI Plate",
+              "printable_area": ["0x0", "330x0", "330x320", "0x320"],
+              "printable_height": "325",
+              "filament_type": ["PLA", "PETG"],
+              "filament_colour": ["#DE4343", "#F7D959"],
+              "filament_settings_id": ["PLA Profile", "PETG Profile"],
+              "filament_ids": ["GFA01", "GFB01"],
+              "filament_vendor": ["Bambu Lab", "Bambu Lab"],
+              "nozzle_temperature": ["220", "250"],
+              "flush_volumes_matrix": ["0", "408", "137", "0"]
+            }
+            """;
+        using var stream = CreateArchive(new Dictionary<string, byte[]> {
+            ["_rels/.rels"] = Text(RelationshipsPart),
+            [ModelPartPath] = Text(BambuModel),
+            ["Metadata/project_settings.config"] = Text(projectSettings),
+        });
+
+        var settings = Assert.IsType<BambuDocument>(ThreeMFSerializer.Deserialize(stream)).Project.ProjectSettings;
+
+        Assert.Equal("02.08.02.60", settings.Version);
+        Assert.Equal("0.12mm High Quality @BBL A2L", settings.PrintProfileId);
+        Assert.Equal("Bambu Lab A2L", settings.Printer.Model);
+        Assert.Equal("0.4", settings.Printer.Variant);
+        Assert.Equal("Bambu Lab A2L 0.4 nozzle", settings.Printer.ProfileId);
+        Assert.Equal("FFF", settings.Printer.Technology);
+        Assert.Equal("Textured PEI Plate", settings.Printer.BedType);
+        Assert.Equal(325, settings.PrintableHeight);
+        Assert.Equal([new BambuPoint(0, 0), new BambuPoint(330, 0), new BambuPoint(330, 320), new BambuPoint(0, 320)], settings.PrintableArea);
+        Assert.Equal(2, settings.Filaments.Count);
+        Assert.Equal("PLA", settings.Filaments[0].MaterialType);
+        Assert.Equal("#DE4343", settings.Filaments[0].Color);
+        Assert.Equal("GFA01", settings.Filaments[0].TrayId);
+        Assert.Equal(250, settings.Filaments[1].NozzleTemperature);
+        var purgeMatrix = Assert.IsType<BambuPurgeMatrix>(settings.PurgeMatrix);
+        Assert.Equal(2, purgeMatrix.Size);
+        Assert.Equal(408, purgeMatrix.GetVolume(0, 1));
+        Assert.Equal(137, purgeMatrix.GetVolume(1, 0));
+    }
+
+    [Fact]
+    public void Deserialize_PlateDetailsFilamentSequenceAndCuts_ExposePrintJobData() {
+        const string modelSettings = """
+            <config>
+              <plate>
+                <metadata key="plater_id" value="1"/>
+                <metadata key="pattern_bbox_file" value="Metadata/custom_bounds.json"/>
+              </plate>
+            </config>
+            """;
+        const string plateDetails = """
+            {
+              "bbox_all": [6.75, 20.20, 308.19, 282.95],
+              "bbox_objects": [
+                { "area": 11.12, "bbox": [127.88, 83.48, 308.19, 282.95], "id": 104, "layer_height": 0.2, "name": "Tower Top.stl" },
+                { "area": 5522.71, "bbox": [6.75, 151.76, 70.70, 214.65], "id": 1000, "layer_height": 0.2, "name": "wipe_tower" }
+              ],
+              "bed_type": "textured_plate",
+              "filament_colors": ["#DE4343", "#F7D959"],
+              "filament_ids": [0, 1],
+              "first_extruder": 1,
+              "first_layer_time": 843.14,
+              "is_seq_print": false,
+              "nozzle_diameter": 0.4
+            }
+            """;
+        const string filamentSequence = """
+            { "plate_1": { "nozzle_sequence": [0, 0], "optimal_assignment": [0, 1], "sequence": [1, 0, 1] } }
+            """;
+        const string cuts = """
+            <objects>
+              <object id="1"><cut_id id="0" check_sum="1" connectors_cnt="0"/></object>
+              <object id="2"><cut_id id="0" check_sum="1" connectors_cnt="0"/></object>
+            </objects>
+            """;
+        using var stream = CreateArchive(new Dictionary<string, byte[]> {
+            ["_rels/.rels"] = Text(RelationshipsPart),
+            [ModelPartPath] = Text(BambuModel),
+            ["Metadata/project_settings.config"] = Text(ProjectSettingsPart),
+            ["Metadata/model_settings.config"] = Text(modelSettings),
+            ["Metadata/custom_bounds.json"] = Text(plateDetails),
+            ["Metadata/filament_sequence.json"] = Text(filamentSequence),
+            ["Metadata/cut_information.xml"] = Text(cuts),
+        });
+
+        var bambu = Assert.IsType<BambuDocument>(ThreeMFSerializer.Deserialize(stream));
+
+        var plate = Assert.Single(bambu.Plates);
+        var details = Assert.IsType<BambuPlateDetails>(plate.Details);
+        Assert.Equal(new BambuBounds(6.75, 20.20, 308.19, 282.95), details.Bounds);
+        Assert.Equal("textured_plate", details.BedType);
+        Assert.Equal(["#DE4343", "#F7D959"], details.FilamentColors);
+        Assert.Equal([0, 1], details.FilamentIds);
+        Assert.Equal(1, details.FirstExtruder);
+        Assert.False(details.IsSequentialPrint);
+        Assert.Equal("wipe_tower", details.Objects[1].Name);
+        Assert.Equal(1000, details.Objects[1].Id);
+        var sequence = Assert.IsType<BambuFilamentSequence>(plate.FilamentSequence);
+        Assert.Equal([0, 0], sequence.NozzleSequence);
+        Assert.Equal([0, 1], sequence.OptimalAssignment);
+        Assert.Equal([1, 0, 1], sequence.Sequence);
+        Assert.Equal([new BambuCut(1, 0, 1, 0), new BambuCut(2, 0, 1, 0)], bambu.Project.Cuts);
+    }
+
+    [Fact]
     public void Deserialize_HeaderClientMarkersOnly_StillDetectsBambu() {
         using var stream = CreateArchive(new Dictionary<string, byte[]> {
             ["_rels/.rels"] = Text(RelationshipsPart),
@@ -632,9 +746,19 @@ public class BambuDocumentTests {
               <plate>
                 <metadata key="index" value="1"/>
                 <metadata key="weight" value="1265.75"/>
+                <metadata key="prediction" value="403011"/>
+                <metadata key="first_layer_time" value="843.144897"/>
+                <metadata key="printer_model_id" value="N9"/>
+                <metadata key="nozzle_diameters" value="0.4"/>
+                <metadata key="outside" value="false"/>
+                <metadata key="support_used" value="true"/>
+                <metadata key="filament_maps" value="1 1 1 1 1 1"/>
                 <object identify_id="90" name="Tower Top.stl" skipped="false"/>
                 <object identify_id="101" name="Tower Bottom.stl" skipped="true"/>
-                <filament id="1" type="PLA" color="#DE4343" used_g="582.39"/>
+                <filament id="1" tray_info_idx="GFA01" type="PLA" color="#DE4343" used_m="183.43" used_g="582.39" used_for_object="true" used_for_support="false"/>
+                <nozzle id="0" extruder_id="1" nozzle_diameter="0.4" volume_type="Standard"/>
+                <ams_list><ams ams_type="AMS" load_time="23.00" unload_time="21.00"/></ams_list>
+                <layer_filament_lists><layer_filament_list filament_list="0 2 3" layer_ranges="1575 1992"/></layer_filament_lists>
               </plate>
             </config>
             """;
@@ -652,9 +776,35 @@ public class BambuDocumentTests {
         Assert.Equal([90, 101], slicePlate.Objects.Select(obj => obj.IdentifyId));
         Assert.Equal([false, true], slicePlate.Objects.Select(obj => obj.IsSkipped));
         Assert.Equal("Tower Top.stl", slicePlate.Objects[0].Name);
+        Assert.Equal("N9", slicePlate.PrinterModelId);
+        Assert.Equal(TimeSpan.FromSeconds(403011), slicePlate.EstimatedPrintTime);
+        Assert.Equal(1265.75, slicePlate.WeightGrams);
+        Assert.Equal(843.144897, slicePlate.FirstLayerTimeSeconds);
+        Assert.Equal([0.4], slicePlate.NozzleDiameters);
+        Assert.False(slicePlate.IsOutside);
+        Assert.True(slicePlate.IsSupportUsed);
+        Assert.Equal([1, 1, 1, 1, 1, 1], slicePlate.FilamentMap);
         var filament = Assert.Single(slicePlate.Filaments);
         Assert.Equal(1, filament.Id);
         Assert.Equal("582.39", filament.Properties["used_g"]);
+        Assert.Equal("GFA01", filament.TrayInfoIndex);
+        Assert.Equal("PLA", filament.MaterialType);
+        Assert.Equal(183.43, filament.UsedMeters);
+        Assert.Equal(582.39, filament.UsedGrams);
+        Assert.True(filament.IsUsedForObject);
+        Assert.False(filament.IsUsedForSupport);
+        var nozzle = Assert.Single(slicePlate.Nozzles);
+        Assert.Equal(0, nozzle.Id);
+        Assert.Equal(1, nozzle.ExtruderId);
+        Assert.Equal(0.4, nozzle.Diameter);
+        Assert.Equal("Standard", nozzle.VolumeType);
+        var ams = Assert.Single(slicePlate.AmsTimings);
+        Assert.Equal("AMS", ams.Type);
+        Assert.Equal(23, ams.LoadTimeSeconds);
+        Assert.Equal(21, ams.UnloadTimeSeconds);
+        var layers = Assert.Single(slicePlate.LayerFilaments);
+        Assert.Equal([0, 2, 3], layers.FilamentIds);
+        Assert.Equal("1575 1992", layers.LayerRanges);
         Assert.Same(slicePlate, bambu.Project.SlicePlates[1]);
     }
 
@@ -704,7 +854,7 @@ public class BambuDocumentTests {
         files["Metadata/plate_no_light_1.png"] = [0x01];
         files["Metadata/top_1.png"] = [0x02];
         files["Metadata/pick_1.png"] = [0x03];
-        files["Metadata/cut_information.xml"] = Text("<cuts/>");
+        files["Metadata/cut_information.xml"] = Text("<objects/>");
         files["Metadata/filament_sequence.json"] = Text("[]");
         files["Metadata/_rels/model_settings.config.rels"] = Text("<Relationships/>");
         files["Metadata/notes.txt"] = Text("unrelated");

@@ -14,6 +14,8 @@ internal static class BambuParts {
     public const string SliceInfoPart = "Metadata/slice_info.config";
     public const string ProjectSettingsPart = "Metadata/project_settings.config";
     public const string ModelSettingsPart = "Metadata/model_settings.config";
+    public const string CutInformationPart = "Metadata/cut_information.xml";
+    public const string FilamentSequencePart = "Metadata/filament_sequence.json";
 
     const string HeaderItemElement = "header_item";
 
@@ -33,6 +35,9 @@ internal static class BambuParts {
 
     static readonly Regex PlateGCodePattern =
         new(@"^Metadata/plate_(\d+)\.gcode$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    static readonly Regex PlateDetailsPattern =
+        new(@"^Metadata/plate_(\d+)\.json$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     static readonly Regex PlateNoLightImagePattern =
         new(@"^Metadata/plate_no_light_\d+\.png$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
@@ -67,6 +72,12 @@ internal static class BambuParts {
     public static bool TryMatchPlateGCode(string path, out int index) => TryMatch(PlateGCodePattern, path, out index);
 
     /// <summary>
+    /// Attempts to match the part path of a plate details file, e.g.
+    /// <c>Metadata/plate_1.json</c>.
+    /// </summary>
+    public static bool TryMatchPlateDetails(string path, out int index) => TryMatch(PlateDetailsPattern, path, out index);
+
+    /// <summary>
     /// Determines whether the part path is a sliced plate G-code file.
     /// </summary>
     public static bool IsPlateGCodePath(string path) => PlateGCodePattern.IsMatch(path);
@@ -81,8 +92,8 @@ internal static class BambuParts {
             or SliceInfoPart
             or ProjectSettingsPart
             or ModelSettingsPart
-            or "Metadata/cut_information.xml"
-            or "Metadata/filament_sequence.json"
+            or CutInformationPart
+            or FilamentSequencePart
             or "Metadata/_rels/model_settings.config.rels"
             || PlateFilePattern.IsMatch(path)
             || PlateNoLightImagePattern.IsMatch(path)
