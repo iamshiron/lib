@@ -1,7 +1,8 @@
 using System.Xml;
 using Shiron.Lib.Tess.ThreeMF.Exceptions;
+using Shiron.Lib.Tess.ThreeMF.Opc;
 
-namespace Shiron.Lib.Tess.ThreeMF.Internal;
+namespace Shiron.Lib.Tess.ThreeMF.Parsing;
 
 internal static class CoreParser {
     public const string CoreNamespace = "http://schemas.microsoft.com/3dmanufacturing/core/2015/02";

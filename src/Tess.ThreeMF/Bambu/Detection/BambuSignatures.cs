@@ -1,7 +1,10 @@
 using System.Xml;
+using Shiron.Lib.Tess.ThreeMF.Bambu.Parsing;
 using Shiron.Lib.Tess.ThreeMF.Exceptions;
+using Shiron.Lib.Tess.ThreeMF.Opc;
+using Shiron.Lib.Tess.ThreeMF.Parsing;
 
-namespace Shiron.Lib.Tess.ThreeMF.Internal;
+namespace Shiron.Lib.Tess.ThreeMF.Bambu.Detection;
 
 /// <summary>
 /// Detects explicit Bambu producer signatures in the raw files of a package. Generic

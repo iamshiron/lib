@@ -1,4 +1,6 @@
-namespace Shiron.Lib.Tess.ThreeMF.Internal;
+using Shiron.Lib.Tess.ThreeMF.Bambu.Writing;
+
+namespace Shiron.Lib.Tess.ThreeMF.Writing;
 
 /// <summary>
 /// Selects the document writer for a document: resolves the most specific registered

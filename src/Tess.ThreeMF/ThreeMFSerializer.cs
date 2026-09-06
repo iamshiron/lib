@@ -1,6 +1,9 @@
 using System.IO.Compression;
+using Shiron.Lib.Tess.ThreeMF.Bambu.Detection;
+using Shiron.Lib.Tess.ThreeMF.Detection;
 using Shiron.Lib.Tess.ThreeMF.Exceptions;
-using Shiron.Lib.Tess.ThreeMF.Internal;
+using Shiron.Lib.Tess.ThreeMF.Opc;
+using Shiron.Lib.Tess.ThreeMF.Writing;
 
 namespace Shiron.Lib.Tess.ThreeMF;
 

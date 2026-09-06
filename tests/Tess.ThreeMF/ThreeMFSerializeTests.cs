@@ -1,6 +1,6 @@
 using System.IO.Compression;
 using System.Text;
-using Shiron.Lib.Tess.ThreeMF.Internal;
+using Shiron.Lib.Tess.ThreeMF.Writing;
 
 namespace Shiron.Lib.Tess.ThreeMF.Tests;
 

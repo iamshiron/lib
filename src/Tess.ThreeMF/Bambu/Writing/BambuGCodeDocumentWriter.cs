@@ -1,4 +1,6 @@
-namespace Shiron.Lib.Tess.ThreeMF.Internal;
+using Shiron.Lib.Tess.ThreeMF.Writing;
+
+namespace Shiron.Lib.Tess.ThreeMF.Bambu.Writing;
 
 /// <summary>
 /// The built-in writer for sliced Bambu G-code 3MF documents: preserves the

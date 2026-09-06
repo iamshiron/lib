@@ -1,7 +1,7 @@
 using System.Xml;
 using Shiron.Lib.Tess.ThreeMF.Exceptions;
 
-namespace Shiron.Lib.Tess.ThreeMF.Internal;
+namespace Shiron.Lib.Tess.ThreeMF.Opc;
 
 internal static class OpcParser {
     static readonly XmlReaderSettings Settings = new() {

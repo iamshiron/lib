@@ -1,4 +1,5 @@
-using Shiron.Lib.Tess.ThreeMF.Internal;
+using Shiron.Lib.Tess.ThreeMF.Detection;
+using Shiron.Lib.Tess.ThreeMF.Writing;
 
 namespace Shiron.Lib.Tess.ThreeMF;
 

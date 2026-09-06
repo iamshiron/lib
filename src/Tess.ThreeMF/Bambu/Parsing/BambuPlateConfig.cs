@@ -1,4 +1,4 @@
-namespace Shiron.Lib.Tess.ThreeMF.Internal;
+namespace Shiron.Lib.Tess.ThreeMF.Bambu.Parsing;
 
 /// <summary>
 /// One plate declaration parsed from <c>Metadata/model_settings.config</c>: the

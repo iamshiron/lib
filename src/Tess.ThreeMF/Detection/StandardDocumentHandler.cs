@@ -1,6 +1,8 @@
 using Shiron.Lib.Tess.ThreeMF.Exceptions;
+using Shiron.Lib.Tess.ThreeMF.Opc;
+using Shiron.Lib.Tess.ThreeMF.Parsing;
 
-namespace Shiron.Lib.Tess.ThreeMF.Internal;
+namespace Shiron.Lib.Tess.ThreeMF.Detection;
 
 /// <summary>
 /// The built-in handler for standard 3MF documents: parses the OPC package view and

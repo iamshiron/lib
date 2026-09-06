@@ -1,6 +1,6 @@
 using Shiron.Lib.Tess.ThreeMF.Exceptions;
 
-namespace Shiron.Lib.Tess.ThreeMF.Internal;
+namespace Shiron.Lib.Tess.ThreeMF.Detection;
 
 /// <summary>
 /// Selects the document handler for a package: probes every handler, then resolves the

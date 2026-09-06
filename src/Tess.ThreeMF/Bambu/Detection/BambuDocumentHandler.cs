@@ -1,4 +1,7 @@
-namespace Shiron.Lib.Tess.ThreeMF.Internal;
+using Shiron.Lib.Tess.ThreeMF.Bambu.Parsing;
+using Shiron.Lib.Tess.ThreeMF.Detection;
+
+namespace Shiron.Lib.Tess.ThreeMF.Bambu.Detection;
 
 /// <summary>
 /// The built-in handler for Bambu Studio project 3MF documents. It claims packages

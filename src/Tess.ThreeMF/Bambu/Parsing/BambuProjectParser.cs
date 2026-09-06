@@ -1,9 +1,11 @@
 using System.Globalization;
 using System.Text.Json;
 using System.Xml;
+using Shiron.Lib.Tess.ThreeMF.Detection;
 using Shiron.Lib.Tess.ThreeMF.Exceptions;
+using Shiron.Lib.Tess.ThreeMF.Parsing;
 
-namespace Shiron.Lib.Tess.ThreeMF.Internal;
+namespace Shiron.Lib.Tess.ThreeMF.Bambu.Parsing;
 
 /// <summary>
 /// Parses the producer-specific parts of a Bambu 3MF package on top of one shared OPC

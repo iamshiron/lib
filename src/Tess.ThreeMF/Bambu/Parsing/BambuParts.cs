@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Xml;
 
-namespace Shiron.Lib.Tess.ThreeMF.Internal;
+namespace Shiron.Lib.Tess.ThreeMF.Bambu.Parsing;
 
 /// <summary>
 /// The well-known part names and file naming conventions of the Bambu 3MF package

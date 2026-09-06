@@ -1,4 +1,4 @@
-namespace Shiron.Lib.Tess.ThreeMF.Internal;
+namespace Shiron.Lib.Tess.ThreeMF.Writing;
 
 /// <summary>
 /// Writes one specific kind of 3MF document into a ZIP archive on a stream. Writers

@@ -1,4 +1,4 @@
-namespace Shiron.Lib.Tess.ThreeMF.Internal;
+namespace Shiron.Lib.Tess.ThreeMF.Detection;
 
 /// <summary>
 /// Detects and parses one specific kind of 3MF document from a package's raw files.

@@ -1,4 +1,4 @@
-namespace Shiron.Lib.Tess.ThreeMF.Internal;
+namespace Shiron.Lib.Tess.ThreeMF.Writing;
 
 /// <summary>
 /// The built-in writer for standard 3MF documents: writes the document's raw package

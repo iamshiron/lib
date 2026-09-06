@@ -1,4 +1,4 @@
-namespace Shiron.Lib.Tess.ThreeMF.Internal;
+namespace Shiron.Lib.Tess.ThreeMF.Writing;
 
 /// <summary>
 /// Adapts a public <see cref="IThreeMFExtension"/> to the internal document writer
