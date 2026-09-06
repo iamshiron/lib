@@ -11,3 +11,9 @@ internal sealed record BambuPlateConfig(
     IReadOnlyList<BambuPlateObject> Objects,
     IReadOnlyDictionary<string, string> Raw
 );
+
+internal sealed record BambuModelSettingsData(
+    IReadOnlyList<BambuPlateConfig> Plates,
+    IReadOnlyDictionary<int, BambuModelObject> Objects,
+    IReadOnlyList<BambuAssemblyItem> AssemblyItems
+);

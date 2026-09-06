@@ -70,16 +70,20 @@ internal static class BambuProjectParser {
         var package = StandardDocumentHandler.ParsePackage(context.Files);
         var core = CoreParser.Parse(package, context.Options.ValidationMode);
 
-        var plateConfigs = ParseModelSettings(context.Files);
+        var modelSettings = ParseModelSettings(context.Files);
+        var slicePlates = ParseSlicePlates(context.Files);
         var project = new BambuProject {
             Application = core.MainModel.Metadata.FirstOrDefault(m => m.Name == "Application")?.Value,
             Header = ParseHeader(context.Files),
             ProjectSettings = ParseProjectSettings(context.Files),
             ModelSettings = new BambuModelSettings {
-                PlateConfigs = plateConfigs.ToDictionary(config => config.Index, config => config.Raw),
+                PlateConfigs = modelSettings.Plates.ToDictionary(config => config.Index, config => config.Raw),
+                Objects = modelSettings.Objects,
+                AssemblyItems = modelSettings.AssemblyItems,
             },
+            SlicePlates = slicePlates,
         };
-        var plates = BuildPlates(context.Files, plateConfigs);
+        var plates = BuildPlates(context.Files, modelSettings.Plates, modelSettings.Objects, slicePlates);
 
         if (!context.Options.PreserveUnknownFiles)
             package = RestrictToKnownParts(package, core);
@@ -132,9 +136,9 @@ internal static class BambuProjectParser {
         }
     }
 
-    static IReadOnlyList<BambuPlateConfig> ParseModelSettings(IReadOnlyDictionary<string, ReadOnlyMemory<byte>> files) {
+    static BambuModelSettingsData ParseModelSettings(IReadOnlyDictionary<string, ReadOnlyMemory<byte>> files) {
         if (!files.TryGetValue(BambuParts.ModelSettingsPart, out var bytes))
-            return [];
+            return new BambuModelSettingsData([], new Dictionary<int, BambuModelObject>(), []);
 
         try {
             using var stream = new MemoryStream(bytes.ToArray(), writable: false);
@@ -147,7 +151,7 @@ internal static class BambuProjectParser {
                     $"'{BambuParts.ModelSettingsPart}' must have a <config> root element."
                 );
 
-            return ReadPlates(reader);
+            return ReadModelSettings(reader);
         } catch (XmlException e) {
             throw new BambuFormatException(
                 $"'{BambuParts.ModelSettingsPart}' is not well-formed XML.", e
@@ -155,13 +159,15 @@ internal static class BambuProjectParser {
         }
     }
 
-    static IReadOnlyList<BambuPlateConfig> ReadPlates(XmlReader reader) {
+    static BambuModelSettingsData ReadModelSettings(XmlReader reader) {
         var plates = new List<BambuPlateConfig>();
+        var objects = new Dictionary<int, BambuModelObject>();
+        var assemblyItems = new List<BambuAssemblyItem>();
         var ordinal = 0;
 
         if (reader.IsEmptyElement) {
             reader.Skip();
-            return plates;
+            return new BambuModelSettingsData(plates, objects, assemblyItems);
         }
 
         reader.Read();
@@ -172,16 +178,28 @@ internal static class BambuProjectParser {
                 continue;
             }
 
-            if (reader.LocalName == "plate")
-                plates.Add(ReadPlate(reader, ++ordinal));
-            else
-                reader.Skip();
+            switch (reader.LocalName) {
+                case "plate":
+                    plates.Add(ReadPlate(reader, ++ordinal));
+                    break;
+                case "object": {
+                        var modelObject = ReadModelObject(reader);
+                        objects[modelObject.Id] = modelObject;
+                        break;
+                    }
+                case "assemble":
+                    assemblyItems.AddRange(ReadAssemblyItems(reader));
+                    break;
+                default:
+                    reader.Skip();
+                    break;
+            }
         }
 
         if (reader.NodeType is XmlNodeType.EndElement)
             reader.Read();
 
-        return plates;
+        return new BambuModelSettingsData(plates, objects, assemblyItems);
     }
 
     static BambuPlateConfig ReadPlate(XmlReader reader, int ordinal) {
@@ -229,6 +247,8 @@ internal static class BambuProjectParser {
                 } else if (reader.LocalName == "object") {
                     objects.Add(ReadPlateObject(reader));
                     reader.Skip();
+                } else if (reader.LocalName == "model_instance") {
+                    objects.Add(ReadModelInstance(reader));
                 } else {
                     reader.Skip();
                 }
@@ -265,6 +285,202 @@ internal static class BambuProjectParser {
         return new BambuPlateObject { ObjectId = id, Name = reader.GetAttribute("name") };
     }
 
+    static BambuPlateObject ReadModelInstance(XmlReader reader) {
+        int? objectId = null;
+        int? instanceId = null;
+        int? identifyId = null;
+
+        if (reader.IsEmptyElement) {
+            reader.Skip();
+        } else {
+            reader.Read();
+
+            while (reader.NodeType is not (XmlNodeType.EndElement or XmlNodeType.None)) {
+                if (reader.NodeType is not XmlNodeType.Element) {
+                    reader.Read();
+                    continue;
+                }
+
+                if (reader.LocalName != "metadata") {
+                    reader.Skip();
+                    continue;
+                }
+
+                var (key, value) = ReadMetadata(reader);
+
+                if (string.IsNullOrEmpty(key))
+                    continue;
+
+                switch (key) {
+                    case "object_id":
+                        objectId = ParsePositiveId(value, "model instance object id");
+                        break;
+                    case "instance_id":
+                        instanceId = ParseNonNegativeId(value, "model instance id");
+                        break;
+                    case "identify_id":
+                        identifyId = ParsePositiveId(value, "model instance identify id");
+                        break;
+                }
+            }
+
+            if (reader.NodeType is XmlNodeType.EndElement)
+                reader.Read();
+        }
+
+        if (objectId is null)
+            throw new BambuFormatException("A plate <model_instance> declaration is missing a valid object_id metadata value.");
+
+        return new BambuPlateObject {
+            ObjectId = objectId.Value,
+            InstanceId = instanceId,
+            IdentifyId = identifyId,
+        };
+    }
+
+    static BambuModelObject ReadModelObject(XmlReader reader) {
+        var id = ParsePositiveId(reader.GetAttribute("id"), "model settings object id");
+        var metadata = new Dictionary<string, string>(StringComparer.Ordinal);
+        var parts = new List<BambuModelPart>();
+
+        if (reader.IsEmptyElement) {
+            reader.Skip();
+        } else {
+            reader.Read();
+
+            while (reader.NodeType is not (XmlNodeType.EndElement or XmlNodeType.None)) {
+                if (reader.NodeType is not XmlNodeType.Element) {
+                    reader.Read();
+                    continue;
+                }
+
+                switch (reader.LocalName) {
+                    case "metadata": {
+                            var (key, value) = ReadMetadata(reader);
+
+                            if (!string.IsNullOrEmpty(key))
+                                metadata[key] = value;
+
+                            break;
+                        }
+                    case "part":
+                        parts.Add(ReadModelPart(reader));
+                        break;
+                    default:
+                        reader.Skip();
+                        break;
+                }
+            }
+
+            if (reader.NodeType is XmlNodeType.EndElement)
+                reader.Read();
+        }
+
+        return new BambuModelObject {
+            Id = id,
+            Name = metadata.GetValueOrDefault("name"),
+            Metadata = metadata,
+            Parts = parts,
+        };
+    }
+
+    static BambuModelPart ReadModelPart(XmlReader reader) {
+        var id = ParsePositiveId(reader.GetAttribute("id"), "model settings part id");
+        var metadata = new Dictionary<string, string>(StringComparer.Ordinal);
+        var subtype = reader.GetAttribute("subtype");
+        var uuid = reader.GetAttribute("uuid");
+
+        if (reader.IsEmptyElement) {
+            reader.Skip();
+        } else {
+            reader.Read();
+
+            while (reader.NodeType is not (XmlNodeType.EndElement or XmlNodeType.None)) {
+                if (reader.NodeType is not XmlNodeType.Element) {
+                    reader.Read();
+                    continue;
+                }
+
+                if (reader.LocalName == "metadata") {
+                    var (key, value) = ReadMetadata(reader);
+
+                    if (!string.IsNullOrEmpty(key))
+                        metadata[key] = value;
+                } else {
+                    reader.Skip();
+                }
+            }
+
+            if (reader.NodeType is XmlNodeType.EndElement)
+                reader.Read();
+        }
+
+        return new BambuModelPart {
+            Id = id,
+            Subtype = subtype,
+            Uuid = uuid,
+            Metadata = metadata,
+        };
+    }
+
+    static IReadOnlyList<BambuAssemblyItem> ReadAssemblyItems(XmlReader reader) {
+        var items = new List<BambuAssemblyItem>();
+
+        if (reader.IsEmptyElement) {
+            reader.Skip();
+            return items;
+        }
+
+        reader.Read();
+
+        while (reader.NodeType is not (XmlNodeType.EndElement or XmlNodeType.None)) {
+            if (reader.NodeType is not XmlNodeType.Element) {
+                reader.Read();
+                continue;
+            }
+
+            if (reader.LocalName != "assemble_item") {
+                reader.Skip();
+                continue;
+            }
+
+            var attributes = ReadAttributes(reader);
+            items.Add(new BambuAssemblyItem {
+                ObjectId = ParsePositiveId(reader.GetAttribute("object_id"), "assembly object id"),
+                InstanceId = ParseOptionalNonNegativeId(reader.GetAttribute("instance_id"), "assembly instance id"),
+                VolumeId = ParseOptionalNonNegativeId(reader.GetAttribute("volume_id"), "assembly volume id"),
+                Attributes = attributes,
+            });
+            reader.Skip();
+        }
+
+        if (reader.NodeType is XmlNodeType.EndElement)
+            reader.Read();
+
+        return items;
+    }
+
+    static (string? Key, string Value) ReadMetadata(XmlReader reader) {
+        var key = reader.GetAttribute("key") ?? reader.GetAttribute("type");
+
+        if (reader.GetAttribute("value") is { } value) {
+            reader.Skip();
+            return (key, value);
+        }
+
+        return (key, reader.ReadElementContentAsString());
+    }
+
+    static Dictionary<string, string> ReadAttributes(XmlReader reader) {
+        var attributes = new Dictionary<string, string>(StringComparer.Ordinal);
+
+        while (reader.MoveToNextAttribute())
+            attributes[reader.LocalName] = reader.Value;
+
+        reader.MoveToElement();
+        return attributes;
+    }
+
     static List<BambuPlateObject> ParsePlateObjects(string? value) {
         if (string.IsNullOrWhiteSpace(value))
             return [];
@@ -288,9 +504,162 @@ internal static class BambuProjectParser {
         return index;
     }
 
+    static int ParsePositiveId(string? value, string description) {
+        if (string.IsNullOrWhiteSpace(value)
+            || !int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var id)
+            || id < 1) {
+            throw new BambuFormatException($"'{value}' is not a valid {description}.");
+        }
+
+        return id;
+    }
+
+    static int? ParseOptionalNonNegativeId(string? value, string description) {
+        if (value is null)
+            return null;
+
+        return ParseNonNegativeId(value, description);
+    }
+
+    static int ParseNonNegativeId(string value, string description) {
+        if (!int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var id) || id < 0)
+            throw new BambuFormatException($"'{value}' is not a valid {description}.");
+
+        return id;
+    }
+
+    static IReadOnlyDictionary<int, BambuSlicePlate> ParseSlicePlates(
+        IReadOnlyDictionary<string, ReadOnlyMemory<byte>> files
+    ) {
+        if (!files.TryGetValue(BambuParts.SliceInfoPart, out var bytes))
+            return new Dictionary<int, BambuSlicePlate>();
+
+        try {
+            using var stream = new MemoryStream(bytes.ToArray(), writable: false);
+            using var reader = XmlReader.Create(stream, Settings);
+
+            reader.MoveToContent();
+
+            if (reader.NodeType is not XmlNodeType.Element || reader.LocalName != "config") {
+                throw new BambuFormatException(
+                    $"'{BambuParts.SliceInfoPart}' must have a <config> root element."
+                );
+            }
+
+            var plates = new Dictionary<int, BambuSlicePlate>();
+            var ordinal = 0;
+
+            if (reader.IsEmptyElement) {
+                reader.Skip();
+                return plates;
+            }
+
+            reader.Read();
+
+            while (reader.NodeType is not (XmlNodeType.EndElement or XmlNodeType.None)) {
+                if (reader.NodeType is not XmlNodeType.Element) {
+                    reader.Read();
+                    continue;
+                }
+
+                if (reader.LocalName == "plate") {
+                    var plate = ReadSlicePlate(reader, ++ordinal);
+                    plates[plate.Index] = plate;
+                } else {
+                    reader.Skip();
+                }
+            }
+
+            return plates;
+        } catch (XmlException e) {
+            throw new BambuFormatException(
+                $"'{BambuParts.SliceInfoPart}' is not well-formed XML.", e
+            );
+        }
+    }
+
+    static BambuSlicePlate ReadSlicePlate(XmlReader reader, int ordinal) {
+        var config = ReadAttributes(reader);
+        var objects = new List<BambuSlicedObject>();
+        var filaments = new List<BambuFilament>();
+
+        if (!reader.IsEmptyElement) {
+            reader.Read();
+
+            while (reader.NodeType is not (XmlNodeType.EndElement or XmlNodeType.None)) {
+                if (reader.NodeType is not XmlNodeType.Element) {
+                    reader.Read();
+                    continue;
+                }
+
+                switch (reader.LocalName) {
+                    case "metadata": {
+                            var (key, value) = ReadMetadata(reader);
+
+                            if (!string.IsNullOrEmpty(key))
+                                config[key] = value;
+
+                            break;
+                        }
+                    case "object":
+                        objects.Add(ReadSlicedObject(reader));
+                        reader.Skip();
+                        break;
+                    case "filament":
+                        filaments.Add(ReadFilament(reader));
+                        reader.Skip();
+                        break;
+                    default:
+                        reader.Skip();
+                        break;
+                }
+            }
+
+            if (reader.NodeType is XmlNodeType.EndElement)
+                reader.Read();
+        } else {
+            reader.Skip();
+        }
+
+        var index = config.TryGetValue("index", out var indexText)
+            ? ParsePlateIndex(indexText)
+            : ordinal;
+
+        return new BambuSlicePlate {
+            Index = index,
+            Config = config,
+            Objects = objects,
+            Filaments = filaments,
+        };
+    }
+
+    static BambuSlicedObject ReadSlicedObject(XmlReader reader) {
+        var skipped = reader.GetAttribute("skipped");
+
+        if (skipped is not null && !bool.TryParse(skipped, out _))
+            throw new BambuFormatException($"'{skipped}' is not a valid sliced object skipped value.");
+
+        return new BambuSlicedObject {
+            IdentifyId = ParsePositiveId(reader.GetAttribute("identify_id"), "sliced object identify id"),
+            Name = reader.GetAttribute("name"),
+            IsSkipped = skipped is not null && bool.Parse(skipped),
+        };
+    }
+
+    static BambuFilament ReadFilament(XmlReader reader) {
+        var properties = ReadAttributes(reader);
+
+        return new BambuFilament {
+            Id = ParsePositiveId(reader.GetAttribute("id"), "filament id"),
+            Properties = properties,
+        };
+    }
+
     static IReadOnlyList<BambuPlate> BuildPlates(
         IReadOnlyDictionary<string, ReadOnlyMemory<byte>> files,
-        IReadOnlyList<BambuPlateConfig> plateConfigs
+        IReadOnlyList<BambuPlateConfig> plateConfigs,
+        IReadOnlyDictionary<int, BambuModelObject> modelObjects,
+        IReadOnlyDictionary<int, BambuSlicePlate> slicePlates
     ) {
         var indices = new SortedSet<int>();
         var configsByIndex = new Dictionary<int, BambuPlateConfig>();
@@ -299,6 +668,9 @@ internal static class BambuProjectParser {
             configsByIndex[config.Index] = config;
             indices.Add(config.Index);
         }
+
+        foreach (var index in slicePlates.Keys)
+            indices.Add(index);
 
         var imagePaths = new Dictionary<int, string>();
         var smallImagePaths = new Dictionary<int, string>();
@@ -340,7 +712,10 @@ internal static class BambuProjectParser {
             plates.Add(new BambuPlate {
                 Index = index,
                 Name = config?.Name,
-                Objects = config?.Objects ?? [],
+                Objects = config?.Objects.Select(obj => obj with {
+                    Name = obj.Name ?? modelObjects.GetValueOrDefault(obj.ObjectId)?.Name,
+                }).ToArray() ?? [],
+                SliceInfo = slicePlates.GetValueOrDefault(index),
                 Thumbnail = BuildThumbnail(files, index, imagePaths, smallImagePaths),
                 GCodePart = gcodePart,
                 GCode = gcodePart is null ? null : BambuParts.ReadText(files[gcodePart]),

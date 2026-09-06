@@ -144,6 +144,15 @@ public class BambuDocumentTests {
     const string KeyValueModelSettingsPart = """
         <?xml version="1.0" encoding="UTF-8"?>
         <config>
+          <object id="2">
+            <metadata key="name" value="Tower Top.stl"/>
+            <part id="1" subtype="normal_part" uuid="part-2">
+              <metadata key="source_file" value="Tower Top.stl"/>
+            </part>
+          </object>
+          <object id="4">
+            <metadata key="name" value="Tower Bottom.stl"/>
+          </object>
           <plate>
             <metadata key="plater_id" value="1"/>
             <metadata key="plater_name" value=""/>
@@ -152,7 +161,21 @@ public class BambuDocumentTests {
             <metadata key="thumbnail_file" value="Metadata/plate_1.png"/>
             <metadata key="top_file" value="Metadata/top_1.png"/>
             <metadata key="pick_file" value="Metadata/pick_1.png"/>
+            <model_instance>
+              <metadata key="object_id" value="2"/>
+              <metadata key="instance_id" value="0"/>
+              <metadata key="identify_id" value="94"/>
+            </model_instance>
+            <model_instance>
+              <metadata key="object_id" value="4"/>
+              <metadata key="instance_id" value="0"/>
+              <metadata key="identify_id" value="105"/>
+            </model_instance>
           </plate>
+          <assemble>
+            <assemble_item object_id="2" instance_id="0" transform="1 0 0 0 1 0 0 0 1 1 2 3"/>
+            <assemble_item object_id="4" volume_id="0" transform="1 0 0 0 1 0 0 0 1 0 0 0"/>
+          </assemble>
         </config>
         """;
 
@@ -561,13 +584,22 @@ public class BambuDocumentTests {
         var plate = Assert.Single(bambu.Plates);
         Assert.Equal(1, plate.Index);
         Assert.Equal("", plate.Name);
-        Assert.Empty(plate.Objects);
+        Assert.Equal([2, 4], plate.Objects.Select(obj => obj.ObjectId));
+        Assert.Equal(["Tower Top.stl", "Tower Bottom.stl"], plate.Objects.Select(obj => obj.Name));
+        Assert.Equal([0, 0], plate.Objects.Select(obj => obj.InstanceId));
+        Assert.Equal([94, 105], plate.Objects.Select(obj => obj.IdentifyId));
         Assert.Null(plate.GCodePart);
         Assert.Equal("1", plate.Config["plater_id"]);
         Assert.Equal("", plate.Config["plater_name"]);
         Assert.Equal("Metadata/plate_1.png", plate.Config["thumbnail_file"]);
         Assert.Equal("Metadata/pick_1.png", plate.Config["pick_file"]);
         Assert.Equal("1", bambu.Project.ModelSettings.PlateConfigs[1]["plater_id"]);
+        var modelObject = bambu.Project.ModelSettings.Objects[2];
+        Assert.Equal("Tower Top.stl", modelObject.Name);
+        Assert.Equal("Tower Top.stl", modelObject.Parts[0].Metadata["source_file"]);
+        Assert.Equal("part-2", modelObject.Parts[0].Uuid);
+        Assert.Equal(2, bambu.Project.ModelSettings.AssemblyItems.Count);
+        Assert.Equal("1 0 0 0 1 0 0 0 1 1 2 3", bambu.Project.ModelSettings.AssemblyItems[0].Attributes["transform"]);
         Assert.NotNull(plate.Thumbnail);
         Assert.Equal("Metadata/plate_1.png", plate.Thumbnail!.PartPath);
     }
@@ -590,6 +622,40 @@ public class BambuDocumentTests {
         Assert.Equal(1, plate.Index);
         Assert.Equal("Metadata/plate_1.gcode", plate.GCodePart);
         Assert.Equal(["Metadata/plate_1.gcode"], gcode.PrintJob.GCodeParts);
+    }
+
+    [Fact]
+    public void Deserialize_SliceInfo_ExposesSlicedObjectsAndFilamentUsage() {
+        const string sliceInfo = """
+            <config>
+              <header><header_item key="X-BBL-Client-Type" value="slicer"/></header>
+              <plate>
+                <metadata key="index" value="1"/>
+                <metadata key="weight" value="1265.75"/>
+                <object identify_id="90" name="Tower Top.stl" skipped="false"/>
+                <object identify_id="101" name="Tower Bottom.stl" skipped="true"/>
+                <filament id="1" type="PLA" color="#DE4343" used_g="582.39"/>
+              </plate>
+            </config>
+            """;
+        using var stream = CreateArchive(new Dictionary<string, byte[]> {
+            ["_rels/.rels"] = Text(RelationshipsPart),
+            [ModelPartPath] = Text(GenericModel),
+            ["Metadata/slice_info.config"] = Text(sliceInfo),
+        });
+
+        var bambu = Assert.IsType<BambuDocument>(ThreeMFSerializer.Deserialize(stream));
+
+        var plate = Assert.Single(bambu.Plates);
+        var slicePlate = Assert.IsType<BambuSlicePlate>(plate.SliceInfo);
+        Assert.Equal("1265.75", slicePlate.Config["weight"]);
+        Assert.Equal([90, 101], slicePlate.Objects.Select(obj => obj.IdentifyId));
+        Assert.Equal([false, true], slicePlate.Objects.Select(obj => obj.IsSkipped));
+        Assert.Equal("Tower Top.stl", slicePlate.Objects[0].Name);
+        var filament = Assert.Single(slicePlate.Filaments);
+        Assert.Equal(1, filament.Id);
+        Assert.Equal("582.39", filament.Properties["used_g"]);
+        Assert.Same(slicePlate, bambu.Project.SlicePlates[1]);
     }
 
     [Fact]
@@ -635,6 +701,12 @@ public class BambuDocumentTests {
     public void Deserialize_PreserveUnknownFilesFalse_KeepsRecognizedBambuParts() {
         var files = BambuProjectFiles();
         files["Metadata/plate_1.gcode"] = Text("; sliced gcode");
+        files["Metadata/plate_no_light_1.png"] = [0x01];
+        files["Metadata/top_1.png"] = [0x02];
+        files["Metadata/pick_1.png"] = [0x03];
+        files["Metadata/cut_information.xml"] = Text("<cuts/>");
+        files["Metadata/filament_sequence.json"] = Text("[]");
+        files["Metadata/_rels/model_settings.config.rels"] = Text("<Relationships/>");
         files["Metadata/notes.txt"] = Text("unrelated");
         using var stream = CreateArchive(files);
 
@@ -647,6 +719,12 @@ public class BambuDocumentTests {
         Assert.Contains("Metadata/model_settings.config", document.Files.Keys);
         Assert.Contains("Metadata/plate_1.png", document.Files.Keys);
         Assert.Contains("Metadata/plate_1.gcode", document.Files.Keys);
+        Assert.Contains("Metadata/plate_no_light_1.png", document.Files.Keys);
+        Assert.Contains("Metadata/top_1.png", document.Files.Keys);
+        Assert.Contains("Metadata/pick_1.png", document.Files.Keys);
+        Assert.Contains("Metadata/cut_information.xml", document.Files.Keys);
+        Assert.Contains("Metadata/filament_sequence.json", document.Files.Keys);
+        Assert.Contains("Metadata/_rels/model_settings.config.rels", document.Files.Keys);
         Assert.DoesNotContain("Metadata/notes.txt", document.Files.Keys);
     }
 

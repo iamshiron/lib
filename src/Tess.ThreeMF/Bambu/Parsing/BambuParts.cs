@@ -34,6 +34,15 @@ internal static class BambuParts {
     static readonly Regex PlateGCodePattern =
         new(@"^Metadata/plate_(\d+)\.gcode$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
+    static readonly Regex PlateNoLightImagePattern =
+        new(@"^Metadata/plate_no_light_\d+\.png$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    static readonly Regex PlateTopImagePattern =
+        new(@"^Metadata/top_\d+\.png$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    static readonly Regex PlatePickImagePattern =
+        new(@"^Metadata/pick_\d+\.png$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
     static readonly Regex PlateFilePattern =
         new(@"^Metadata/plate_\d+", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
@@ -68,8 +77,17 @@ internal static class BambuParts {
     /// file.
     /// </summary>
     public static bool IsRecognizedPart(string path) {
-        return path is HeaderItemPart or SliceInfoPart or ProjectSettingsPart or ModelSettingsPart
-            || PlateFilePattern.IsMatch(path);
+        return path is HeaderItemPart
+            or SliceInfoPart
+            or ProjectSettingsPart
+            or ModelSettingsPart
+            or "Metadata/cut_information.xml"
+            or "Metadata/filament_sequence.json"
+            or "Metadata/_rels/model_settings.config.rels"
+            || PlateFilePattern.IsMatch(path)
+            || PlateNoLightImagePattern.IsMatch(path)
+            || PlateTopImagePattern.IsMatch(path)
+            || PlatePickImagePattern.IsMatch(path);
     }
 
     /// <summary>

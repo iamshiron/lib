@@ -42,6 +42,67 @@ public sealed class BambuModelSettings {
     /// merged into each map. Empty when the package does not contain the part.
     /// </summary>
     public required IReadOnlyDictionary<int, IReadOnlyDictionary<string, string>> PlateConfigs { get; init; }
+
+    /// <summary>
+    /// Gets the objects declared in the model settings, keyed by their 3MF object id.
+    /// </summary>
+    public IReadOnlyDictionary<int, BambuModelObject> Objects { get; init; } = new Dictionary<int, BambuModelObject>();
+
+    /// <summary>
+    /// Gets the assembly items declared in the model settings.
+    /// </summary>
+    public IReadOnlyList<BambuAssemblyItem> AssemblyItems { get; init; } = [];
+}
+
+/// <summary>
+/// Represents an object declaration in <c>Metadata/model_settings.config</c>.
+/// </summary>
+public sealed class BambuModelObject {
+    /// <summary>Gets the 3MF object resource id.</summary>
+    public required int Id { get; init; }
+
+    /// <summary>Gets the configured object name, or <see langword="null"/> when absent.</summary>
+    public string? Name { get; init; }
+
+    /// <summary>Gets the object metadata keyed by its Bambu metadata key.</summary>
+    public required IReadOnlyDictionary<string, string> Metadata { get; init; }
+
+    /// <summary>Gets the object parts declared by the slicer.</summary>
+    public IReadOnlyList<BambuModelPart> Parts { get; init; } = [];
+}
+
+/// <summary>
+/// Represents one volume part of a Bambu model-settings object.
+/// </summary>
+public sealed class BambuModelPart {
+    /// <summary>Gets the part id.</summary>
+    public required int Id { get; init; }
+
+    /// <summary>Gets the slicer-specific part subtype, or <see langword="null"/> when absent.</summary>
+    public string? Subtype { get; init; }
+
+    /// <summary>Gets the part UUID, or <see langword="null"/> when absent.</summary>
+    public string? Uuid { get; init; }
+
+    /// <summary>Gets the part metadata keyed by its Bambu metadata key.</summary>
+    public required IReadOnlyDictionary<string, string> Metadata { get; init; }
+}
+
+/// <summary>
+/// Represents an item in the model-settings assembly section.
+/// </summary>
+public sealed class BambuAssemblyItem {
+    /// <summary>Gets the referenced 3MF object resource id.</summary>
+    public required int ObjectId { get; init; }
+
+    /// <summary>Gets the instance id, or <see langword="null"/> for a volume-level item.</summary>
+    public int? InstanceId { get; init; }
+
+    /// <summary>Gets the volume id, or <see langword="null"/> for an instance-level item.</summary>
+    public int? VolumeId { get; init; }
+
+    /// <summary>Gets all assembly item attributes keyed by attribute name.</summary>
+    public required IReadOnlyDictionary<string, string> Attributes { get; init; }
 }
 
 /// <summary>
@@ -64,6 +125,12 @@ public sealed class BambuPlate {
     /// Gets the objects placed on the plate. Empty when undeclared.
     /// </summary>
     public IReadOnlyList<BambuPlateObject> Objects { get; init; } = [];
+
+    /// <summary>
+    /// Gets sliced plate details from <c>Metadata/slice_info.config</c>, or
+    /// <see langword="null"/> when the package has no matching sliced plate entry.
+    /// </summary>
+    public BambuSlicePlate? SliceInfo { get; init; }
 
     /// <summary>
     /// Gets the plate thumbnail, or <see langword="null"/> when the package contains
@@ -110,6 +177,59 @@ public sealed record BambuPlateObject {
     /// carries only the object id.
     /// </summary>
     public string? Name { get; init; }
+
+    /// <summary>
+    /// Gets the model instance id, or <see langword="null"/> when the plate uses a
+    /// compact object declaration instead of a <c>&lt;model_instance&gt;</c>.
+    /// </summary>
+    public int? InstanceId { get; init; }
+
+    /// <summary>
+    /// Gets the slicer-specific identify id, or <see langword="null"/> when absent.
+    /// </summary>
+    public int? IdentifyId { get; init; }
+}
+
+/// <summary>
+/// Represents the sliced plate information in <c>Metadata/slice_info.config</c>.
+/// </summary>
+public sealed class BambuSlicePlate {
+    /// <summary>Gets the plate index.</summary>
+    public required int Index { get; init; }
+
+    /// <summary>Gets the sliced plate metadata keyed by its Bambu metadata key.</summary>
+    public required IReadOnlyDictionary<string, string> Config { get; init; }
+
+    /// <summary>Gets objects included in the sliced output.</summary>
+    public IReadOnlyList<BambuSlicedObject> Objects { get; init; } = [];
+
+    /// <summary>Gets filament usage records for this plate.</summary>
+    public IReadOnlyList<BambuFilament> Filaments { get; init; } = [];
+}
+
+/// <summary>
+/// Represents an object in a sliced Bambu plate.
+/// </summary>
+public sealed class BambuSlicedObject {
+    /// <summary>Gets the slicer-specific object identify id.</summary>
+    public required int IdentifyId { get; init; }
+
+    /// <summary>Gets the sliced object name, or <see langword="null"/> when absent.</summary>
+    public string? Name { get; init; }
+
+    /// <summary>Gets whether the object was skipped during slicing.</summary>
+    public bool IsSkipped { get; init; }
+}
+
+/// <summary>
+/// Represents a filament usage record from a sliced Bambu plate.
+/// </summary>
+public sealed class BambuFilament {
+    /// <summary>Gets the filament id.</summary>
+    public required int Id { get; init; }
+
+    /// <summary>Gets all filament attributes keyed by attribute name.</summary>
+    public required IReadOnlyDictionary<string, string> Properties { get; init; }
 }
 
 /// <summary>
@@ -189,6 +309,12 @@ public sealed class BambuProject {
     /// Empty when the package does not contain the part.
     /// </summary>
     public required BambuModelSettings ModelSettings { get; init; }
+
+    /// <summary>
+    /// Gets sliced plate details parsed from <c>Metadata/slice_info.config</c>.
+    /// Empty when the package does not contain sliced plate information.
+    /// </summary>
+    public IReadOnlyDictionary<int, BambuSlicePlate> SlicePlates { get; init; } = new Dictionary<int, BambuSlicePlate>();
 }
 
 /// <summary>
