@@ -1,11 +1,11 @@
-namespace Shiron.Lib.Tess.ThreeMF;
+namespace Shiron.Lib.Tess.ThreeMF.Detection;
 
 /// <summary>
 /// The immutable input shared by all document probes: the raw package files keyed by
 /// part path, plus the serializer options in effect. Probing must be cheap and free of
 /// side effects.
 /// </summary>
-public sealed class ThreeMFProbeContext {
+public sealed class ProbeContext {
     /// <summary>
     /// Gets the immutable raw package files, keyed by part path.
     /// </summary>

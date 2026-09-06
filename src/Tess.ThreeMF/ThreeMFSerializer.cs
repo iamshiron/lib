@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using Shiron.Lib.Tess.ThreeMF.Bambu;
 using Shiron.Lib.Tess.ThreeMF.Bambu.Detection;
 using Shiron.Lib.Tess.ThreeMF.Detection;
 using Shiron.Lib.Tess.ThreeMF.Exceptions;
@@ -21,10 +22,11 @@ public static class ThreeMFSerializer {
     /// <summary>
     /// Writes a 3MF document to a ZIP archive on the given stream. The writer is
     /// selected from the document's actual runtime type, preferring the most specific
-    /// writer, e.g. <see cref="BambuGCodeThreeMFDocument"/> over
-    /// <see cref="BambuThreeMFDocument"/> over <see cref="ThreeMFDocument"/>; writers
-    /// registered through <see cref="ThreeMFExtensions"/> add further candidates for
-    /// derived document types. Writers preserve the package's raw files by default.
+    /// writer, e.g. <see cref="BambuGCodeDocument"/> over
+    /// <see cref="BambuDocument"/> over <see cref="ThreeMFDocument"/>; writers
+    /// registered through <see cref="ThreeMFSerializerOptions.Extensions"/> add further
+    /// candidates for derived document types. Writers preserve the package's raw files
+    /// by default.
     /// </summary>
     /// <param name="stream">The stream to write to; it is left open.</param>
     /// <param name="document">The document to write.</param>
@@ -90,8 +92,8 @@ public static class ThreeMFSerializer {
     /// Reads a 3MF document from a ZIP archive on the given stream. The runtime
     /// document type is detected from the package contents via the registered document
     /// handlers; the built-in handlers cover standard and Bambu documents, extensions
-    /// registered through <see cref="ThreeMFExtensions"/> add further candidates, and
-    /// a valid generic 3MF yields exactly <see cref="ThreeMFDocument"/>.
+    /// registered through <see cref="ThreeMFSerializerOptions.Extensions"/> add further
+    /// candidates, and a valid generic 3MF yields exactly <see cref="ThreeMFDocument"/>.
     /// </summary>
     /// <param name="stream">The stream to read from; it is left open.</param>
     /// <param name="options">The deserialization options; <see langword="null"/> uses <see cref="ThreeMFSerializerOptions.Default"/>.</param>
@@ -115,12 +117,12 @@ public static class ThreeMFSerializer {
 
         var files = ReadFiles(stream);
 
-        var probeContext = new ThreeMFProbeContext {
+        var probeContext = new ProbeContext {
             Files = files,
             Options = effectiveOptions,
         };
 
-        var parseContext = new ThreeMFParseContext {
+        var parseContext = new ParseContext {
             Files = files,
             Options = effectiveOptions,
         };

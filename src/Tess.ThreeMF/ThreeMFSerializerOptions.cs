@@ -11,9 +11,9 @@ public readonly record struct ThreeMFSerializerOptions() {
 
     /// <summary>
     /// Gets the validation strictness applied while reading documents.
-    /// Defaults to <see cref="ThreeMFValidationMode.Standard"/>.
+    /// Defaults to <see cref="ValidationMode.Standard"/>.
     /// </summary>
-    public ThreeMFValidationMode ValidationMode { get; init; } = ThreeMFValidationMode.Standard;
+    public ValidationMode ValidationMode { get; init; } = ValidationMode.Standard;
 
     /// <summary>
     /// Gets a value indicating whether package files that the parsed document does not
@@ -27,7 +27,7 @@ public readonly record struct ThreeMFSerializerOptions() {
     /// Registration only adds detection candidates; the built-in standard handler
     /// always participates.
     /// </summary>
-    public ThreeMFExtensions Extensions { get; init; } = new();
+    public ExtensionCollection Extensions { get; init; } = new();
 
     public static ThreeMFSerializerOptions Default => new();
 }

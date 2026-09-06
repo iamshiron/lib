@@ -5,7 +5,7 @@ namespace Shiron.Lib.Tess.ThreeMF;
 /// <summary>
 /// The strictness of the validation applied while reading a 3MF document.
 /// </summary>
-public enum ThreeMFValidationMode {
+public enum ValidationMode {
     /// <summary>
     /// Enforces all 3MF specification validation rules; violations throw
     /// <see cref="ThreeMFCoreException"/>.

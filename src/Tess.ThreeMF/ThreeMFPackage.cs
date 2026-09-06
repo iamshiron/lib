@@ -1,3 +1,5 @@
+using Shiron.Lib.Tess.ThreeMF.Opc;
+
 namespace Shiron.Lib.Tess.ThreeMF;
 
 /// <summary>

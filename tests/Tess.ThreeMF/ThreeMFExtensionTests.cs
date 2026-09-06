@@ -1,7 +1,10 @@
 using System.Diagnostics.CodeAnalysis;
 using System.IO.Compression;
 using System.Text;
+using Shiron.Lib.Tess.ThreeMF.Bambu;
+using Shiron.Lib.Tess.ThreeMF.Detection;
 using Shiron.Lib.Tess.ThreeMF.Exceptions;
+using Shiron.Lib.Tess.ThreeMF.Models;
 
 namespace Shiron.Lib.Tess.ThreeMF.Tests;
 
@@ -62,7 +65,7 @@ public class ThreeMFExtensionTests {
 
     [Fact]
     public void Add_NullExtension_ThrowsArgumentNull() {
-        var extensions = new ThreeMFExtensions();
+        var extensions = new ExtensionCollection();
 
         Assert.Throws<ArgumentNullException>(() => extensions.Add(null!));
     }
@@ -95,10 +98,10 @@ public class ThreeMFExtensionTests {
         using var stream = CreateVendorZArchive();
 
         var exception = Assert.Throws<ThreeMFDocumentTypeMismatchException>(
-            () => ThreeMFSerializer.Deserialize<BambuThreeMFDocument>(stream, options)
+            () => ThreeMFSerializer.Deserialize<BambuDocument>(stream, options)
         );
 
-        Assert.Equal(typeof(BambuThreeMFDocument), exception.RequestedType);
+        Assert.Equal(typeof(BambuDocument), exception.RequestedType);
         Assert.Equal(typeof(VendorZDocument), exception.ActualType);
     }
 
@@ -139,7 +142,7 @@ public class ThreeMFExtensionTests {
     }
 
     static ThreeMFSerializerOptions CreateOptions(params IThreeMFExtension[] extensions) {
-        var container = new ThreeMFExtensions();
+        var container = new ExtensionCollection();
 
         foreach (var extension in extensions)
             container.Add(extension);
@@ -215,13 +218,13 @@ public class ThreeMFExtensionTests {
 
         public Type DocumentType => typeof(VendorZDocument);
 
-        public ThreeMFProbeResult Probe(ThreeMFProbeContext context) {
+        public ProbeResult Probe(ProbeContext context) {
             return context.Files.ContainsKey(VendorZMarkerPath)
-                ? ThreeMFProbeResult.Certain
-                : ThreeMFProbeResult.NoMatch;
+                ? ProbeResult.Certain
+                : ProbeResult.NoMatch;
         }
 
-        public ThreeMFDocument Parse(ThreeMFParseContext context) => new VendorZDocument(context.Files);
+        public ThreeMFDocument Parse(ParseContext context) => new VendorZDocument(context.Files);
 
         public void Write(Stream stream, ThreeMFDocument document, ThreeMFSerializerOptions options) {
             using var zip = new ZipArchive(stream, ZipArchiveMode.Create, true);
@@ -239,13 +242,13 @@ public class ThreeMFExtensionTests {
 
         public Type DocumentType => typeof(VendorWDocument);
 
-        public ThreeMFProbeResult Probe(ThreeMFProbeContext context) {
+        public ProbeResult Probe(ProbeContext context) {
             return context.Files.ContainsKey(MarkerPath)
-                ? ThreeMFProbeResult.Certain
-                : ThreeMFProbeResult.NoMatch;
+                ? ProbeResult.Certain
+                : ProbeResult.NoMatch;
         }
 
-        public ThreeMFDocument Parse(ThreeMFParseContext context) => new VendorWDocument(context.Files);
+        public ThreeMFDocument Parse(ParseContext context) => new VendorWDocument(context.Files);
     }
 
     abstract class VendorDocumentBase : ThreeMFDocument {
@@ -255,7 +258,7 @@ public class ThreeMFExtensionTests {
 
             Files = files;
             Package = new ThreeMFPackage { Files = files };
-            Core = new Core {
+            Core = new ThreeMFCore {
                 PartPath = ModelPartPath,
                 Models = [model],
                 MainModel = model,

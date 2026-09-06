@@ -12,15 +12,15 @@ namespace Shiron.Lib.Tess.ThreeMF.Detection;
 internal sealed class StandardDocumentHandler : IThreeMFDocumentHandler {
     public Type DocumentType => typeof(ThreeMFDocument);
 
-    public ThreeMFProbeResult Probe(ThreeMFProbeContext context) {
+    public ProbeResult Probe(ProbeContext context) {
         ArgumentNullException.ThrowIfNull(context);
 
         return DeclaresModelPart(context.Files)
-            ? ThreeMFProbeResult.Certain
-            : ThreeMFProbeResult.NoMatch;
+            ? ProbeResult.Certain
+            : ProbeResult.NoMatch;
     }
 
-    public ThreeMFDocument Parse(ThreeMFParseContext context) {
+    public ThreeMFDocument Parse(ParseContext context) {
         ArgumentNullException.ThrowIfNull(context);
 
         var package = ParsePackage(context.Files);
@@ -54,7 +54,7 @@ internal sealed class StandardDocumentHandler : IThreeMFDocumentHandler {
         };
     }
 
-    static ThreeMFPackage RestrictToKnownParts(ThreeMFPackage package, Core core) {
+    static ThreeMFPackage RestrictToKnownParts(ThreeMFPackage package, ThreeMFCore core) {
         var known = new Dictionary<string, ReadOnlyMemory<byte>>(StringComparer.Ordinal);
 
         if (package.TryGet(ThreeMFSerializer.ContentTypesPath, out var contentTypesXml))

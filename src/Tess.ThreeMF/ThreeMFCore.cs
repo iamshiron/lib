@@ -1,3 +1,5 @@
+using Shiron.Lib.Tess.ThreeMF.Models;
+
 namespace Shiron.Lib.Tess.ThreeMF;
 
 /// <summary>
@@ -6,7 +8,7 @@ namespace Shiron.Lib.Tess.ThreeMF;
 /// linked through 3D model relationships of their part-level relationships parts,
 /// decoded into core specification types.
 /// </summary>
-public sealed class Core {
+public sealed class ThreeMFCore {
     /// <summary>
     /// Gets the normalized part path of the main model part inside the package,
     /// e.g. <c>3D/3dmodel.model</c>.

@@ -25,14 +25,14 @@ internal static class BambuProjectParser {
         new Dictionary<string, string>(StringComparer.Ordinal);
 
     /// <summary>
-    /// Parses the context into exactly a <see cref="BambuThreeMFDocument"/>.
+    /// Parses the context into exactly a <see cref="BambuDocument"/>.
     /// </summary>
-    public static BambuThreeMFDocument ParseDocument(ThreeMFParseContext context) {
+    public static BambuDocument ParseDocument(ParseContext context) {
         ArgumentNullException.ThrowIfNull(context);
 
         var (package, core, project, plates) = ParseParts(context);
 
-        return new BambuThreeMFDocument {
+        return new BambuDocument {
             Files = package.Files,
             Package = package,
             Core = core,
@@ -42,15 +42,15 @@ internal static class BambuProjectParser {
     }
 
     /// <summary>
-    /// Parses the context into exactly a <see cref="BambuGCodeThreeMFDocument"/>,
+    /// Parses the context into exactly a <see cref="BambuGCodeDocument"/>,
     /// summarizing the embedded sliced plate G-code as a print job.
     /// </summary>
-    public static BambuGCodeThreeMFDocument ParseGCodeDocument(ThreeMFParseContext context) {
+    public static BambuGCodeDocument ParseGCodeDocument(ParseContext context) {
         ArgumentNullException.ThrowIfNull(context);
 
         var (package, core, project, plates) = ParseParts(context);
 
-        return new BambuGCodeThreeMFDocument {
+        return new BambuGCodeDocument {
             Files = package.Files,
             Package = package,
             Core = core,
@@ -65,8 +65,8 @@ internal static class BambuProjectParser {
         };
     }
 
-    static (ThreeMFPackage Package, Core Core, BambuProject Project, IReadOnlyList<BambuPlate> Plates)
-        ParseParts(ThreeMFParseContext context) {
+    static (ThreeMFPackage Package, ThreeMFCore Core, BambuProject Project, IReadOnlyList<BambuPlate> Plates)
+        ParseParts(ParseContext context) {
         var package = StandardDocumentHandler.ParsePackage(context.Files);
         var core = CoreParser.Parse(package, context.Options.ValidationMode);
 
@@ -371,7 +371,7 @@ internal static class BambuProjectParser {
         };
     }
 
-    static ThreeMFPackage RestrictToKnownParts(ThreeMFPackage package, Core core) {
+    static ThreeMFPackage RestrictToKnownParts(ThreeMFPackage package, ThreeMFCore core) {
         var known = package.Files
             .Where(file => IsKnownPart(file.Key, core))
             .ToDictionary(file => file.Key, file => file.Value, StringComparer.Ordinal);
@@ -383,7 +383,7 @@ internal static class BambuProjectParser {
         };
     }
 
-    static bool IsKnownPart(string path, Core core) {
+    static bool IsKnownPart(string path, ThreeMFCore core) {
         return path is ThreeMFSerializer.ContentTypesPath or ThreeMFSerializer.RelationshipsPath
             || core.Parts.ContainsKey(path)
             || core.Parts.Keys.Any(partPath => CoreParser.GetRelationshipsPartPath(partPath) == path)

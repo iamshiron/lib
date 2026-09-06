@@ -4,12 +4,12 @@ using Shiron.Lib.Tess.ThreeMF.Writing;
 namespace Shiron.Lib.Tess.ThreeMF;
 
 /// <summary>
-/// Holds the document extensions registered on <see cref="ThreeMFSerializerOptions"/>.
+/// Holds the document extensions registered on <see cref="ThreeMFSerializerOptions.Extensions"/>.
 /// Extensions add candidate handlers and writers to document detection and
 /// serialization; they can never replace or suppress the built-in standard and Bambu
 /// handlers and writers.
 /// </summary>
-public sealed class ThreeMFExtensions {
+public sealed class ExtensionCollection {
     readonly List<IThreeMFDocumentHandler> _handlers = [];
     readonly List<IThreeMFDocumentWriter> _writers = [];
 

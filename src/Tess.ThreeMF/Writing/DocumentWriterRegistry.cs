@@ -1,3 +1,4 @@
+using Shiron.Lib.Tess.ThreeMF.Bambu;
 using Shiron.Lib.Tess.ThreeMF.Bambu.Writing;
 
 namespace Shiron.Lib.Tess.ThreeMF.Writing;
@@ -5,7 +6,7 @@ namespace Shiron.Lib.Tess.ThreeMF.Writing;
 /// <summary>
 /// Selects the document writer for a document: resolves the most specific registered
 /// writer for the document's runtime type by walking its class hierarchy upwards, so
-/// e.g. a <see cref="BambuGCodeThreeMFDocument"/> picks the G-code writer over the
+/// e.g. a <see cref="BambuGCodeDocument"/> picks the G-code writer over the
 /// Bambu and standard writers. The built-in writers always participate and win over
 /// extension writers registered for the same document type; among extensions, the
 /// first registered writer for a document type wins.

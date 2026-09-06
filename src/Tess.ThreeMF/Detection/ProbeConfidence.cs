@@ -1,10 +1,10 @@
-namespace Shiron.Lib.Tess.ThreeMF;
+namespace Shiron.Lib.Tess.ThreeMF.Detection;
 
 /// <summary>
 /// The confidence with which an extension claims a package as its document kind.
 /// The ordering defines deterministic precedence: a higher value outranks lower ones.
 /// </summary>
-public enum ThreeMFProbeConfidence {
+public enum ProbeConfidence {
     /// <summary>The extension does not claim the package.</summary>
     None = 0,
 

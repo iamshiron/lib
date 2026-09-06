@@ -8,7 +8,7 @@ namespace Shiron.Lib.Tess.ThreeMF.Bambu.Writing;
 /// verbatim through the shared ZIP writer.
 /// </summary>
 internal sealed class BambuDocumentWriter : IThreeMFDocumentWriter {
-    public Type DocumentType => typeof(BambuThreeMFDocument);
+    public Type DocumentType => typeof(BambuDocument);
 
     public void Write(Stream stream, ThreeMFDocument document, ThreeMFSerializerOptions options) {
         ArgumentNullException.ThrowIfNull(stream);

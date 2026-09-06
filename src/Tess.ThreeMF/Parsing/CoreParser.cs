@@ -1,5 +1,6 @@
 using System.Xml;
 using Shiron.Lib.Tess.ThreeMF.Exceptions;
+using Shiron.Lib.Tess.ThreeMF.Models;
 using Shiron.Lib.Tess.ThreeMF.Opc;
 
 namespace Shiron.Lib.Tess.ThreeMF.Parsing;
@@ -20,7 +21,7 @@ internal static class CoreParser {
         CloseInput = true,
     };
 
-    public static Core Parse(ThreeMFPackage package, ThreeMFValidationMode validationMode = ThreeMFValidationMode.Standard) {
+    public static ThreeMFCore Parse(ThreeMFPackage package, ValidationMode validationMode = ValidationMode.Standard) {
         ArgumentNullException.ThrowIfNull(package);
 
         var (path, xml) = SelectModelPart(package);
@@ -28,10 +29,10 @@ internal static class CoreParser {
 
         var mainModel = walker.ParsePartTree(path, xml);
 
-        if (validationMode is ThreeMFValidationMode.Standard)
+        if (validationMode is ValidationMode.Standard)
             ValidateReferences(package, walker.Order);
 
-        return new Core {
+        return new ThreeMFCore {
             PartPath = path,
             Models = [.. walker.Order.Select(part => part.Model)],
             MainModel = mainModel,
@@ -107,7 +108,7 @@ internal static class CoreParser {
     /// relationships part. Cycle-safe: a back-edge to a part currently being parsed
     /// throws, already-completed parts are parsed only once.
     /// </summary>
-    sealed class PartWalker(ThreeMFPackage package, ThreeMFValidationMode validationMode) {
+    sealed class PartWalker(ThreeMFPackage package, ValidationMode validationMode) {
         readonly Dictionary<string, Model> parsed = new(StringComparer.Ordinal);
         readonly HashSet<string> active = new(StringComparer.Ordinal);
 
@@ -231,7 +232,7 @@ internal static class CoreParser {
         return string.Join("/", segments);
     }
 
-    static Model ParseModelXml(string path, ReadOnlyMemory<byte> xml, ThreeMFValidationMode validationMode) {
+    static Model ParseModelXml(string path, ReadOnlyMemory<byte> xml, ValidationMode validationMode) {
         try {
             using var stream = new MemoryStream(xml.ToArray(), writable: false);
             using var reader = XmlReader.Create(stream, Settings);
@@ -252,7 +253,7 @@ internal static class CoreParser {
         }
     }
 
-    static Model ReadModel(XmlReader reader, ThreeMFValidationMode validationMode) {
+    static Model ReadModel(XmlReader reader, ValidationMode validationMode) {
         var unit = ParseUnit(reader.GetAttribute("unit"));
         var language = reader.GetAttribute("xml:lang");
 
@@ -295,8 +296,8 @@ internal static class CoreParser {
         };
     }
 
-    static Resources ReadResources(XmlReader reader, ThreeMFValidationMode validationMode) {
-        var objects = new List<Object>();
+    static Resources ReadResources(XmlReader reader, ValidationMode validationMode) {
+        var objects = new List<ModelObject>();
 
         ReadChildren(reader, "resources", child => {
             if (child.LocalName != "object")
@@ -308,7 +309,7 @@ internal static class CoreParser {
         return new Resources { Objects = objects };
     }
 
-    static Object ReadObject(XmlReader reader, ThreeMFValidationMode validationMode) {
+    static ModelObject ReadObject(XmlReader reader, ValidationMode validationMode) {
         var id = ParseResourceID(RequireAttribute(reader, "id", "object"));
         var type = ParseObjectType(reader.GetAttribute("type"));
         var name = reader.GetAttribute("name");
@@ -340,7 +341,7 @@ internal static class CoreParser {
                 $"The object {id} must contain either a mesh or components."
             );
 
-        return new Object {
+        return new ModelObject {
             Id = id,
             Type = type,
             Name = name,
@@ -350,7 +351,7 @@ internal static class CoreParser {
         };
     }
 
-    static Mesh ReadMesh(XmlReader reader, int objectId, ThreeMFValidationMode validationMode) {
+    static Mesh ReadMesh(XmlReader reader, int objectId, ValidationMode validationMode) {
         var vertices = new List<Vertex>();
         var triangles = new List<Triangle>();
 
@@ -367,7 +368,7 @@ internal static class CoreParser {
             }
         });
 
-        if (validationMode is ThreeMFValidationMode.Standard) {
+        if (validationMode is ValidationMode.Standard) {
             for (var i = 0; i < triangles.Count; i++) {
                 ValidateVertexIndex(triangles[i].V1, i, vertices.Count, objectId);
                 ValidateVertexIndex(triangles[i].V2, i, vertices.Count, objectId);
@@ -487,7 +488,7 @@ internal static class CoreParser {
             modelsByPath[path] = model;
 
         foreach (var (_, model) in parts) {
-            var objects = new Dictionary<int, Object>();
+            var objects = new Dictionary<int, ModelObject>();
 
             foreach (var obj in model.Resources.Objects) {
                 if (!objects.TryAdd(obj.Id, obj))
@@ -531,11 +532,11 @@ internal static class CoreParser {
     /// production <c>p:path</c> attribute when present, against the local model
     /// otherwise.
     /// </summary>
-    static Object ResolveComponentReference(
+    static ModelObject ResolveComponentReference(
         ThreeMFPackage package,
         IReadOnlyDictionary<string, Model> modelsByPath,
-        Dictionary<int, Object> localObjects,
-        Object obj,
+        Dictionary<int, ModelObject> localObjects,
+        ModelObject obj,
         Component component
     ) {
         if (component.PartPath is null) {

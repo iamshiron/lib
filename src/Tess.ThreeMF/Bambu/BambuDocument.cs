@@ -1,4 +1,4 @@
-namespace Shiron.Lib.Tess.ThreeMF;
+namespace Shiron.Lib.Tess.ThreeMF.Bambu;
 
 /// <summary>
 /// Represents a Bambu (Bambu Studio) project 3MF document: the generic 3MF core view
@@ -6,7 +6,7 @@ namespace Shiron.Lib.Tess.ThreeMF;
 /// of the package. The raw package files remain available through
 /// <see cref="ThreeMFDocument.Files"/>.
 /// </summary>
-public class BambuThreeMFDocument : ThreeMFDocument {
+public class BambuDocument : ThreeMFDocument {
     /// <summary>
     /// Gets the parsed Bambu project metadata: header items, project settings, and
     /// model settings.

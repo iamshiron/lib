@@ -1,3 +1,5 @@
+using Shiron.Lib.Tess.ThreeMF.Detection;
+
 namespace Shiron.Lib.Tess.ThreeMF;
 
 /// <summary>
@@ -22,7 +24,7 @@ public interface IThreeMFExtension {
     /// </summary>
     /// <param name="context">The immutable probe context.</param>
     /// <returns>The probe result.</returns>
-    ThreeMFProbeResult Probe(ThreeMFProbeContext context);
+    ProbeResult Probe(ProbeContext context);
 
     /// <summary>
     /// Parses the raw files into a document of exactly <see cref="DocumentType"/>.
@@ -30,7 +32,7 @@ public interface IThreeMFExtension {
     /// </summary>
     /// <param name="context">The immutable parse context.</param>
     /// <returns>The parsed document.</returns>
-    ThreeMFDocument Parse(ThreeMFParseContext context);
+    ThreeMFDocument Parse(ParseContext context);
 
     /// <summary>
     /// Writes a document of this extension's kind onto the given stream. Only invoked

@@ -1,6 +1,7 @@
 using System.IO.Compression;
 using System.Text;
 using Shiron.Lib.Tess.ThreeMF.Exceptions;
+using Shiron.Lib.Tess.ThreeMF.Opc;
 
 namespace Shiron.Lib.Tess.ThreeMF.Tests;
 

@@ -1,4 +1,4 @@
-namespace Shiron.Lib.Tess.ThreeMF;
+namespace Shiron.Lib.Tess.ThreeMF.Opc;
 
 /// <summary>
 /// Represents a single content-type declaration from the <c>[Content_Types].xml</c> part

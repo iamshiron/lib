@@ -1,7 +1,9 @@
 using System.Diagnostics.CodeAnalysis;
 using System.IO.Compression;
 using System.Text;
+using Shiron.Lib.Tess.ThreeMF.Detection;
 using Shiron.Lib.Tess.ThreeMF.Exceptions;
+using Shiron.Lib.Tess.ThreeMF.Models;
 
 namespace Shiron.Lib.Tess.ThreeMF.Tests;
 
@@ -107,7 +109,7 @@ public class ThreeMFDeserializeTests {
     [Fact]
     public void Deserialize_BaseTypeRequest_PreservesRuntimeType() {
         var options = CreateOptions(
-            new StubExtension(typeof(VendorXDocument), ThreeMFProbeConfidence.Certain, new VendorXDocument())
+            new StubExtension(typeof(VendorXDocument), ProbeConfidence.Certain, new VendorXDocument())
         );
 
         using var stream = CreateValidArchive();
@@ -135,8 +137,8 @@ public class ThreeMFDeserializeTests {
     [Fact]
     public void Deserialize_EqualAuthorityUnrelatedHandlers_ThrowAmbiguityException() {
         var options = CreateOptions(
-            new StubExtension(typeof(VendorXDocument), ThreeMFProbeConfidence.Certain, new VendorXDocument()),
-            new StubExtension(typeof(VendorYDocument), ThreeMFProbeConfidence.Certain, new VendorYDocument())
+            new StubExtension(typeof(VendorXDocument), ProbeConfidence.Certain, new VendorXDocument()),
+            new StubExtension(typeof(VendorYDocument), ProbeConfidence.Certain, new VendorYDocument())
         );
 
         using var stream = CreateValidArchive();
@@ -152,8 +154,8 @@ public class ThreeMFDeserializeTests {
     [Fact]
     public void Deserialize_DuplicateHandlersForSameDocumentType_ThrowAmbiguityException() {
         var options = CreateOptions(
-            new StubExtension(typeof(VendorXDocument), ThreeMFProbeConfidence.Certain, new VendorXDocument()),
-            new StubExtension(typeof(VendorXDocument), ThreeMFProbeConfidence.Certain, new VendorXDocument())
+            new StubExtension(typeof(VendorXDocument), ProbeConfidence.Certain, new VendorXDocument()),
+            new StubExtension(typeof(VendorXDocument), ProbeConfidence.Certain, new VendorXDocument())
         );
 
         using var stream = CreateValidArchive();
@@ -166,7 +168,7 @@ public class ThreeMFDeserializeTests {
     [Fact]
     public void Deserialize_LowerConfidenceHandler_LosesAgainstAuthoritativeStandard() {
         var options = CreateOptions(
-            new StubExtension(typeof(VendorXDocument), ThreeMFProbeConfidence.Probable, new VendorXDocument())
+            new StubExtension(typeof(VendorXDocument), ProbeConfidence.Probable, new VendorXDocument())
         );
 
         using var stream = CreateValidArchive();
@@ -191,7 +193,7 @@ public class ThreeMFDeserializeTests {
 
     [Fact]
     public void Deserialize_LenientMode_ToleratesInvalidReferences() {
-        var options = ThreeMFSerializerOptions.Default with { ValidationMode = ThreeMFValidationMode.Lenient };
+        var options = ThreeMFSerializerOptions.Default with { ValidationMode = ValidationMode.Lenient };
         using var stream = CreateModelOnlyArchive(InvalidReferencesModel);
 
         var document = ThreeMFSerializer.Deserialize(stream, options);
@@ -231,7 +233,7 @@ public class ThreeMFDeserializeTests {
     }
 
     static ThreeMFSerializerOptions CreateOptions(params IThreeMFExtension[] extensions) {
-        var container = new ThreeMFExtensions();
+        var container = new ExtensionCollection();
 
         foreach (var extension in extensions)
             container.Add(extension);
@@ -272,13 +274,13 @@ public class ThreeMFDeserializeTests {
         return stream;
     }
 
-    sealed class StubExtension(Type documentType, ThreeMFProbeConfidence confidence, ThreeMFDocument document)
+    sealed class StubExtension(Type documentType, ProbeConfidence confidence, ThreeMFDocument document)
         : IThreeMFExtension {
         public Type DocumentType => documentType;
 
-        public ThreeMFProbeResult Probe(ThreeMFProbeContext context) => new(confidence);
+        public ProbeResult Probe(ProbeContext context) => new(confidence);
 
-        public ThreeMFDocument Parse(ThreeMFParseContext context) => document;
+        public ThreeMFDocument Parse(ParseContext context) => document;
     }
 
     abstract class StubDocument : ThreeMFDocument {
@@ -288,7 +290,7 @@ public class ThreeMFDeserializeTests {
 
             Files = new Dictionary<string, ReadOnlyMemory<byte>>();
             Package = new ThreeMFPackage { Files = Files };
-            Core = new Core {
+            Core = new ThreeMFCore {
                 PartPath = "stub.model",
                 Models = [model],
                 MainModel = model,

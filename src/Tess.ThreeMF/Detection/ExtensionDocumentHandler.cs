@@ -7,7 +7,7 @@ namespace Shiron.Lib.Tess.ThreeMF.Detection;
 internal sealed class ExtensionDocumentHandler(IThreeMFExtension extension) : IThreeMFDocumentHandler {
     public Type DocumentType => extension.DocumentType;
 
-    public ThreeMFProbeResult Probe(ThreeMFProbeContext context) => extension.Probe(context);
+    public ProbeResult Probe(ProbeContext context) => extension.Probe(context);
 
-    public ThreeMFDocument Parse(ThreeMFParseContext context) => extension.Parse(context);
+    public ThreeMFDocument Parse(ParseContext context) => extension.Parse(context);
 }

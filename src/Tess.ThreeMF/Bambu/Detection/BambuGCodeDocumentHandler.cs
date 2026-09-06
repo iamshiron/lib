@@ -10,17 +10,17 @@ namespace Shiron.Lib.Tess.ThreeMF.Bambu.Detection;
 /// one, so it outranks the Bambu handler at equal confidence.
 /// </summary>
 internal sealed class BambuGCodeDocumentHandler : IThreeMFDocumentHandler {
-    public Type DocumentType => typeof(BambuGCodeThreeMFDocument);
+    public Type DocumentType => typeof(BambuGCodeDocument);
 
-    public ThreeMFProbeResult Probe(ThreeMFProbeContext context) {
+    public ProbeResult Probe(ProbeContext context) {
         ArgumentNullException.ThrowIfNull(context);
 
         return StandardDocumentHandler.DeclaresModelPart(context.Files)
             && BambuSignatures.HasProducerSignature(context.Files)
             && BambuSignatures.HasSlicedGCode(context.Files)
-            ? ThreeMFProbeResult.Certain
-            : ThreeMFProbeResult.NoMatch;
+            ? ProbeResult.Certain
+            : ProbeResult.NoMatch;
     }
 
-    public ThreeMFDocument Parse(ThreeMFParseContext context) => BambuProjectParser.ParseGCodeDocument(context);
+    public ThreeMFDocument Parse(ParseContext context) => BambuProjectParser.ParseGCodeDocument(context);
 }

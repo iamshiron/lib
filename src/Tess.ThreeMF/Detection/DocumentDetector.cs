@@ -8,7 +8,7 @@ namespace Shiron.Lib.Tess.ThreeMF.Detection;
 /// specificity of the handlers' document types.
 /// </summary>
 internal static class DocumentDetector {
-    public static IThreeMFDocumentHandler Select(IReadOnlyList<IThreeMFDocumentHandler> handlers, ThreeMFProbeContext context) {
+    public static IThreeMFDocumentHandler Select(IReadOnlyList<IThreeMFDocumentHandler> handlers, ProbeContext context) {
         ArgumentNullException.ThrowIfNull(handlers);
         ArgumentNullException.ThrowIfNull(context);
 
@@ -49,7 +49,7 @@ internal static class DocumentDetector {
     /// <param name="loser">The probe result of the competing handler.</param>
     /// <param name="loserDocumentType">The document type of the competing handler.</param>
     /// <returns><see langword="true"/> when the first match strictly outranks the second.</returns>
-    static bool Outranks(in ThreeMFProbeResult winner, Type winnerDocumentType, in ThreeMFProbeResult loser, Type loserDocumentType) {
+    static bool Outranks(in ProbeResult winner, Type winnerDocumentType, in ProbeResult loser, Type loserDocumentType) {
         if (winner.Confidence != loser.Confidence)
             return winner.Confidence > loser.Confidence;
 

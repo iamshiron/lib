@@ -1,5 +1,6 @@
 using System.IO.Compression;
 using System.Text;
+using Shiron.Lib.Tess.ThreeMF.Bambu;
 using Shiron.Lib.Tess.ThreeMF.Writing;
 
 namespace Shiron.Lib.Tess.ThreeMF.Tests;
@@ -113,7 +114,7 @@ public class ThreeMFSerializeTests {
 
         var result = RoundTrip(original);
 
-        var bambu = Assert.IsType<BambuThreeMFDocument>(result);
+        var bambu = Assert.IsType<BambuDocument>(result);
         Assert.Equal("BambuStudio 01.09.05.51", bambu.Project.Application);
         Assert.Equal("bambu-studio", bambu.Project.Header.ClientType);
         Assert.Equal("01.09.05.51", bambu.Project.Header.ClientVersion);
@@ -134,7 +135,7 @@ public class ThreeMFSerializeTests {
 
         var result = RoundTrip(original);
 
-        var gcode = Assert.IsType<BambuGCodeThreeMFDocument>(result);
+        var gcode = Assert.IsType<BambuGCodeDocument>(result);
         Assert.Equal(["Metadata/plate_1.gcode"], gcode.PrintJob.GCodeParts);
         Assert.Equal("Metadata/plate_1.gcode", gcode.Plates[0].GCodePart);
         AssertFilesEqual(original, gcode);
@@ -192,10 +193,10 @@ public class ThreeMFSerializeTests {
         var asBambu = DeserializeArchive(CloneFiles(files));
 
         var coreTyped = (ThreeMFDocument) asCore;
-        var bambuTyped = (BambuThreeMFDocument) asBambu;
+        var bambuTyped = (BambuDocument) asBambu;
 
-        Assert.IsType<BambuGCodeThreeMFDocument>(RoundTrip(coreTyped));
-        Assert.IsType<BambuGCodeThreeMFDocument>(RoundTrip(bambuTyped));
+        Assert.IsType<BambuGCodeDocument>(RoundTrip(coreTyped));
+        Assert.IsType<BambuGCodeDocument>(RoundTrip(bambuTyped));
     }
 
     [Fact]
@@ -222,10 +223,10 @@ public class ThreeMFSerializeTests {
         ThreeMFSerializer.Serialize(explicitNullStream, original, null);
 
         omittedStream.Position = 0;
-        Assert.IsType<BambuThreeMFDocument>(ThreeMFSerializer.Deserialize(omittedStream));
+        Assert.IsType<BambuDocument>(ThreeMFSerializer.Deserialize(omittedStream));
 
         explicitNullStream.Position = 0;
-        Assert.IsType<BambuThreeMFDocument>(ThreeMFSerializer.Deserialize(explicitNullStream));
+        Assert.IsType<BambuDocument>(ThreeMFSerializer.Deserialize(explicitNullStream));
     }
 
     [Fact]
@@ -241,12 +242,12 @@ public class ThreeMFSerializeTests {
     [Fact]
     public void Select_PrefersMostSpecificWriterForRuntimeType() {
         Assert.Equal(
-            typeof(BambuGCodeThreeMFDocument),
-            DocumentWriterRegistry.Select(typeof(BambuGCodeThreeMFDocument), []).DocumentType
+            typeof(BambuGCodeDocument),
+            DocumentWriterRegistry.Select(typeof(BambuGCodeDocument), []).DocumentType
         );
         Assert.Equal(
-            typeof(BambuThreeMFDocument),
-            DocumentWriterRegistry.Select(typeof(BambuThreeMFDocument), []).DocumentType
+            typeof(BambuDocument),
+            DocumentWriterRegistry.Select(typeof(BambuDocument), []).DocumentType
         );
         Assert.Equal(
             typeof(ThreeMFDocument),
@@ -257,7 +258,7 @@ public class ThreeMFSerializeTests {
     [Fact]
     public void Select_UnregisteredDerivedTypes_FallBackToNearestWriter() {
         Assert.Equal(
-            typeof(BambuThreeMFDocument),
+            typeof(BambuDocument),
             DocumentWriterRegistry.Select(typeof(VendorBambuDocument), []).DocumentType
         );
         Assert.Equal(
@@ -336,7 +337,7 @@ public class ThreeMFSerializeTests {
         return stream;
     }
 
-    sealed class VendorBambuDocument : BambuThreeMFDocument { }
+    sealed class VendorBambuDocument : BambuDocument { }
 
     sealed class VendorCoreDocument : ThreeMFDocument { }
 }

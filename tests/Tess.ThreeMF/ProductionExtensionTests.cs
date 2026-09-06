@@ -1,5 +1,6 @@
 using System.IO.Compression;
 using System.Text;
+using Shiron.Lib.Tess.ThreeMF.Bambu;
 using Shiron.Lib.Tess.ThreeMF.Exceptions;
 using Shiron.Lib.Tess.ThreeMF.Parsing;
 
@@ -205,7 +206,7 @@ public class ProductionExtensionTests {
     public void Deserialize_BambuProductionProject_RoundTripsExactTypeAndRawFiles() {
         using var stream = CreateArchive(ProductionBambuFiles());
 
-        var first = Assert.IsType<BambuThreeMFDocument>(ThreeMFSerializer.Deserialize(stream));
+        var first = Assert.IsType<BambuDocument>(ThreeMFSerializer.Deserialize(stream));
 
         Assert.Equal(2, first.Core.Models.Count);
         Assert.True(first.Core.Parts.ContainsKey(ObjectPartPath));
@@ -218,7 +219,7 @@ public class ProductionExtensionTests {
         ThreeMFSerializer.Serialize(serialized, first);
         serialized.Position = 0;
 
-        var second = Assert.IsType<BambuThreeMFDocument>(ThreeMFSerializer.Deserialize(serialized));
+        var second = Assert.IsType<BambuDocument>(ThreeMFSerializer.Deserialize(serialized));
 
         Assert.Equal(
             first.Files.Keys.OrderBy(path => path, StringComparer.Ordinal),
@@ -241,7 +242,7 @@ public class ProductionExtensionTests {
         using var stream = CreateArchive(files);
 
         var options = ThreeMFSerializerOptions.Default with { PreserveUnknownFiles = false };
-        var document = Assert.IsType<BambuThreeMFDocument>(ThreeMFSerializer.Deserialize(stream, options));
+        var document = Assert.IsType<BambuDocument>(ThreeMFSerializer.Deserialize(stream, options));
 
         Assert.Contains(ModelPartPath, document.Files.Keys);
         Assert.Contains(ObjectPartPath, document.Files.Keys);
@@ -256,13 +257,13 @@ public class ProductionExtensionTests {
         using var stream = CreateArchive(ProductionBambuFiles());
 
         var options = ThreeMFSerializerOptions.Default with { PreserveUnknownFiles = false };
-        var restricted = Assert.IsType<BambuThreeMFDocument>(ThreeMFSerializer.Deserialize(stream, options));
+        var restricted = Assert.IsType<BambuDocument>(ThreeMFSerializer.Deserialize(stream, options));
 
         using var serialized = new MemoryStream();
         ThreeMFSerializer.Serialize(serialized, restricted);
         serialized.Position = 0;
 
-        var roundTripped = Assert.IsType<BambuThreeMFDocument>(ThreeMFSerializer.Deserialize(serialized));
+        var roundTripped = Assert.IsType<BambuDocument>(ThreeMFSerializer.Deserialize(serialized));
 
         Assert.Equal(2, roundTripped.Core.Models.Count);
         Assert.True(roundTripped.Core.Parts.ContainsKey(ObjectPartPath));

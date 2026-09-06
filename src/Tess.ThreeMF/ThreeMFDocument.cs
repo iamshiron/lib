@@ -19,5 +19,5 @@ public class ThreeMFDocument {
     /// <summary>
     /// Gets the parsed 3MF core models.
     /// </summary>
-    public required Core Core { get; init; }
+    public required ThreeMFCore Core { get; init; }
 }

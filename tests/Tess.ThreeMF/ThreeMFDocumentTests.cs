@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using Shiron.Lib.Tess.ThreeMF.Models;
 
 namespace Shiron.Lib.Tess.ThreeMF.Tests;
 
@@ -9,7 +10,7 @@ public class ThreeMFDocumentTests {
         public int Revision { get; set; }
 
         [SetsRequiredMembers]
-        public DerivedDocument(ThreeMFPackage package, Core core) {
+        public DerivedDocument(ThreeMFPackage package, ThreeMFCore core) {
             Files = package.Files;
             Package = package;
             Core = core;
@@ -38,7 +39,7 @@ public class ThreeMFDocumentTests {
         Assert.Equal(ModelPartPath, core.PartPath);
     }
 
-    static (ThreeMFPackage Package, Core Core) CreateParts() {
+    static (ThreeMFPackage Package, ThreeMFCore Core) CreateParts() {
         var model = new Model {
             Resources = new Resources { Objects = [] },
         };
@@ -49,7 +50,7 @@ public class ThreeMFDocumentTests {
             },
         };
 
-        var core = new Core {
+        var core = new ThreeMFCore {
             PartPath = ModelPartPath,
             Models = [model],
             MainModel = model,

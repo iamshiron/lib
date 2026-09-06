@@ -17,7 +17,7 @@ internal interface IThreeMFDocumentHandler {
     /// </summary>
     /// <param name="context">The immutable probe context.</param>
     /// <returns>The probe result.</returns>
-    ThreeMFProbeResult Probe(ThreeMFProbeContext context);
+    ProbeResult Probe(ProbeContext context);
 
     /// <summary>
     /// Parses the raw files into a document of exactly <see cref="DocumentType"/>.
@@ -25,5 +25,5 @@ internal interface IThreeMFDocumentHandler {
     /// </summary>
     /// <param name="context">The immutable parse context.</param>
     /// <returns>The parsed document.</returns>
-    ThreeMFDocument Parse(ThreeMFParseContext context);
+    ThreeMFDocument Parse(ParseContext context);
 }

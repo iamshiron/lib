@@ -1,6 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 
-namespace Shiron.Lib.Tess.ThreeMF;
+namespace Shiron.Lib.Tess.ThreeMF.Models;
 
 /// <summary>
 /// Represents the <c>&lt;build&gt;</c> section of a 3MF model: the items to fabricate.
@@ -128,7 +128,7 @@ public sealed class Model {
 /// Represents an <c>&lt;object&gt;</c> resource of a 3MF model: either a mesh or a
 /// composition of components referencing other objects.
 /// </summary>
-public sealed class Object {
+public sealed class ModelObject {
     /// <summary>
     /// Gets the unique positive resource id of the object within the model.
     /// </summary>
@@ -188,7 +188,7 @@ public sealed class Resources {
     /// <summary>
     /// Gets the object resources in document order.
     /// </summary>
-    public required IReadOnlyList<Object> Objects { get; init; }
+    public required IReadOnlyList<ModelObject> Objects { get; init; }
 
     /// <summary>
     /// Attempts to get the object resource with the given id.
@@ -196,7 +196,7 @@ public sealed class Resources {
     /// <param name="id">The object resource id to look for.</param>
     /// <param name="resource">The matching object, when found.</param>
     /// <returns><see langword="true"/> if an object with the id exists.</returns>
-    public bool TryGetObject(int id, [NotNullWhen(true)] out Object? resource) {
+    public bool TryGetObject(int id, [NotNullWhen(true)] out ModelObject? resource) {
         foreach (var obj in Objects) {
             if (obj.Id == id) {
                 resource = obj;

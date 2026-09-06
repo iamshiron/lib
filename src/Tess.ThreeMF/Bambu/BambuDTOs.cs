@@ -1,4 +1,4 @@
-namespace Shiron.Lib.Tess.ThreeMF;
+namespace Shiron.Lib.Tess.ThreeMF.Bambu;
 
 /// <summary>
 /// Represents the header items of a Bambu 3MF package, parsed from the

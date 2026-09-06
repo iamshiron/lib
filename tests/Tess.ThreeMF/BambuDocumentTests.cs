@@ -1,5 +1,6 @@
 using System.IO.Compression;
 using System.Text;
+using Shiron.Lib.Tess.ThreeMF.Bambu;
 using Shiron.Lib.Tess.ThreeMF.Exceptions;
 
 namespace Shiron.Lib.Tess.ThreeMF.Tests;
@@ -173,7 +174,7 @@ public class BambuDocumentTests {
 
         var document = ThreeMFSerializer.Deserialize(stream);
 
-        var bambu = Assert.IsType<BambuThreeMFDocument>(document);
+        var bambu = Assert.IsType<BambuDocument>(document);
         Assert.Equal("BambuStudio 01.09.05.51", bambu.Project.Application);
         Assert.Equal(ModelPartPath, bambu.Core.PartPath);
         Assert.Contains("Metadata/project_settings.config", bambu.Files.Keys);
@@ -203,7 +204,7 @@ public class BambuDocumentTests {
 
         var document = ThreeMFSerializer.Deserialize(stream);
 
-        var gcode = Assert.IsType<BambuGCodeThreeMFDocument>(document);
+        var gcode = Assert.IsType<BambuGCodeDocument>(document);
         Assert.Equal(new[] { "Metadata/plate_1.gcode" }, gcode.PrintJob.GCodeParts);
         Assert.Equal("Metadata/plate_1.gcode", gcode.Plates[0].GCodePart);
     }
@@ -214,12 +215,12 @@ public class BambuDocumentTests {
         gcodeFiles["Metadata/plate_1.gcode"] = Text("; sliced gcode");
 
         using var gcodeStream = CreateArchive(gcodeFiles);
-        Assert.IsType<BambuGCodeThreeMFDocument>(
-            ThreeMFSerializer.Deserialize<BambuThreeMFDocument>(gcodeStream)
+        Assert.IsType<BambuGCodeDocument>(
+            ThreeMFSerializer.Deserialize<BambuDocument>(gcodeStream)
         );
 
         using var bambuStream = CreateArchive(BambuProjectFiles());
-        Assert.IsType<BambuThreeMFDocument>(
+        Assert.IsType<BambuDocument>(
             ThreeMFSerializer.Deserialize<ThreeMFDocument>(bambuStream)
         );
     }
@@ -232,10 +233,10 @@ public class BambuDocumentTests {
         });
 
         var exception = Assert.Throws<ThreeMFDocumentTypeMismatchException>(
-            () => ThreeMFSerializer.Deserialize<BambuThreeMFDocument>(stream)
+            () => ThreeMFSerializer.Deserialize<BambuDocument>(stream)
         );
 
-        Assert.Equal(typeof(BambuThreeMFDocument), exception.RequestedType);
+        Assert.Equal(typeof(BambuDocument), exception.RequestedType);
         Assert.Equal(typeof(ThreeMFDocument), exception.ActualType);
     }
 
@@ -244,11 +245,11 @@ public class BambuDocumentTests {
         using var stream = CreateArchive(BambuProjectFiles());
 
         var exception = Assert.Throws<ThreeMFDocumentTypeMismatchException>(
-            () => ThreeMFSerializer.Deserialize<BambuGCodeThreeMFDocument>(stream)
+            () => ThreeMFSerializer.Deserialize<BambuGCodeDocument>(stream)
         );
 
-        Assert.Equal(typeof(BambuGCodeThreeMFDocument), exception.RequestedType);
-        Assert.Equal(typeof(BambuThreeMFDocument), exception.ActualType);
+        Assert.Equal(typeof(BambuGCodeDocument), exception.RequestedType);
+        Assert.Equal(typeof(BambuDocument), exception.ActualType);
     }
 
     [Fact]
@@ -257,7 +258,7 @@ public class BambuDocumentTests {
 
         var document = ThreeMFSerializer.Deserialize(stream);
 
-        var project = Assert.IsType<BambuThreeMFDocument>(document).Project;
+        var project = Assert.IsType<BambuDocument>(document).Project;
 
         Assert.Equal("bambu-studio", project.Header.ClientType);
         Assert.Equal("01.09.05.51", project.Header.ClientVersion);
@@ -283,7 +284,7 @@ public class BambuDocumentTests {
 
         var document = ThreeMFSerializer.Deserialize(stream);
 
-        var bambu = Assert.IsType<BambuThreeMFDocument>(document);
+        var bambu = Assert.IsType<BambuDocument>(document);
         Assert.Equal("bambu-studio", bambu.Project.Header.ClientType);
         Assert.Empty(bambu.Project.ProjectSettings.Values);
         Assert.Empty(bambu.Plates);
@@ -299,7 +300,7 @@ public class BambuDocumentTests {
 
         var document = ThreeMFSerializer.Deserialize(stream);
 
-        var bambu = Assert.IsType<BambuThreeMFDocument>(document);
+        var bambu = Assert.IsType<BambuDocument>(document);
         Assert.Equal("slicer", bambu.Project.Header.ClientType);
         Assert.Null(bambu.Project.Header.ClientVersion);
         Assert.Empty(bambu.Project.ProjectSettings.Values);
@@ -316,7 +317,7 @@ public class BambuDocumentTests {
 
         var document = ThreeMFSerializer.Deserialize(stream);
 
-        var bambu = Assert.IsType<BambuThreeMFDocument>(document);
+        var bambu = Assert.IsType<BambuDocument>(document);
         Assert.Equal("bambu-studio", bambu.Project.Header.ClientType);
         Assert.Equal("01.09.05.51", bambu.Project.Header.ClientVersion);
         Assert.Equal(3, bambu.Project.Header.Items.Count);
@@ -354,7 +355,7 @@ public class BambuDocumentTests {
 
         var document = ThreeMFSerializer.Deserialize(stream);
 
-        var plates = Assert.IsType<BambuThreeMFDocument>(document).Plates;
+        var plates = Assert.IsType<BambuDocument>(document).Plates;
 
         Assert.Equal(new[] { 1, 2 }, plates.Select(plate => plate.Index));
 
@@ -391,7 +392,7 @@ public class BambuDocumentTests {
 
         var document = ThreeMFSerializer.Deserialize(stream);
 
-        var plate = Assert.Single(Assert.IsType<BambuThreeMFDocument>(document).Plates);
+        var plate = Assert.Single(Assert.IsType<BambuDocument>(document).Plates);
 
         Assert.Equal(1, plate.Index);
         Assert.Null(plate.Name);
@@ -409,14 +410,14 @@ public class BambuDocumentTests {
 
         var document = ThreeMFSerializer.Deserialize(stream);
 
-        var project = Assert.IsType<BambuThreeMFDocument>(document).Project;
+        var project = Assert.IsType<BambuDocument>(document).Project;
 
         Assert.Empty(project.Header.Items);
         Assert.Null(project.Header.ClientType);
         Assert.Null(project.Header.ClientVersion);
         Assert.Empty(project.ProjectSettings.Values);
         Assert.Empty(project.ModelSettings.PlateConfigs);
-        Assert.Empty(Assert.IsType<BambuThreeMFDocument>(document).Plates);
+        Assert.Empty(Assert.IsType<BambuDocument>(document).Plates);
     }
 
     [Fact]
@@ -475,7 +476,7 @@ public class BambuDocumentTests {
         };
         using var stream = CreateArchive(files);
 
-        var bambu = Assert.IsType<BambuThreeMFDocument>(ThreeMFSerializer.Deserialize(stream));
+        var bambu = Assert.IsType<BambuDocument>(ThreeMFSerializer.Deserialize(stream));
 
         var plate = Assert.Single(bambu.Plates);
         Assert.Equal(3, plate.Index);
@@ -512,7 +513,7 @@ public class BambuDocumentTests {
             ["Metadata/slice_info.config"] = Text(SliceInfoPart),
         });
 
-        var bambu = Assert.IsType<BambuThreeMFDocument>(ThreeMFSerializer.Deserialize(stream));
+        var bambu = Assert.IsType<BambuDocument>(ThreeMFSerializer.Deserialize(stream));
 
         Assert.DoesNotContain("Metadata/header_item", bambu.Files.Keys);
         Assert.Equal("slicer", bambu.Project.Header.ClientType);
@@ -540,7 +541,7 @@ public class BambuDocumentTests {
             ["Metadata/slice_info.config"] = Text(SliceInfoPart),
         });
 
-        var bambu = Assert.IsType<BambuThreeMFDocument>(ThreeMFSerializer.Deserialize(stream));
+        var bambu = Assert.IsType<BambuDocument>(ThreeMFSerializer.Deserialize(stream));
 
         Assert.Equal("bambu-studio", bambu.Project.Header.ClientType);
         Assert.Equal("01.09.05.51", bambu.Project.Header.ClientVersion);
@@ -555,7 +556,7 @@ public class BambuDocumentTests {
             ["Metadata/plate_1.png"] = [0x89, 0x50, 0x4E, 0x47],
         });
 
-        var bambu = Assert.IsType<BambuThreeMFDocument>(ThreeMFSerializer.Deserialize(stream));
+        var bambu = Assert.IsType<BambuDocument>(ThreeMFSerializer.Deserialize(stream));
 
         var plate = Assert.Single(bambu.Plates);
         Assert.Equal(1, plate.Index);
@@ -581,7 +582,7 @@ public class BambuDocumentTests {
             ["Metadata/plate_1.gcode"] = Text("; sliced gcode"),
         });
 
-        var gcode = Assert.IsType<BambuGCodeThreeMFDocument>(ThreeMFSerializer.Deserialize(stream));
+        var gcode = Assert.IsType<BambuGCodeDocument>(ThreeMFSerializer.Deserialize(stream));
 
         Assert.Equal("slicer", gcode.Project.Header.ClientType);
 
@@ -611,7 +612,7 @@ public class BambuDocumentTests {
             ["Metadata/custom_output.gcode"] = Text("; sliced gcode"),
         });
 
-        var bambu = Assert.IsType<BambuThreeMFDocument>(ThreeMFSerializer.Deserialize(stream));
+        var bambu = Assert.IsType<BambuDocument>(ThreeMFSerializer.Deserialize(stream));
 
         var plate = Assert.Single(bambu.Plates);
         Assert.Equal(2, plate.Index);
@@ -667,7 +668,7 @@ public class BambuDocumentTests {
         var document = ThreeMFSerializer.Deserialize(stream);
 
         var plate = Assert.Single(
-            Assert.IsType<BambuGCodeThreeMFDocument>(document).Plates,
+            Assert.IsType<BambuGCodeDocument>(document).Plates,
             plate => plate.GCode is not null
         );
 
@@ -683,7 +684,7 @@ public class BambuDocumentTests {
         files["Metadata/plate_1.gcode"] = Text(PlateGCode);
         using var stream = CreateArchive(files);
 
-        var gcode = Assert.IsType<BambuGCodeThreeMFDocument>(ThreeMFSerializer.Deserialize(stream));
+        var gcode = Assert.IsType<BambuGCodeDocument>(ThreeMFSerializer.Deserialize(stream));
 
         var entry = Assert.Single(gcode.PrintJob.GCodeByPlate);
         Assert.Equal(1, entry.Key);
@@ -711,7 +712,7 @@ public class BambuDocumentTests {
             ["Metadata/plate_2.gcode"] = Text("; gcode two"),
         });
 
-        var gcode = Assert.IsType<BambuGCodeThreeMFDocument>(ThreeMFSerializer.Deserialize(stream));
+        var gcode = Assert.IsType<BambuGCodeDocument>(ThreeMFSerializer.Deserialize(stream));
 
         Assert.Equal(["Metadata/plate_1.gcode", "Metadata/plate_2.gcode"], gcode.PrintJob.GCodeParts);
         Assert.Equal(2, gcode.PrintJob.GCodeByPlate.Count);
@@ -750,7 +751,7 @@ public class BambuDocumentTests {
     public void Deserialize_UnslicedPlates_YieldNullGCodeState() {
         using var stream = CreateArchive(BambuProjectFiles());
 
-        var bambu = Assert.IsType<BambuThreeMFDocument>(ThreeMFSerializer.Deserialize(stream));
+        var bambu = Assert.IsType<BambuDocument>(ThreeMFSerializer.Deserialize(stream));
 
         Assert.NotEmpty(bambu.Plates);
 
@@ -766,13 +767,13 @@ public class BambuDocumentTests {
         files["Metadata/plate_1.gcode"] = Text(PlateGCode);
 
         using var source = CreateArchive(files);
-        var gcode = Assert.IsType<BambuGCodeThreeMFDocument>(ThreeMFSerializer.Deserialize(source));
+        var gcode = Assert.IsType<BambuGCodeDocument>(ThreeMFSerializer.Deserialize(source));
 
         using var target = new MemoryStream();
         ThreeMFSerializer.Serialize(target, gcode);
 
         using var reparsedStream = new MemoryStream(target.ToArray());
-        var reparsed = Assert.IsType<BambuGCodeThreeMFDocument>(ThreeMFSerializer.Deserialize(reparsedStream));
+        var reparsed = Assert.IsType<BambuGCodeDocument>(ThreeMFSerializer.Deserialize(reparsedStream));
 
         Assert.Equal(PlateGCode, reparsed.Plates[0].GCode);
         Assert.Equal(PlateGCode, reparsed.PrintJob.GCodeByPlate[1]);
