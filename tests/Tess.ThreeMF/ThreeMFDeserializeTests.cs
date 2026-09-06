@@ -288,7 +288,12 @@ public class ThreeMFDeserializeTests {
 
             Files = new Dictionary<string, ReadOnlyMemory<byte>>();
             Package = new ThreeMFPackage { Files = Files };
-            Core = new Core { PartPath = "stub.model", Models = [model], MainModel = model };
+            Core = new Core {
+                PartPath = "stub.model",
+                Models = [model],
+                MainModel = model,
+                Parts = new Dictionary<string, Model> { ["stub.model"] = model },
+            };
         }
     }
 

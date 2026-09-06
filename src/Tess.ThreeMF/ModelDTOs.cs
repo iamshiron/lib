@@ -50,6 +50,14 @@ public sealed record Component {
     /// or <see langword="null"/> when the component omits the attribute.
     /// </summary>
     public Transform? Transform { get; init; }
+
+    /// <summary>
+    /// Gets the normalized package part path of the production-extension model part
+    /// that owns the referenced object, e.g. <c>3D/Objects/object_9.model</c>,
+    /// or <see langword="null"/> when the component references an object of its own
+    /// model part.
+    /// </summary>
+    public string? PartPath { get; init; }
 }
 
 /// <summary>

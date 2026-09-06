@@ -10,6 +10,7 @@ namespace Shiron.Lib.Tess.ThreeMF.Internal;
 /// </summary>
 internal static class BambuParts {
     public const string HeaderItemPart = "Metadata/header_item";
+    public const string SliceInfoPart = "Metadata/slice_info.config";
     public const string ProjectSettingsPart = "Metadata/project_settings.config";
     public const string ModelSettingsPart = "Metadata/model_settings.config";
 
@@ -66,7 +67,7 @@ internal static class BambuParts {
     /// file.
     /// </summary>
     public static bool IsRecognizedPart(string path) {
-        return path is HeaderItemPart or ProjectSettingsPart or ModelSettingsPart
+        return path is HeaderItemPart or SliceInfoPart or ProjectSettingsPart or ModelSettingsPart
             || PlateFilePattern.IsMatch(path);
     }
 

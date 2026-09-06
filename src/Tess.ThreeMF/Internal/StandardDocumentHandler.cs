@@ -61,8 +61,15 @@ internal sealed class StandardDocumentHandler : IThreeMFDocumentHandler {
         if (package.TryGet(ThreeMFSerializer.RelationshipsPath, out var relationshipsXml))
             known[ThreeMFSerializer.RelationshipsPath] = relationshipsXml;
 
-        if (package.TryGet(core.PartPath, out var modelXml))
-            known[core.PartPath] = modelXml;
+        foreach (var partPath in core.Parts.Keys) {
+            if (package.TryGet(partPath, out var modelXml))
+                known[partPath] = modelXml;
+
+            var relsPath = CoreParser.GetRelationshipsPartPath(partPath);
+
+            if (package.TryGet(relsPath, out var relsXml))
+                known[relsPath] = relsXml;
+        }
 
         return new ThreeMFPackage {
             Files = known,

@@ -53,6 +53,7 @@ public class ThreeMFDocumentTests {
             PartPath = ModelPartPath,
             Models = [model],
             MainModel = model,
+            Parts = new Dictionary<string, Model> { [ModelPartPath] = model },
         };
 
         return (package, core);

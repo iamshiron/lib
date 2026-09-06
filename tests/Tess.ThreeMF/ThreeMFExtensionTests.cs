@@ -255,7 +255,12 @@ public class ThreeMFExtensionTests {
 
             Files = files;
             Package = new ThreeMFPackage { Files = files };
-            Core = new Core { PartPath = ModelPartPath, Models = [model], MainModel = model };
+            Core = new Core {
+                PartPath = ModelPartPath,
+                Models = [model],
+                MainModel = model,
+                Parts = new Dictionary<string, Model> { [ModelPartPath] = model },
+            };
         }
     }
 

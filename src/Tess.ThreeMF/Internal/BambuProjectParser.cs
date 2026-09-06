@@ -83,11 +83,15 @@ internal static class BambuProjectParser {
     }
 
     static BambuHeader ParseHeader(IReadOnlyDictionary<string, ReadOnlyMemory<byte>> files) {
-        return new BambuHeader {
-            Items = files.TryGetValue(BambuParts.HeaderItemPart, out var bytes)
-                ? BambuParts.ParseHeaderItems(BambuParts.ReadText(bytes))
-                : EmptyConfig,
-        };
+        if (files.TryGetValue(BambuParts.HeaderItemPart, out var bytes))
+            return new BambuHeader { Items = BambuParts.ParseHeaderItems(BambuParts.ReadText(bytes)) };
+
+        // Real packages without a dedicated header part declare the same
+        // <header_item> elements inside the <header> section of the slice info part.
+        if (files.TryGetValue(BambuParts.SliceInfoPart, out var sliceInfoBytes))
+            return new BambuHeader { Items = BambuParts.ParseHeaderItems(BambuParts.ReadText(sliceInfoBytes)) };
+
+        return new BambuHeader { Items = EmptyConfig };
     }
 
     static BambuProjectSettings ParseProjectSettings(IReadOnlyDictionary<string, ReadOnlyMemory<byte>> files) {
@@ -196,17 +200,26 @@ internal static class BambuProjectParser {
                 }
 
                 if (reader.LocalName == "metadata") {
-                    var type = reader.GetAttribute("type");
-                    var value = reader.ReadElementContentAsString();
+                    // Real packages use both forms: <metadata type="name">text</metadata>
+                    // and <metadata key="plater_name" value="..."/>.
+                    var key = reader.GetAttribute("key") ?? reader.GetAttribute("type");
+                    string value;
 
-                    if (string.IsNullOrEmpty(type))
+                    if (reader.GetAttribute("value") is { } attributeValue) {
+                        value = attributeValue;
+                        reader.Skip();
+                    } else {
+                        value = reader.ReadElementContentAsString();
+                    }
+
+                    if (string.IsNullOrEmpty(key))
                         continue;
 
-                    raw[type] = value;
+                    raw[key] = value;
 
-                    if (type is "name" or "plate_name")
+                    if (key is "name" or "plate_name" or "plater_name")
                         name = value;
-                    else if (type is "objects")
+                    else if (key is "objects")
                         objects = [.. objects, .. ParsePlateObjects(value)];
                 } else if (reader.LocalName == "object") {
                     objects.Add(ReadPlateObject(reader));
@@ -221,8 +234,13 @@ internal static class BambuProjectParser {
         }
 
         // Resolve the index last: real packages declare it as a <metadata type="index">
-        // child rather than an attribute, and the child loop only merges it into raw.
-        var index = raw.TryGetValue("index", out var indexText) ? ParsePlateIndex(indexText) : ordinal;
+        // child or a <metadata key="plater_id" value="..."/> child rather than an
+        // attribute, and the child loop only merges those into raw.
+        var index = raw.TryGetValue("index", out var indexText)
+            ? ParsePlateIndex(indexText)
+            : raw.TryGetValue("plater_id", out var platerId)
+                ? ParsePlateIndex(platerId)
+                : ordinal;
 
         return new BambuPlateConfig(index, name, objects, raw);
     }
@@ -292,6 +310,14 @@ internal static class BambuProjectParser {
             }
         }
 
+        // Real sliced packages associate the G-code through an explicit
+        // <metadata key="gcode_file" value="..."/> plate child; it wins over the
+        // file naming convention.
+        foreach (var config in plateConfigs) {
+            if (config.Raw.GetValueOrDefault("gcode_file") is { Length: > 0 } gcodeFile)
+                gcodePaths[config.Index] = gcodeFile;
+        }
+
         var plates = new List<BambuPlate>();
 
         foreach (var index in indices) {
@@ -332,7 +358,7 @@ internal static class BambuProjectParser {
 
     static ThreeMFPackage RestrictToKnownParts(ThreeMFPackage package, Core core) {
         var known = package.Files
-            .Where(file => IsKnownPart(file.Key, core.PartPath))
+            .Where(file => IsKnownPart(file.Key, core))
             .ToDictionary(file => file.Key, file => file.Value, StringComparer.Ordinal);
 
         return new ThreeMFPackage {
@@ -342,9 +368,10 @@ internal static class BambuProjectParser {
         };
     }
 
-    static bool IsKnownPart(string path, string modelPartPath) {
+    static bool IsKnownPart(string path, Core core) {
         return path is ThreeMFSerializer.ContentTypesPath or ThreeMFSerializer.RelationshipsPath
-            || path == modelPartPath
+            || core.Parts.ContainsKey(path)
+            || core.Parts.Keys.Any(partPath => CoreParser.GetRelationshipsPartPath(partPath) == path)
             || BambuParts.IsRecognizedPart(path);
     }
 }

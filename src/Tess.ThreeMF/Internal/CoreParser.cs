@@ -5,6 +5,7 @@ namespace Shiron.Lib.Tess.ThreeMF.Internal;
 
 internal static class CoreParser {
     public const string CoreNamespace = "http://schemas.microsoft.com/3dmanufacturing/core/2015/02";
+    public const string ProductionNamespace = "http://schemas.microsoft.com/3dmanufacturing/production/2015/06";
     public const string ModelRelationshipType = "http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel";
     public const string ModelContentType = "application/vnd.ms-package.3dmanufacturing-3dmodel+xml";
 
@@ -22,8 +23,37 @@ internal static class CoreParser {
         ArgumentNullException.ThrowIfNull(package);
 
         var (path, xml) = SelectModelPart(package);
+        var walker = new PartWalker(package, validationMode);
 
-        return ParseModel(path, xml, validationMode);
+        var mainModel = walker.ParsePartTree(path, xml);
+
+        if (validationMode is ThreeMFValidationMode.Standard)
+            ValidateReferences(package, walker.Order);
+
+        return new Core {
+            PartPath = path,
+            Models = [.. walker.Order.Select(part => part.Model)],
+            MainModel = mainModel,
+            Parts = walker.Parts,
+        };
+    }
+
+    /// <summary>
+    /// Builds the OPC part path of the relationships part of the given model part,
+    /// e.g. <c>3D/3dmodel.model</c> -> <c>3D/_rels/3dmodel.model.rels</c>.
+    /// </summary>
+    /// <param name="partPath">The normalized part path of a model part.</param>
+    /// <returns>The part path of its relationships part.</returns>
+    public static string GetRelationshipsPartPath(string partPath) {
+        var separator = partPath.LastIndexOf('/');
+
+        if (separator < 0)
+            return $"_rels/{partPath}.rels";
+
+        var directory = partPath[..(separator + 1)];
+        var fileName = partPath[(separator + 1)..];
+
+        return $"{directory}_rels/{fileName}.rels";
     }
 
     static (string Path, ReadOnlyMemory<byte> Xml) SelectModelPart(ThreeMFPackage package) {
@@ -70,7 +100,137 @@ internal static class CoreParser {
         return target.TrimStart('/');
     }
 
-    static Core ParseModel(string path, ReadOnlyMemory<byte> xml, ThreeMFValidationMode validationMode) {
+    /// <summary>
+    /// Parses one model part and, depth-first in relationship document order, every
+    /// model part linked from it through a 3D model relationship of its part-level
+    /// relationships part. Cycle-safe: a back-edge to a part currently being parsed
+    /// throws, already-completed parts are parsed only once.
+    /// </summary>
+    sealed class PartWalker(ThreeMFPackage package, ThreeMFValidationMode validationMode) {
+        readonly Dictionary<string, Model> parsed = new(StringComparer.Ordinal);
+        readonly HashSet<string> active = new(StringComparer.Ordinal);
+
+        public List<(string Path, Model Model)> Order { get; } = [];
+
+        public IReadOnlyDictionary<string, Model> Parts => parsed;
+
+        public Model ParsePartTree(string path, ReadOnlyMemory<byte> xml) {
+            if (active.Contains(path))
+                throw new ThreeMFCoreException(
+                    $"The 3D model relationships of the package form a cycle at the part '{path}'."
+                );
+
+            if (parsed.TryGetValue(path, out var existing))
+                return existing;
+
+            active.Add(path);
+
+            var model = ParseModelXml(path, xml, validationMode);
+
+            Order.Add((path, model));
+            parsed[path] = model;
+
+            foreach (var target in SelectLinkedPartPaths(package, path)) {
+                ParsePartTree(target, package.Get(target));
+            }
+
+            active.Remove(path);
+
+            return model;
+        }
+    }
+
+    /// <summary>
+    /// Selects the normalized part paths targeted by the 3D model relationships of the
+    /// given model part, validating its part-level relationships part: malformed
+    /// relationships XML and duplicate relationship ids throw, as do targets that are
+    /// external URIs or missing from the package. Relationships of other types are
+    /// ignored.
+    /// </summary>
+    static List<string> SelectLinkedPartPaths(ThreeMFPackage package, string partPath) {
+        var relsPath = GetRelationshipsPartPath(partPath);
+
+        if (!package.TryGet(relsPath, out var relsXml))
+            return [];
+
+        var relationships = OpcParser.ParseRelationships(relsXml);
+        var seenIds = new HashSet<string>(StringComparer.Ordinal);
+
+        foreach (var relationship in relationships) {
+            if (!seenIds.Add(relationship.Id))
+                throw new ThreeMFPackageException(
+                    $"The relationships part '{relsPath}' declares the duplicate relationship id '{relationship.Id}'."
+                );
+        }
+
+        var linked = new List<string>();
+
+        foreach (var relationship in relationships) {
+            if (relationship.Type != ModelRelationshipType)
+                continue;
+
+            var target = ResolveRelationshipTarget(relsPath, partPath, relationship.Target);
+
+            if (!package.TryGet(target, out _))
+                throw new ThreeMFCoreException(
+                    $"The 3D model relationship '{relationship.Id}' declared in '{relsPath}' "
+                    + $"targets the part '{target}', which is not present in the package."
+                );
+
+            linked.Add(target);
+        }
+
+        return linked;
+    }
+
+    /// <summary>
+    /// Resolves a relationship target to a normalized package part path: absolute
+    /// targets (leading <c>/</c>) name package parts directly, relative targets are
+    /// resolved against the directory of the source part.
+    /// </summary>
+    static string ResolveRelationshipTarget(string relsPath, string sourcePartPath, string target) {
+        if (string.IsNullOrWhiteSpace(target))
+            throw new ThreeMFPackageException(
+                $"A relationship declared in '{relsPath}' has an empty target."
+            );
+
+        if (target.Contains("://", StringComparison.Ordinal))
+            throw new ThreeMFPackageException(
+                $"The relationship target '{target}' declared in '{relsPath}' is an external URI "
+                + "and cannot reference a package part."
+            );
+
+        var segments = new List<string>();
+
+        if (target[0] != '/') {
+            var separator = sourcePartPath.LastIndexOf('/');
+
+            if (separator > 0)
+                segments.AddRange(sourcePartPath[..separator].Split('/'));
+        }
+
+        foreach (var segment in target.Split('/')) {
+            switch (segment) {
+                case "" or ".":
+                    continue;
+                case "..":
+                    if (segments.Count == 0)
+                        throw new ThreeMFPackageException(
+                            $"The relationship target '{target}' declared in '{relsPath}' escapes the package root."
+                        );
+
+                    segments.RemoveAt(segments.Count - 1);
+                    break;
+                default:
+                    segments.Add(segment);
+                    break;
+            }
+        }
+
+        return string.Join("/", segments);
+    }
+
+    static Model ParseModelXml(string path, ReadOnlyMemory<byte> xml, ThreeMFValidationMode validationMode) {
         try {
             using var stream = new MemoryStream(xml.ToArray(), writable: false);
             using var reader = XmlReader.Create(stream, Settings);
@@ -85,12 +245,7 @@ internal static class CoreParser {
                 );
             }
 
-            var model = ReadModel(reader, validationMode);
-
-            if (validationMode is ThreeMFValidationMode.Standard)
-                ValidateReferences(model);
-
-            return new Core { PartPath = path, Models = [model], MainModel = model };
+            return ReadModel(reader, validationMode);
         } catch (XmlException e) {
             throw new ThreeMFCoreException($"The model part '{path}' is not well-formed XML.", e);
         }
@@ -270,6 +425,7 @@ internal static class CoreParser {
             components.Add(new Component {
                 ObjectId = ParseResourceID(RequireAttribute(child, "objectid", "component")),
                 Transform = ParseTransform(child.GetAttribute("transform")),
+                PartPath = NormalizeComponentPath(child.GetAttribute("path", ProductionNamespace)),
             });
 
             child.Skip();
@@ -323,41 +479,96 @@ internal static class CoreParser {
             reader.Read();
     }
 
-    static void ValidateReferences(Model model) {
-        var objects = new Dictionary<int, Object>();
+    static void ValidateReferences(ThreeMFPackage package, IReadOnlyList<(string Path, Model Model)> parts) {
+        var modelsByPath = new Dictionary<string, Model>(StringComparer.Ordinal);
 
-        foreach (var obj in model.Resources.Objects) {
-            if (!objects.TryAdd(obj.Id, obj))
-                throw new ThreeMFCoreException($"Duplicate object resource id {obj.Id}.");
-        }
+        foreach (var (path, model) in parts)
+            modelsByPath[path] = model;
 
-        foreach (var obj in objects.Values) {
-            foreach (var component in obj.Components) {
-                if (!objects.TryGetValue(component.ObjectId, out var referenced))
+        foreach (var (_, model) in parts) {
+            var objects = new Dictionary<int, Object>();
+
+            foreach (var obj in model.Resources.Objects) {
+                if (!objects.TryAdd(obj.Id, obj))
+                    throw new ThreeMFCoreException($"Duplicate object resource id {obj.Id}.");
+            }
+
+            foreach (var obj in objects.Values) {
+                foreach (var component in obj.Components) {
+                    var referenced = ResolveComponentReference(package, modelsByPath, objects, obj, component);
+
+                    if (referenced.Type is not ObjectType.Other)
+                        continue;
+
                     throw new ThreeMFCoreException(
-                        $"A component of object {obj.Id} references the unknown object {component.ObjectId}."
+                        component.PartPath is null
+                            ? $"A component of object {obj.Id} references object {referenced.Id}, "
+                              + "which is of type 'other' and cannot be referenced."
+                            : $"A component of object {obj.Id} references object {referenced.Id} in the model "
+                              + $"part '{component.PartPath}', which is of type 'other' and cannot be referenced."
+                    );
+                }
+            }
+
+            foreach (var item in model.Build.Items) {
+                if (!objects.TryGetValue(item.ObjectId, out var referenced))
+                    throw new ThreeMFCoreException(
+                        $"A build item references the unknown object {item.ObjectId}."
                     );
 
                 if (referenced.Type is ObjectType.Other)
                     throw new ThreeMFCoreException(
-                        $"A component of object {obj.Id} references object {referenced.Id}, "
-                        + "which is of type 'other' and cannot be referenced."
+                        $"A build item references object {referenced.Id}, "
+                        + "which is of type 'other' and cannot be built."
                     );
             }
         }
+    }
 
-        foreach (var item in model.Build.Items) {
-            if (!objects.TryGetValue(item.ObjectId, out var referenced))
+    /// <summary>
+    /// Resolves a component reference: against the model of the part named by the
+    /// production <c>p:path</c> attribute when present, against the local model
+    /// otherwise.
+    /// </summary>
+    static Object ResolveComponentReference(
+        ThreeMFPackage package,
+        IReadOnlyDictionary<string, Model> modelsByPath,
+        Dictionary<int, Object> localObjects,
+        Object obj,
+        Component component
+    ) {
+        if (component.PartPath is null) {
+            if (!localObjects.TryGetValue(component.ObjectId, out var local))
                 throw new ThreeMFCoreException(
-                    $"A build item references the unknown object {item.ObjectId}."
+                    $"A component of object {obj.Id} references the unknown object {component.ObjectId}."
                 );
 
-            if (referenced.Type is ObjectType.Other)
-                throw new ThreeMFCoreException(
-                    $"A build item references object {referenced.Id}, "
-                    + "which is of type 'other' and cannot be built."
+            return local;
+        }
+
+        if (!modelsByPath.TryGetValue(component.PartPath, out var targetModel)) {
+            throw package.Contains(component.PartPath)
+                ? new ThreeMFCoreException(
+                    $"A component of object {obj.Id} references the model part '{component.PartPath}', "
+                    + "which is not linked by a 3D model relationship."
+                )
+                : new ThreeMFCoreException(
+                    $"A component of object {obj.Id} references the model part '{component.PartPath}', "
+                    + "which is not present in the package."
                 );
         }
+
+        if (!targetModel.Resources.TryGetObject(component.ObjectId, out var referenced))
+            throw new ThreeMFCoreException(
+                $"A component of object {obj.Id} references the unknown object {component.ObjectId} "
+                + $"in the model part '{component.PartPath}'."
+            );
+
+        return referenced;
+    }
+
+    static string? NormalizeComponentPath(string? value) {
+        return string.IsNullOrWhiteSpace(value) ? null : value.TrimStart('/');
     }
 
     static Unit ParseUnit(string? value) {

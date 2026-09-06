@@ -8,6 +8,7 @@
 *.DotSettings.user
 .VSCodeCounter
 .output/
+.test/
 
 run/.manila
 run/.env

@@ -21,8 +21,9 @@ internal static class BambuSignatures {
     /// <summary>
     /// Determines whether the files carry any explicit Bambu producer signature: the
     /// Bambu <c>Metadata/</c> config parts, an <c>X-BBL-*</c> client marker in the
-    /// header items (key/value text or <c>&lt;header_item&gt;</c> XML form), or
-    /// Bambu/BBL markers in the 3D model metadata.
+    /// <c>Metadata/header_item</c> part or the <c>&lt;header&gt;</c> section of
+    /// <c>Metadata/slice_info.config</c>, or Bambu/BBL markers in the 3D model
+    /// metadata.
     /// </summary>
     public static bool HasProducerSignature(IReadOnlyDictionary<string, ReadOnlyMemory<byte>> files) {
         ArgumentNullException.ThrowIfNull(files);
@@ -30,6 +31,7 @@ internal static class BambuSignatures {
         return files.ContainsKey(BambuParts.ProjectSettingsPart)
             || files.ContainsKey(BambuParts.ModelSettingsPart)
             || HasClientMarkerHeader(files)
+            || HasClientMarkerSliceInfo(files)
             || HasProducerModelMetadata(files);
     }
 
@@ -53,6 +55,17 @@ internal static class BambuSignatures {
 
     static bool HasClientMarkerHeader(IReadOnlyDictionary<string, ReadOnlyMemory<byte>> files) {
         return files.TryGetValue(BambuParts.HeaderItemPart, out var bytes)
+            && BambuParts.ParseHeaderItems(BambuParts.ReadText(bytes)).Keys.Any(IsClientMarkerKey);
+    }
+
+    /// <summary>
+    /// Determines whether <c>Metadata/slice_info.config</c> declares an
+    /// <c>X-BBL-*</c> client marker. Conservative: a slice info part without Bambu
+    /// client markers never classifies the package as Bambu, and malformed XML yields
+    /// no signature because probing must never throw.
+    /// </summary>
+    static bool HasClientMarkerSliceInfo(IReadOnlyDictionary<string, ReadOnlyMemory<byte>> files) {
+        return files.TryGetValue(BambuParts.SliceInfoPart, out var bytes)
             && BambuParts.ParseHeaderItems(BambuParts.ReadText(bytes)).Keys.Any(IsClientMarkerKey);
     }
 

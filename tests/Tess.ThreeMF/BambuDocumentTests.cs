@@ -116,6 +116,57 @@ public class BambuDocumentTests {
         </config>
         """;
 
+    // Mirrors Metadata/slice_info.config of .test/NeonTower.3mf and .test/NeonTower.gcode.3mf.
+    const string SliceInfoPart = """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <config>
+          <header>
+            <header_item key="X-BBL-Client-Type" value="slicer"/>
+            <header_item key="X-BBL-Client-Version" value="02.08.02.60"/>
+          </header>
+        </config>
+        """;
+
+    const string GenericSliceInfoPart = """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <config>
+          <header>
+            <header_item key="Client-Type" value="other-slicer"/>
+          </header>
+          <plate>
+            <metadata key="index" value="1"/>
+          </plate>
+        </config>
+        """;
+
+    // Mirrors the <plate> section of Metadata/model_settings.config in .test/NeonTower.3mf (unsliced).
+    const string KeyValueModelSettingsPart = """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <config>
+          <plate>
+            <metadata key="plater_id" value="1"/>
+            <metadata key="plater_name" value=""/>
+            <metadata key="locked" value="false"/>
+            <metadata key="filament_maps" value="1 1 1 1 1 1"/>
+            <metadata key="thumbnail_file" value="Metadata/plate_1.png"/>
+            <metadata key="top_file" value="Metadata/top_1.png"/>
+            <metadata key="pick_file" value="Metadata/pick_1.png"/>
+          </plate>
+        </config>
+        """;
+
+    // Mirrors the <plate> section of Metadata/model_settings.config in .test/NeonTower.gcode.3mf (sliced).
+    const string SlicedKeyValueModelSettingsPart = """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <config>
+          <plate>
+            <metadata key="plater_id" value="1"/>
+            <metadata key="gcode_file" value="Metadata/plate_1.gcode"/>
+            <metadata key="thumbnail_file" value="Metadata/plate_1.png"/>
+          </plate>
+        </config>
+        """;
+
     [Fact]
     public void Deserialize_BambuProject_DetectsExactBambuDocument() {
         using var stream = CreateArchive(BambuProjectFiles());
@@ -451,6 +502,120 @@ public class BambuDocumentTests {
 
         Assert.IsAssignableFrom<ThreeMFFormatException>(exception);
         Assert.Contains("plate index", exception.Message);
+    }
+
+    [Fact]
+    public void Deserialize_SliceInfoHeaderFallback_ProvidesClientValues() {
+        using var stream = CreateArchive(new Dictionary<string, byte[]> {
+            ["_rels/.rels"] = Text(RelationshipsPart),
+            [ModelPartPath] = Text(GenericModel),
+            ["Metadata/slice_info.config"] = Text(SliceInfoPart),
+        });
+
+        var bambu = Assert.IsType<BambuThreeMFDocument>(ThreeMFSerializer.Deserialize(stream));
+
+        Assert.DoesNotContain("Metadata/header_item", bambu.Files.Keys);
+        Assert.Equal("slicer", bambu.Project.Header.ClientType);
+        Assert.Equal("02.08.02.60", bambu.Project.Header.ClientVersion);
+        Assert.Equal(2, bambu.Project.Header.Items.Count);
+    }
+
+    [Fact]
+    public void Deserialize_SliceInfoWithoutClientMarkers_RemainsStandardDocument() {
+        using var stream = CreateArchive(new Dictionary<string, byte[]> {
+            ["_rels/.rels"] = Text(RelationshipsPart),
+            [ModelPartPath] = Text(GenericModel),
+            ["Metadata/slice_info.config"] = Text(GenericSliceInfoPart),
+        });
+
+        Assert.IsType<ThreeMFDocument>(ThreeMFSerializer.Deserialize(stream));
+    }
+
+    [Fact]
+    public void Deserialize_HeaderItemPart_WinsOverSliceInfoHeader() {
+        using var stream = CreateArchive(new Dictionary<string, byte[]> {
+            ["_rels/.rels"] = Text(RelationshipsPart),
+            [ModelPartPath] = Text(GenericModel),
+            ["Metadata/header_item"] = Text(HeaderItemPart),
+            ["Metadata/slice_info.config"] = Text(SliceInfoPart),
+        });
+
+        var bambu = Assert.IsType<BambuThreeMFDocument>(ThreeMFSerializer.Deserialize(stream));
+
+        Assert.Equal("bambu-studio", bambu.Project.Header.ClientType);
+        Assert.Equal("01.09.05.51", bambu.Project.Header.ClientVersion);
+    }
+
+    [Fact]
+    public void Deserialize_ModelSettingsKeyValueMetadata_UsesPlaterIdAndRawValues() {
+        using var stream = CreateArchive(new Dictionary<string, byte[]> {
+            ["_rels/.rels"] = Text(RelationshipsPart),
+            [ModelPartPath] = Text(GenericModel),
+            ["Metadata/model_settings.config"] = Text(KeyValueModelSettingsPart),
+            ["Metadata/plate_1.png"] = [0x89, 0x50, 0x4E, 0x47],
+        });
+
+        var bambu = Assert.IsType<BambuThreeMFDocument>(ThreeMFSerializer.Deserialize(stream));
+
+        var plate = Assert.Single(bambu.Plates);
+        Assert.Equal(1, plate.Index);
+        Assert.Equal("", plate.Name);
+        Assert.Empty(plate.Objects);
+        Assert.Null(plate.GCodePart);
+        Assert.Equal("1", plate.Config["plater_id"]);
+        Assert.Equal("", plate.Config["plater_name"]);
+        Assert.Equal("Metadata/plate_1.png", plate.Config["thumbnail_file"]);
+        Assert.Equal("Metadata/pick_1.png", plate.Config["pick_file"]);
+        Assert.Equal("1", bambu.Project.ModelSettings.PlateConfigs[1]["plater_id"]);
+        Assert.NotNull(plate.Thumbnail);
+        Assert.Equal("Metadata/plate_1.png", plate.Thumbnail!.PartPath);
+    }
+
+    [Fact]
+    public void Deserialize_ModelSettingsGCodeFile_MirrorsSlicedFixture() {
+        using var stream = CreateArchive(new Dictionary<string, byte[]> {
+            ["_rels/.rels"] = Text(RelationshipsPart),
+            [ModelPartPath] = Text(GenericModel),
+            ["Metadata/slice_info.config"] = Text(SliceInfoPart),
+            ["Metadata/model_settings.config"] = Text(SlicedKeyValueModelSettingsPart),
+            ["Metadata/plate_1.gcode"] = Text("; sliced gcode"),
+        });
+
+        var gcode = Assert.IsType<BambuGCodeThreeMFDocument>(ThreeMFSerializer.Deserialize(stream));
+
+        Assert.Equal("slicer", gcode.Project.Header.ClientType);
+
+        var plate = Assert.Single(gcode.Plates);
+        Assert.Equal(1, plate.Index);
+        Assert.Equal("Metadata/plate_1.gcode", plate.GCodePart);
+        Assert.Equal(["Metadata/plate_1.gcode"], gcode.PrintJob.GCodeParts);
+    }
+
+    [Fact]
+    public void Deserialize_ModelSettingsGCodeFile_DrivesAssociationBeyondFileNaming() {
+        // Like the sliced fixture, but the gcode_file path deliberately deviates from
+        // the Metadata/plate_<n>.gcode naming to prove the metadata association.
+        const string modelSettings = """
+            <?xml version="1.0" encoding="UTF-8"?>
+            <config>
+              <plate>
+                <metadata key="plater_id" value="2"/>
+                <metadata key="gcode_file" value="Metadata/custom_output.gcode"/>
+              </plate>
+            </config>
+            """;
+        using var stream = CreateArchive(new Dictionary<string, byte[]> {
+            ["_rels/.rels"] = Text(RelationshipsPart),
+            [ModelPartPath] = Text(GenericModel),
+            ["Metadata/model_settings.config"] = Text(modelSettings),
+            ["Metadata/custom_output.gcode"] = Text("; sliced gcode"),
+        });
+
+        var bambu = Assert.IsType<BambuThreeMFDocument>(ThreeMFSerializer.Deserialize(stream));
+
+        var plate = Assert.Single(bambu.Plates);
+        Assert.Equal(2, plate.Index);
+        Assert.Equal("Metadata/custom_output.gcode", plate.GCodePart);
     }
 
     [Fact]

@@ -4,6 +4,8 @@ namespace Shiron.Lib.Tess.ThreeMF;
 /// Represents the header items of a Bambu 3MF package, parsed from the
 /// <c>Metadata/header_item</c> part in either its key/value text form or its XML
 /// form, e.g. <c>&lt;header_item key="X-BBL-Client-Type" value="slicer"/&gt;</c>.
+/// When that part is absent, the same <c>&lt;header_item&gt;</c> elements are read
+/// from the <c>&lt;header&gt;</c> section of <c>Metadata/slice_info.config</c>.
 /// </summary>
 public sealed class BambuHeader {
     internal const string ClientTypeKey = "X-BBL-Client-Type";
@@ -35,7 +37,8 @@ public sealed class BambuHeader {
 public sealed class BambuModelSettings {
     /// <summary>
     /// Gets the raw configuration map of every plate declared in the config, keyed by
-    /// plate index. Plate attributes and <c>&lt;metadata type="..."&gt;</c> children are
+    /// plate index. Plate attributes and <c>&lt;metadata&gt;</c> children in both the
+    /// <c>type</c>/element-text and <c>key</c>/<c>value</c>-attribute forms are
     /// merged into each map. Empty when the package does not contain the part.
     /// </summary>
     public required IReadOnlyDictionary<int, IReadOnlyDictionary<string, string>> PlateConfigs { get; init; }
@@ -71,7 +74,8 @@ public sealed class BambuPlate {
     /// <summary>
     /// Gets the part path of the sliced G-code embedded for this plate, e.g.
     /// <c>Metadata/plate_1.gcode</c>, or <see langword="null"/> when the plate is
-    /// unsliced.
+    /// unsliced. Associated through the <c>gcode_file</c> plate metadata when
+    /// declared, otherwise through the file naming convention.
     /// </summary>
     public string? GCodePart { get; init; }
 
@@ -152,8 +156,9 @@ public sealed class BambuProject {
 
     /// <summary>
     /// Gets the header items parsed from <c>Metadata/header_item</c>, in either the
-    /// key/value text or the <c>&lt;header_item&gt;</c> XML form. Empty when the
-    /// package does not contain the part.
+    /// key/value text or the <c>&lt;header_item&gt;</c> XML form, falling back to the
+    /// <c>&lt;header&gt;</c> section of <c>Metadata/slice_info.config</c> when the
+    /// dedicated part is absent. Empty when the package contains neither part.
     /// </summary>
     public required BambuHeader Header { get; init; }
 
