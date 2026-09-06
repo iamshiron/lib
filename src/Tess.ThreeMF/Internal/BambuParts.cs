@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Xml;
 
@@ -75,7 +76,9 @@ internal static class BambuParts {
     /// Decodes raw part bytes as text, honoring a byte order mark when present.
     /// </summary>
     public static string ReadText(ReadOnlyMemory<byte> bytes) {
-        using var stream = new MemoryStream(bytes.ToArray(), writable: false);
+        using var stream = MemoryMarshal.TryGetArray(bytes, out var segment)
+            ? new MemoryStream(segment.Array!, segment.Offset, segment.Count, writable: false, publiclyVisible: true)
+            : new MemoryStream(bytes.ToArray(), writable: false);
         using var reader = new StreamReader(stream, detectEncodingFromByteOrderMarks: true);
 
         return reader.ReadToEnd();

@@ -649,6 +649,136 @@ public class BambuDocumentTests {
         Assert.DoesNotContain("Metadata/notes.txt", document.Files.Keys);
     }
 
+    // Mirrors the header block of Metadata/plate_1.gcode in .test/NeonTower.gcode.3mf.
+    const string PlateGCode = """
+        ; HEADER_BLOCK_START
+        ; BambuStudio 02.08.02.60
+        ; model printing time: 4d 15h 49m 58s; total estimated time: 4d 15h 56m 51s
+        ; total layer number: 2206
+        ; HEADER_BLOCK_END
+        """;
+
+    [Fact]
+    public void Deserialize_SlicedPlate_ExposesRawGCodeHeaderText() {
+        var files = BambuProjectFiles();
+        files["Metadata/plate_1.gcode"] = Text(PlateGCode);
+        using var stream = CreateArchive(files);
+
+        var document = ThreeMFSerializer.Deserialize(stream);
+
+        var plate = Assert.Single(
+            Assert.IsType<BambuGCodeThreeMFDocument>(document).Plates,
+            plate => plate.GCode is not null
+        );
+
+        Assert.NotNull(plate.GCode);
+        Assert.Equal(PlateGCode, plate.GCode);
+        Assert.StartsWith("; HEADER_BLOCK_START", plate.GCode);
+        Assert.Contains("; BambuStudio 02.08.02.60", plate.GCode);
+    }
+
+    [Fact]
+    public void Deserialize_SlicedPlate_MapsRawGCodeByPlateIndex() {
+        var files = BambuProjectFiles();
+        files["Metadata/plate_1.gcode"] = Text(PlateGCode);
+        using var stream = CreateArchive(files);
+
+        var gcode = Assert.IsType<BambuGCodeThreeMFDocument>(ThreeMFSerializer.Deserialize(stream));
+
+        var entry = Assert.Single(gcode.PrintJob.GCodeByPlate);
+        Assert.Equal(1, entry.Key);
+        Assert.Equal(PlateGCode, entry.Value);
+        Assert.Equal(gcode.Plates[0].GCode, gcode.PrintJob.GCodeByPlate[1]);
+        Assert.Equal(["Metadata/plate_1.gcode"], gcode.PrintJob.GCodeParts);
+    }
+
+    [Fact]
+    public void Deserialize_MultiPlate_AssociatesRawGCodeFromNamingAndMetadata() {
+        const string modelSettings = """
+            <?xml version="1.0" encoding="UTF-8"?>
+            <config>
+              <plate index="1" name="First" />
+              <plate index="2" name="Second">
+                <metadata key="gcode_file" value="Metadata/plate_2.gcode"/>
+              </plate>
+            </config>
+            """;
+        using var stream = CreateArchive(new Dictionary<string, byte[]> {
+            ["_rels/.rels"] = Text(RelationshipsPart),
+            [ModelPartPath] = Text(BambuModel),
+            ["Metadata/model_settings.config"] = Text(modelSettings),
+            ["Metadata/plate_1.gcode"] = Text("; gcode one"),
+            ["Metadata/plate_2.gcode"] = Text("; gcode two"),
+        });
+
+        var gcode = Assert.IsType<BambuGCodeThreeMFDocument>(ThreeMFSerializer.Deserialize(stream));
+
+        Assert.Equal(["Metadata/plate_1.gcode", "Metadata/plate_2.gcode"], gcode.PrintJob.GCodeParts);
+        Assert.Equal(2, gcode.PrintJob.GCodeByPlate.Count);
+        Assert.Equal("; gcode one", gcode.PrintJob.GCodeByPlate[1]);
+        Assert.Equal("; gcode two", gcode.PrintJob.GCodeByPlate[2]);
+        Assert.Equal("; gcode two", gcode.Plates[1].GCode);
+    }
+
+    [Fact]
+    public void Deserialize_ConfiguredGCodeFileMissing_ThrowsBambuFormat() {
+        const string modelSettings = """
+            <?xml version="1.0" encoding="UTF-8"?>
+            <config>
+              <plate>
+                <metadata key="plater_id" value="1"/>
+                <metadata key="gcode_file" value="Metadata/plate_1.gcode"/>
+              </plate>
+            </config>
+            """;
+        using var stream = CreateArchive(new Dictionary<string, byte[]> {
+            ["_rels/.rels"] = Text(RelationshipsPart),
+            [ModelPartPath] = Text(BambuModel),
+            ["Metadata/model_settings.config"] = Text(modelSettings),
+        });
+
+        var exception = Assert.Throws<BambuFormatException>(
+            () => ThreeMFSerializer.Deserialize(stream)
+        );
+
+        Assert.IsAssignableFrom<ThreeMFFormatException>(exception);
+        Assert.Contains("gcode_file", exception.Message);
+        Assert.Contains("Metadata/plate_1.gcode", exception.Message);
+    }
+
+    [Fact]
+    public void Deserialize_UnslicedPlates_YieldNullGCodeState() {
+        using var stream = CreateArchive(BambuProjectFiles());
+
+        var bambu = Assert.IsType<BambuThreeMFDocument>(ThreeMFSerializer.Deserialize(stream));
+
+        Assert.NotEmpty(bambu.Plates);
+
+        foreach (var plate in bambu.Plates) {
+            Assert.Null(plate.GCodePart);
+            Assert.Null(plate.GCode);
+        }
+    }
+
+    [Fact]
+    public void RoundTrip_PreservesRawGCodeText() {
+        var files = BambuProjectFiles();
+        files["Metadata/plate_1.gcode"] = Text(PlateGCode);
+
+        using var source = CreateArchive(files);
+        var gcode = Assert.IsType<BambuGCodeThreeMFDocument>(ThreeMFSerializer.Deserialize(source));
+
+        using var target = new MemoryStream();
+        ThreeMFSerializer.Serialize(target, gcode);
+
+        using var reparsedStream = new MemoryStream(target.ToArray());
+        var reparsed = Assert.IsType<BambuGCodeThreeMFDocument>(ThreeMFSerializer.Deserialize(reparsedStream));
+
+        Assert.Equal(PlateGCode, reparsed.Plates[0].GCode);
+        Assert.Equal(PlateGCode, reparsed.PrintJob.GCodeByPlate[1]);
+        Assert.Equal(gcode.PrintJob.GCodeParts, reparsed.PrintJob.GCodeParts);
+    }
+
     static Dictionary<string, byte[]> BambuProjectFiles() {
         return new Dictionary<string, byte[]> {
             ["[Content_Types].xml"] = Text(ContentTypesPart),

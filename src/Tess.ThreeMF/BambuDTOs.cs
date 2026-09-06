@@ -80,6 +80,14 @@ public sealed class BambuPlate {
     public string? GCodePart { get; init; }
 
     /// <summary>
+    /// Gets the decoded text of the plate's sliced G-code part, i.e. the content of
+    /// <see cref="GCodePart"/>, or <see langword="null"/> when the plate is unsliced
+    /// or carries no G-code. The text is exposed raw and verbatim; it is not parsed
+    /// into a semantic G-code model.
+    /// </summary>
+    public string? GCode { get; init; }
+
+    /// <summary>
     /// Gets the raw plate configuration map declared in
     /// <c>Metadata/model_settings.config</c>. Empty when the plate was detected from
     /// files only.
@@ -141,6 +149,13 @@ public sealed class BambuPrintJob {
     /// detected G-code document.
     /// </summary>
     public required IReadOnlyList<string> GCodeParts { get; init; }
+
+    /// <summary>
+    /// Gets the decoded raw G-code text of every sliced plate, keyed by plate index,
+    /// e.g. plate <c>1</c> to the text of <c>Metadata/plate_1.gcode</c>. Mirrors
+    /// <see cref="GCodeParts"/>; never empty for a detected G-code document.
+    /// </summary>
+    public required IReadOnlyDictionary<int, string> GCodeByPlate { get; init; }
 }
 
 /// <summary>

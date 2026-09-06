@@ -56,6 +56,9 @@ internal static class BambuProjectParser {
             Plates = plates,
             PrintJob = new BambuPrintJob {
                 GCodeParts = [.. plates.Select(plate => plate.GCodePart).OfType<string>()],
+                GCodeByPlate = plates
+                    .Where(plate => plate.GCode is not null)
+                    .ToDictionary(plate => plate.Index, plate => plate.GCode!),
             },
         };
     }
@@ -231,6 +234,8 @@ internal static class BambuProjectParser {
 
             if (reader.NodeType is XmlNodeType.EndElement)
                 reader.Read();
+        } else {
+            reader.Skip();
         }
 
         // Resolve the index last: real packages declare it as a <metadata type="index">
@@ -312,23 +317,31 @@ internal static class BambuProjectParser {
 
         // Real sliced packages associate the G-code through an explicit
         // <metadata key="gcode_file" value="..."/> plate child; it wins over the
-        // file naming convention.
+        // file naming convention. A configured path must resolve to a package part.
         foreach (var config in plateConfigs) {
-            if (config.Raw.GetValueOrDefault("gcode_file") is { Length: > 0 } gcodeFile)
+            if (config.Raw.GetValueOrDefault("gcode_file") is { Length: > 0 } gcodeFile) {
+                if (!files.ContainsKey(gcodeFile))
+                    throw new BambuFormatException(
+                        $"Plate {config.Index} declares gcode_file '{gcodeFile}', which is missing from the package."
+                    );
+
                 gcodePaths[config.Index] = gcodeFile;
+            }
         }
 
         var plates = new List<BambuPlate>();
 
         foreach (var index in indices) {
             var config = configsByIndex.GetValueOrDefault(index);
+            var gcodePart = gcodePaths.GetValueOrDefault(index);
 
             plates.Add(new BambuPlate {
                 Index = index,
                 Name = config?.Name,
                 Objects = config?.Objects ?? [],
                 Thumbnail = BuildThumbnail(files, index, imagePaths, smallImagePaths),
-                GCodePart = gcodePaths.GetValueOrDefault(index),
+                GCodePart = gcodePart,
+                GCode = gcodePart is null ? null : BambuParts.ReadText(files[gcodePart]),
                 Config = config?.Raw ?? EmptyConfig,
             });
         }
