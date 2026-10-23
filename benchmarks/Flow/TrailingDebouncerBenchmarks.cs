@@ -1,7 +1,7 @@
 using BenchmarkDotNet.Attributes;
 using Shiron.Lib.Flow;
 
-namespace Shiron.Lib.Benchmarks.Flow;
+namespace Shiron.Lib.Flow.Benchmarks;
 
 [MemoryDiagnoser]
 public class TrailingDebouncerBenchmarks {

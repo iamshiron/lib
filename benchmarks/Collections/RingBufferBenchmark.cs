@@ -2,7 +2,7 @@ using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Engines;
 using Shiron.Lib.Collections;
 
-namespace Shiron.Lib.Benchmarks.Collections;
+namespace Shiron.Lib.Collections.Benchmarks;
 
 [MemoryDiagnoser]
 [SimpleJob(RunStrategy.Throughput)]

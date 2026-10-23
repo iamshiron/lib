@@ -2,7 +2,7 @@ using Shiron.Lib.DockerUtils;
 using Shiron.Lib.DockerUtils.Model;
 using Xunit;
 
-namespace Shiron.Lib.Tests.DockerUtils;
+namespace Shiron.Lib.DockerUtils.Tests;
 
 public class ComposeReaderTests {
     private static Service ReadSingle(string yaml) {

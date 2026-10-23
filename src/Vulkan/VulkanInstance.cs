@@ -31,14 +31,33 @@ public sealed unsafe class VulkanInstance : IDisposable {
         _errorCallbackHandle = errorCallbackHandle;
     }
 
-    public void Dispose() {
-        if (_hasValidation) {
-            _debugUtils?.DestroyDebugUtilsMessenger(Instance, _debugMessenger, null);
+    private bool _messengerDestroyed;
 
-            if (_errorCallbackHandle != null && _errorCallbackHandle.Value.IsAllocated) {
-                _errorCallbackHandle.Value.Free();
-            }
+    /// <summary>
+    /// Destroys the debug-utils messenger and releases the pinned error callback. Idempotent.
+    /// </summary>
+    /// <remarks>
+    /// This must run while the logical device is still alive. The validation layer unregisters the
+    /// messenger from its per-device state during destruction; if the device dispatch table has
+    /// already been torn down (<c>vkDestroyDevice</c>), the layer fails the lookup and aborts the
+    /// process ("VkDevice dispatch handle was not found"). Callers therefore destroy the messenger
+    /// before the device, not as part of <see cref="Dispose"/>.
+    /// </remarks>
+    public void DestroyDebugMessenger() {
+        if (_messengerDestroyed || !_hasValidation) {
+            return;
         }
+        _messengerDestroyed = true;
+
+        _debugUtils?.DestroyDebugUtilsMessenger(Instance, _debugMessenger, null);
+
+        if (_errorCallbackHandle != null && _errorCallbackHandle.Value.IsAllocated) {
+            _errorCallbackHandle.Value.Free();
+        }
+    }
+
+    public void Dispose() {
+        DestroyDebugMessenger();
 
         if (Instance.Handle != 0) {
             _vk.DestroyInstance(Instance, null);

@@ -1,7 +1,7 @@
 using Shiron.Lib.Collections.Bucket;
 using Xunit;
 
-namespace Shiron.Lib.Tests.Collections;
+namespace Shiron.Lib.Collections.Tests;
 
 /// <summary>
 /// Contract tests shared by every <see cref="IBucketStore{TK}"/> implementation.

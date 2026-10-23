@@ -66,6 +66,12 @@ public sealed unsafe class VulkanSwapchain : IDisposable {
     }
 
     public void Dispose() {
+        // Destroy the per-image wrapper views (each VulkanImage wrapper owns its own view; the
+        // underlying swapchain VkImages are owned by the swapchain, not the wrappers).
+        foreach (var image in Images) {
+            image.Dispose();
+        }
+
         // Destroy image views
         foreach (var imageView in ImageViews) {
             if (imageView.Handle != 0) {

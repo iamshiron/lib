@@ -3,7 +3,7 @@ using Shiron.Lib.Logging.Renderer;
 using Shiron.Lib.Utils;
 using Xunit;
 
-namespace Shiron.Lib.Tests.Logging;
+namespace Shiron.Lib.Logging.Tests;
 
 public class ContextTests {
     private class TestRenderer : ILogRenderer {

@@ -3,7 +3,7 @@ using System.IO;
 using Shiron.Lib.Logging;
 using Shiron.Lib.Logging.Renderer;
 
-namespace Shiron.Samples.Misc;
+namespace Shiron.Lib.Misc.Samples;
 
 public class LogRenderer : ILogRenderer {
     private readonly TextWriter _output = Console.Out;

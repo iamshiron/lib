@@ -1,7 +1,7 @@
 using BenchmarkDotNet.Attributes;
 using Shiron.Lib.Utils;
 
-namespace Shiron.Lib.Benchmarks.Utils;
+namespace Shiron.Lib.Utils.Benchmarks;
 
 [MemoryDiagnoser]
 public class HashUtilsBenchmarks {

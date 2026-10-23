@@ -1,7 +1,7 @@
 
 using LiteNetLib;
 using Shiron.Lib.Networking;
-using Shiron.Samples.Networking.Common;
+using Shiron.Lib.Networking.Common.Samples;
 
 Console.Write("Enter Username: ");
 string? username = Console.ReadLine();
